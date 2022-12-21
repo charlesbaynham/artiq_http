@@ -1,0 +1,9 @@
+pytest
+coverage
+python-dotenv>=0.5.1
+black
+git+https://github.com/m-labs/sipyco.git
+numpy
+fastapi
+notebook
+jupytext
