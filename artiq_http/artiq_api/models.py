@@ -21,3 +21,12 @@ class ScheduleItem(BaseModel):
     status: str
     repo_msg: str
     expid: ExpID
+
+
+class ExperimentEntry(BaseModel):
+    name: str
+    file: str
+    class_name: str
+    arginfo: Dict[str, Any]
+    argument_ui: Optional[str]
+    scheduler_defaults: dict

@@ -1,4 +1,5 @@
 from typing import Dict
+from typing import List
 
 from fastapi import FastAPI
 from fastapi import HTTPException
@@ -56,3 +57,8 @@ async def cancel_experiment(rid: int, force: bool = False) -> None:
         raise HTTPException(404, f"RID {rid} not found in schedule")
 
     return api.control_schedule.cancel_experiment(rid, force)
+
+
+@app.get("/explist")
+async def get_explist() -> List[api.models.ExperimentEntry]:
+    return await api.notifiers.get_explist()

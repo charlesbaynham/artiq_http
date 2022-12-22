@@ -1,6 +1,8 @@
 from typing import Dict
+from typing import List
 
 from ._get_dict import get_dict
+from .models import ExperimentEntry
 from .models import ScheduleItem
 
 
@@ -33,3 +35,14 @@ async def get_datasets() -> dict:
         dict: All broadcasted ARTIQ datasets
     """
     return await get_dict("datasets")
+
+
+async def get_explist() -> List[ExperimentEntry]:
+    explist_raw = await get_dict("explist")
+
+    out = []
+    for name, data in explist_raw.items():
+        data["name"] = name
+        out.append(ExperimentEntry.parse_obj(data))
+
+    return out
