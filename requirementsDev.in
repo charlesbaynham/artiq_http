@@ -35,3 +35,5 @@ pip-tools
 
 # General debugging
 ipython
+notebook
+jupytext
