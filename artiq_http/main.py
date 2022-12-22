@@ -1,5 +1,9 @@
 from fastapi import FastAPI
+
+from . import patch_pydantic_numpy
 from .get_dict import get_dict
+
+
 app = FastAPI()
 
 SERVER = "labserver"

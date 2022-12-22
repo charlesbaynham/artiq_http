@@ -1,8 +1,5 @@
-
-
 import asyncio
 import logging
-
 
 from sipyco.sync_struct import Subscriber
 
