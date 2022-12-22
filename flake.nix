@@ -44,12 +44,16 @@
         fullVersion = "${versionNum}+${self.shortRev or "dirty-${self.lastModifiedDate}"}";
 
         artiq_http = mach-nix.lib."${system}".buildPythonPackage {
-          packagesExtra = [
-            sipyco # Ignore sipyco's flake outputs and build it ourselves
+          overridesPre = [
+            # Patch sipyco into nixpkgs
+            (final: prev: {
+              sipyco = sipyco.packages.${system}.sipyco;
+            })
           ];
           requirements = builtins.readFile ./requirements.in +
             # Append unlisted requirements for sipyco:
             ''
+              sipyco
               pybase64
               numpy
             '';
