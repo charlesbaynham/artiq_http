@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 from typing import Dict
+from typing import List
 from typing import Optional
 
 from pydantic import BaseModel
@@ -31,3 +32,9 @@ class ExperimentEntry(BaseModel):
     arginfo: Dict[str, Any]
     argument_ui: Optional[str]
     scheduler_defaults: dict
+
+
+class ExperimentList(BaseModel):
+    current_rev: Optional[str]
+    scanning: bool
+    experiments: List[ExperimentEntry] = []

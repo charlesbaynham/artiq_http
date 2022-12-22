@@ -60,7 +60,7 @@ async def cancel_experiment(rid: int, force: bool = False) -> None:
 
 
 @app.get("/explist")
-async def get_explist() -> List[api.models.ExperimentEntry]:
+async def get_explist() -> api.models.ExperimentList:
     return await api.notifiers.get_explist()
 
 

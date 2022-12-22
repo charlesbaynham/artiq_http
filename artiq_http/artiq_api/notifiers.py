@@ -3,6 +3,7 @@ from typing import List
 
 from ._get_dict import get_dict
 from .models import ExperimentEntry
+from .models import ExperimentList
 from .models import ScheduleItem
 
 
@@ -37,12 +38,17 @@ async def get_datasets() -> dict:
     return await get_dict("datasets")
 
 
-async def get_explist() -> List[ExperimentEntry]:
+async def get_explist() -> ExperimentList:
     explist_raw = await get_dict("explist")
+    status = await get_dict("explist_status")
 
-    out = []
+    experiment_list = []
     for name, data in explist_raw.items():
         data["name"] = name
-        out.append(ExperimentEntry.parse_obj(data))
+        experiment_list.append(ExperimentEntry.parse_obj(data))
 
-    return out
+    return ExperimentList(
+        current_rev=status["cur_rev"],
+        scanning=status["scanning"],
+        experiments=experiment_list,
+    )
