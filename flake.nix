@@ -32,7 +32,10 @@
 
   inputs.nixpkgs.follows = "mach-nix/nixpkgs";
 
-  outputs = { self, nixpkgs, flake-utils, mach-nix }:
+  inputs.sipyco.url = "github:m-labs/sipyco";
+  inputs.sipyco.inputs.nixpkgs.follows = "nixpkgs";
+
+  outputs = { self, nixpkgs, flake-utils, mach-nix, sipyco }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
@@ -41,7 +44,15 @@
         fullVersion = "${versionNum}+${self.shortRev or "dirty-${self.lastModifiedDate}"}";
 
         artiq_http = mach-nix.lib."${system}".buildPythonPackage {
-          requirements = builtins.readFile ./requirements.in;
+          packagesExtra = [
+            sipyco # Ignore sipyco's flake outputs and build it ourselves
+          ];
+          requirements = builtins.readFile ./requirements.in +
+            # Append unlisted requirements for sipyco:
+            ''
+              pybase64
+              numpy
+            '';
           src = self;
           version = fullVersion;
           PYTHON_VERSION_OVERRIDE = fullVersion;
