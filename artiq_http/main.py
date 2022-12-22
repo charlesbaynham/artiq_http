@@ -56,9 +56,26 @@ async def cancel_experiment(rid: int, force: bool = False) -> None:
     if rid not in schedule:
         raise HTTPException(404, f"RID {rid} not found in schedule")
 
-    return api.control_schedule.cancel_experiment(rid, force)
+    return await api.control_schedule.cancel_experiment(rid, force)
 
 
 @app.get("/explist")
 async def get_explist() -> List[api.models.ExperimentEntry]:
     return await api.notifiers.get_explist()
+
+
+@app.post("/schedule")
+async def submit_experiment(
+    expid: api.models.ExpID,
+    pipeline: str = "main",
+    priority: int = 0,
+    flush: bool = False,
+    due_date: float = None,
+) -> None:
+    return await api.control_schedule.submit_experiment(
+        expid,
+        pipeline,
+        priority,
+        flush,
+        due_date,
+    )

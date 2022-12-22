@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 from typing import Dict
 from typing import Optional
@@ -6,11 +7,11 @@ from pydantic import BaseModel
 
 
 class ExpID(BaseModel):
-    log_level: int
+    log_level: int = logging.WARNING
     file: str
     class_name: str
     arguments: Dict[str, Any]
-    repo_rev: str
+    repo_rev: Optional[str]
 
 
 class ScheduleItem(BaseModel):
