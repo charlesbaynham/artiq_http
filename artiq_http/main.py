@@ -1,6 +1,7 @@
 from typing import Dict
 
 from fastapi import FastAPI
+from fastapi import HTTPException
 
 from . import artiq_api as api
 from . import patch_pydantic_numpy
@@ -49,6 +50,9 @@ async def cancel_experiment(rid: int, force: bool = False) -> None:
         rid (int): RID of the experiment to cancel
         force (bool): If True, forcibly close the experiment instead of requesting closure
     """
-    # datasets = await
+    schedule = await api.notifiers.get_schedule()
+
+    if rid not in schedule:
+        raise HTTPException(404, f"RID {rid} not found in schedule")
 
     return api.control_schedule.cancel_experiment(rid, force)
