@@ -14,5 +14,6 @@
 # both requirements.txt and flake.lock are identical.
 
 # List packages here, e.g.:
-fastapi
+fastapi[standard]
+uvicorn
 pydantic

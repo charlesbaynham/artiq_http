@@ -7,12 +7,6 @@ import pytest
 import artiq_http
 
 
-def test_pass():
-    from artiq_http.hello import hello
-
-    hello()
-
-
 @pytest.mark.parametrize(
     "module_name",
     [
