@@ -17,7 +17,9 @@ def test_pass():
     "module_name",
     [
         name
-        for _, name, _ in pkgutil.walk_packages(artiq_http.__path__, artiq_http.__name__ + ".")
+        for _, name, _ in pkgutil.walk_packages(
+            artiq_http.__path__, artiq_http.__name__ + "."
+        )
     ],
 )
 def test_import_all_modules(module_name):
