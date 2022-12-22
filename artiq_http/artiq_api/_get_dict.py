@@ -3,10 +3,12 @@ import logging
 
 from sipyco.sync_struct import Subscriber
 
+from ..config import config
+
 logger = logging.getLogger(__name__)
 
 
-async def get_dict(host, notifier_name, port=3250, timeout=3.0):
+async def get_dict(notifier_name, timeout=3.0):
     """
     Get a dict that's being served from a Sipyco sync_strut :class:`.Notifier`
 
@@ -39,7 +41,7 @@ async def get_dict(host, notifier_name, port=3250, timeout=3.0):
         disconnect_cb=None,
     )
 
-    asyncio.create_task(subscriber.connect(host, port))
+    asyncio.create_task(subscriber.connect(config["host"], config["port_notifiers"]))
 
     try:
         logger.debug("Waiting for successful update")
