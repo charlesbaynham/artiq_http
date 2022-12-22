@@ -1,9 +1,10 @@
-import asyncio
 import logging
 import time
 
 from dateutil.parser import parse as parse_date
 from sipyco.pc_rpc import Client
+
+from ..config import config
 
 SERVER = "labserver"
 
@@ -29,8 +30,8 @@ async def submit_experiment(server, target_name, args, port=3251):
         remote.close_rpc()
 
 
-def cancel_experiment(server, rid, force=False, port=3251):
-    remote = Client(server, port, "master_schedule")
+def cancel_experiment(rid, force=False):
+    remote = Client(config["host"], config["port_clients"], "master_schedule")
     try:
         if not force:
             remote.request_termination(rid)
