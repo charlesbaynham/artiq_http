@@ -70,6 +70,9 @@
             }
           )
 
+          # For the webserver / static site generation
+          pkgs.nodejs
+
           # These packages are required for the pipeline:
           pkgs.git # needed for pre-commit
           pkgs.librsvg # needed for latex docs conversion of SVGs
