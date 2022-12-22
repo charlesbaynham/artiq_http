@@ -1,7 +1,10 @@
+from typing import Dict
+
 from fastapi import FastAPI
 
 from . import patch_pydantic_numpy
 from .artiq_api import notifiers
+from .artiq_api.models import ScheduleItem
 
 app = FastAPI()
 
@@ -12,12 +15,12 @@ async def root():
 
 
 @app.get("/schedule")
-async def get_schedule():
+async def get_schedule() -> Dict[int, ScheduleItem]:
     return await notifiers.get_schedule()
 
 
 @app.get("/devices")
-async def get_devices():
+async def get_devices() -> dict:
     """Get the current device_db
 
     Returns:

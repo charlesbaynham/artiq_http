@@ -1,8 +1,10 @@
+from typing import Dict
+
 from ._get_dict import get_dict
 from .models import ScheduleItem
 
 
-async def get_schedule():
+async def get_schedule() -> Dict[int, ScheduleItem]:
     """Get the current state of the ARTIQ schedule
 
     Returns:
