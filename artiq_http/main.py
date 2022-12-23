@@ -3,12 +3,26 @@ from typing import List
 
 from fastapi import FastAPI
 from fastapi import HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from . import artiq_api as api
 from . import patch_pydantic_numpy
 
-
 app = FastAPI()
+
+origins = [
+    "http://localhost",
+    "http://localhost:5172",
+    "http://localhost:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")
