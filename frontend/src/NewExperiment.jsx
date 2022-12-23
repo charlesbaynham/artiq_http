@@ -10,11 +10,9 @@ const TIMEOUT = 1000;
 function NewExperiment() {
     const [explist, setExplist] = React.useState({});
 
-    var exps = [];
-    if ("experiments" in explist) {
-        exps = explist['experiments']
-    }
-
+    const exps = ("experiments" in explist) ? explist['experiments'] : [];
+    const repo_rev = ("repo_rev" in explist) ? explist['repo_rev'] : null;
+    const scanning = ("scanning" in explist) ? Boolean(explist['scanning']) : null;
 
     React.useEffect(() => {
         // Update the schedule data now
@@ -30,7 +28,7 @@ function NewExperiment() {
     return <Accordion defaultActiveKey="0">
         {
             exps.map((e, ind) =>
-                <NewExperimentItem key={ind} data={e} />
+                <NewExperimentItem key={ind} data={e} repo_rev={repo_rev} />
             )
         }
     </Accordion>
