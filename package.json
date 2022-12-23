@@ -2,6 +2,7 @@
   "name": "artiq-http",
   "version": "0.0.1",
   "scripts": {
+    "install": "echo Do not use me, use \"nix develop\" instead!",
     "start": "cd frontend && npm start",
     "preview": "cd frontend && npm preview",
     "build": "cd frontend && npm build",
