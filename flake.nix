@@ -25,36 +25,17 @@
 {
   description = "A controller for ARTIQ which exposes ARTIQ's functionality as a RESTful API";
 
-  inputs = {
+  # For packaging
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-21.11";
+  inputs.flake-utils.url = "github:numtide/flake-utils";
+  inputs.mach-nix.url = "mach-nix/3.4.0";
 
-    # For packaging
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.05";
-    nixpkgs.follows = "pypi-deps-db/nixpkgs";
+  inputs.nixpkgs.follows = "mach-nix/nixpkgs";
 
-    flake-utils.url = "github:numtide/flake-utils";
+  inputs.sipyco.url = "github:m-labs/sipyco";
+  inputs.sipyco.inputs.nixpkgs.follows = "nixpkgs";
 
-    # Mach-nix is an extension to nix which allows you to build python
-    # environments reproducably while still fetching packages from nixpkgs and
-    # having fully-fledged dependency resolution.
-    mach-nix = {
-      url = "mach-nix";
-
-      # The "pypi-deps-db" is the static description of the latest packages
-      # available on PyPI. Because of how flakes work, if we want an up-to-date
-      # version of this (which we do) we need to specify it manually, otherwise
-      # we'll get the version that was locked most recently in mach-nix.
-      inputs.pypi-deps-db.follows = "pypi-deps-db";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # See above
-    pypi-deps-db.url = "github:DavHau/pypi-deps-db";
-
-    sipyco.url = "github:m-labs/sipyco";
-    sipyco.inputs.nixpkgs.follows = "nixpkgs";
-  };
-
-  outputs = { self, nixpkgs, flake-utils, mach-nix, sipyco, ... }:
+  outputs = { self, nixpkgs, flake-utils, mach-nix, sipyco }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
@@ -91,7 +72,6 @@
 
           # For the webserver / static site generation
           pkgs.nodejs
-          pkgs.node2nix
 
           # These packages are required for the pipeline:
           pkgs.git # needed for pre-commit
