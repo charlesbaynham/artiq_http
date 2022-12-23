@@ -41,13 +41,13 @@ function Schedule() {
         console.log(list2)
         console.log(rids)
 
-        const mapped = rids.map((k, i) => { <p>{i}</p> })
+        const mapped = rids.map((k, i) => { return <p>{i}</p> })
 
         console.log("mapped")
         console.log(mapped)
 
 
-        return <>{rids}</>
+        return <>{mapped}</>
     }
 
     return (

@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "scripts": {
     "install": "echo Do not use me, use \"nix develop\" instead!",
-    "start": "cd frontend && npm start",
+    "frontend": "cd frontend && npm start",
+    "backend": "uvicorn artiq_http.main:app --reload",
     "preview": "cd frontend && npm preview",
     "build": "cd frontend && npm build",
     "clean": "git clean -xdf --exclude venv --exclude node_modules --exclude .env"
