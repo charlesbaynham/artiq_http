@@ -17,6 +17,30 @@ export function cancel_rid(rid, force = false) {
         });
 }
 
+export function queue_experiment(file, class_name, repo_rev, args = {}, callback = null) {
+    const expid = {
+        "log_level": 30,
+        "file": file,
+        "class_name": class_name,
+        "arguments": args,
+        "repo_rev": repo_rev
+    }
+
+    fetch(make_query_url("submit", {}), {
+        method: "POST",
+        body: expid
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            if (callback) {
+                callback(data)
+            }
+        })
+        .catch((err) => {
+            console.log(err.message);
+        });
+}
+
 export function update_schedule(callback) {
     fetch('http://localhost:8000/schedule')
         .then((response) => response.json())
