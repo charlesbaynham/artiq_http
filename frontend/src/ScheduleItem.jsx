@@ -57,7 +57,7 @@ function ScheduleItemNew(props) {
                 </Table>
 
                 <Accordion>
-                    <Accordion.Item>
+                    <Accordion.Item eventKey="args">
                         <Accordion.Header>
                             Arguments &ensp; <em>(click to expand)</em>
                         </Accordion.Header>
