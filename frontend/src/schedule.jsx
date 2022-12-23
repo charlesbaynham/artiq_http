@@ -1,26 +1,38 @@
 import React from 'react';
 
 
+const TIMEOUT = 1000;
+
 function ScheduleItem(rid, data) {
     return <li key={rid}>
         ({rid}) - {data.expid.class_name}</li>
 }
 
 
+
 function Schedule() {
     const [exps, setExps] = React.useState({});
 
-    React.useEffect(() => {
+    const update_data = () => {
         fetch('http://localhost:8000/schedule')
             .then((response) => response.json())
             .then((data) => {
-                console.log("Received:")
-                console.log(data);
                 setExps(data);
             })
             .catch((err) => {
                 console.log(err.message);
             });
+    }
+
+    React.useEffect(() => {
+        // Update the schedule data now
+        update_data()
+
+        // ...and schedule updates every second
+        const interval = setInterval(() => update_data(), TIMEOUT);
+        return () => {
+            clearInterval(interval);
+        };
     }, []);
 
 
