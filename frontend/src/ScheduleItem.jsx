@@ -26,7 +26,20 @@ function BasicTable(props) {
 
 
 function ScheduleItemNew(props) {
-    console.log(props.data)
+    const rid = props.rid
+    const class_name = props.data.expid.class_name
+    const file = props.data.expid.file
+    const pipeline = props.data.pipeline
+    const status = props.data.status
+    const repo_rev = props.data.expid.repo_rev
+    const args = props.data.expid.arguments
+
+    const table_row = (name, entry) => (
+        <tr key={name}>
+            <td><b>{name}:</b></td>
+            <td>{entry}</td>
+        </tr>
+    )
 
     return (
         <Accordion.Item eventKey="0">
@@ -34,30 +47,12 @@ function ScheduleItemNew(props) {
             <Accordion.Body>
                 <Table striped bordered hover>
                     <tbody>
-                        <tr>
-                            <td><b>RID:</b></td>
-                            <td>{props.rid}</td>
-                        </tr>
-                        <tr>
-                            <td><b>Class name:</b></td>
-                            <td>{props.data.expid.class_name}</td>
-                        </tr>
-                        <tr>
-                            <td><b>File:</b></td>
-                            <td>{props.data.expid.file}</td>
-                        </tr>
-                        <tr>
-                            <td><b>Repo rev:</b></td>
-                            <td>{props.data.expid.repo_rev}</td>
-                        </tr>
-                        <tr>
-                            <td><b>Pipeline:</b></td>
-                            <td>{props.data.pipeline}</td>
-                        </tr>
-                        <tr>
-                            <td><b>Status:</b></td>
-                            <td><em>{props.data.status}</em></td>
-                        </tr>
+                        {table_row("RID", rid)}
+                        {table_row("Class name", class_name)}
+                        {table_row("File", file)}
+                        {table_row("Repo rev", repo_rev)}
+                        {table_row("Pipeline", pipeline)}
+                        {table_row("Status", <em>{status}</em>)}
                     </tbody>
                 </Table>
 
@@ -67,7 +62,15 @@ function ScheduleItemNew(props) {
                             Arguments <em>(click to expand)</em>
                         </Accordion.Header>
                         <Accordion.Body>
-                            Hello
+                            <Table striped bordered hover>
+                                <tbody>
+                                    {
+                                        Object.keys(args).map(
+                                            (arg_name) => table_row(arg_name, String(args[arg_name]))
+                                        )
+                                    }
+                                </tbody>
+                            </Table>
                         </Accordion.Body>
                     </Accordion.Item>
                 </Accordion>
