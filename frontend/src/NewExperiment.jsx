@@ -1,4 +1,7 @@
 import React from 'react';
+import Accordion from 'react-bootstrap/Accordion';
+
+import NewExperimentItem from './NewExperimentItem';
 
 import { update_explist } from './api_features'
 
@@ -24,9 +27,13 @@ function NewExperiment() {
         };
     }, []);
 
-    return <>
-        {exps.map((e) => (<p>{e.name}</p>))}
-    </>
+    return <Accordion defaultActiveKey="0">
+        {
+            exps.map((e, ind) =>
+                <NewExperimentItem key={ind} data={e} />
+            )
+        }
+    </Accordion>
 }
 
 export default NewExperiment;
