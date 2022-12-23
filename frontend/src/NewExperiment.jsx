@@ -1,45 +1,32 @@
 import React from 'react';
-import Accordion from 'react-bootstrap/Accordion';
-import ScheduleItemNew from './ScheduleItem';
+
+import { update_explist } from './api_features'
 
 const TIMEOUT = 1000;
 
 function NewExperiment() {
-    const [exps, setExps] = React.useState({});
+    const [explist, setExplist] = React.useState({});
 
-    const update_data = () => {
-        fetch('http://localhost:8000/schedule')
-            .then((response) => response.json())
-            .then((data) => {
-                setExps(data);
-            })
-            .catch((err) => {
-                console.log(err.message);
-            });
+    var exps = [];
+    if ("experiments" in explist) {
+        exps = explist['experiments']
     }
+
 
     React.useEffect(() => {
         // Update the schedule data now
-        update_data()
+        update_explist(setExplist)
 
         // ...and schedule updates every second
-        const interval = setInterval(() => update_data(), TIMEOUT);
+        const interval = setInterval(() => update_explist(setExplist), TIMEOUT);
         return () => {
             clearInterval(interval);
         };
     }, []);
 
-
-
-    return (
-        <Accordion defaultActiveKey="0">
-            {
-                Object.keys(exps).map((rid) =>
-                    <ScheduleItemNew key={rid} rid={rid} data={exps[rid]} />
-                )
-            }
-        </Accordion>
-    )
+    return <>
+        {exps.map((e) => (<p>{e.name}</p>))}
+    </>
 }
 
 export default NewExperiment;

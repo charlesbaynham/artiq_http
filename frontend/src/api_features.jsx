@@ -28,4 +28,16 @@ export function update_schedule(callback) {
         });
 }
 
+export function update_explist(callback) {
+    fetch('http://localhost:8000/explist')
+        .then((response) => response.json())
+        .then((data) => {
+            console.log(data)
+            callback(data);
+        })
+        .catch((err) => {
+            console.log(err.message);
+        });
+}
+
 export default null;

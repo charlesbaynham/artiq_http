@@ -9,8 +9,6 @@ const TIMEOUT = 1000;
 function Schedule() {
     const [exps, setExps] = React.useState({});
 
-
-
     React.useEffect(() => {
         // Update the schedule data now
         update_schedule(setExps)
@@ -21,8 +19,6 @@ function Schedule() {
             clearInterval(interval);
         };
     }, []);
-
-
 
     return (
         <Accordion defaultActiveKey="0">
