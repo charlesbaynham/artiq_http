@@ -7,6 +7,14 @@ artiq_http
 
 A work in progress...
 
+Usage
+-----
+
+* Setup an environment: `nix develop` then `cd frontend && npm install`
+* Run a development server: `npm run dev`
+* Recompile the static HTML: `npm run build`
+* Run the server in production mode: `aqctl_artiq_http`
+
 Authors
 -------
 

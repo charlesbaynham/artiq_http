@@ -43,6 +43,11 @@ setuptools.setup(
             if r and not re.match(r"\s*\#", r)
         ]
     },
+    entry_points={
+        "console_scripts": [
+            "aqctl_artiq_http = artiq_http.main:main",
+        ]
+    },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Programming Language :: Python",

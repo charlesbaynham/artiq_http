@@ -105,9 +105,18 @@ async def submit_experiment(
 app.include_router(router, prefix="/api")
 
 if config["dev_mode"]:
-    app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")
-else:
+    print("Development mode")
 
     @app.get("/")
     async def index():
         return "HTML hosting is disabled in dev mode - access the react server from 'npm run frontend' directly"
+
+else:
+    print("Production mode")
+    app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")
+
+
+def main():
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)
