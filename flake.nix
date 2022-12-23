@@ -72,6 +72,7 @@
 
           # For the webserver / static site generation
           pkgs.nodejs
+          pkgs.concurrently
 
           # These packages are required for the pipeline:
           pkgs.git # needed for pre-commit
