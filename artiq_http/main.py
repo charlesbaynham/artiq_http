@@ -1,14 +1,18 @@
 from typing import Dict
 from typing import List
 
+from fastapi import APIRouter
 from fastapi import FastAPI
 from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from . import artiq_api as api
 from . import patch_pydantic_numpy
 
 app = FastAPI()
+
+router = APIRouter()
 
 origins = [
     "http://localhost",
@@ -25,17 +29,17 @@ app.add_middleware(
 )
 
 
-@app.get("/")
+@router.get("/")
 async def root():
     return {"message": "Hello World"}
 
 
-@app.get("/schedule")
+@router.get("/schedule")
 async def get_schedule() -> Dict[int, api.models.ScheduleItem]:
     return await api.notifiers.get_schedule()
 
 
-@app.get("/devices")
+@router.get("/devices")
 async def get_devices() -> dict:
     """Get the current device_db
 
@@ -45,7 +49,7 @@ async def get_devices() -> dict:
     return await api.notifiers.get_devices()
 
 
-@app.get("/datasets")
+@router.get("/datasets")
 async def get_datasets() -> dict:
     """Get all existing ARTIQ datasets
 
@@ -57,7 +61,7 @@ async def get_datasets() -> dict:
     return await api.notifiers.get_datasets()
 
 
-@app.post("/cancel")
+@router.post("/cancel")
 async def cancel_experiment(rid: int, force: bool = False) -> None:
     """Cancel a running experiment
 
@@ -73,12 +77,12 @@ async def cancel_experiment(rid: int, force: bool = False) -> None:
     return await api.control_schedule.cancel_experiment(rid, force)
 
 
-@app.get("/explist")
+@router.get("/explist")
 async def get_explist() -> api.models.ExperimentList:
     return await api.notifiers.get_explist()
 
 
-@app.post("/schedule")
+@router.post("/schedule")
 async def submit_experiment(
     expid: api.models.ExpID,
     pipeline: str = "main",
@@ -96,3 +100,8 @@ async def submit_experiment(
         )
     except ValueError as e:
         raise HTTPException(422, str(e))
+
+
+app.include_router(router, prefix="/api")
+
+app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")

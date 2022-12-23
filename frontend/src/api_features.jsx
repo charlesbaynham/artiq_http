@@ -1,6 +1,6 @@
 
 const isDev = process.env.NODE_ENV !== 'production';
-const baseURL = isDev ? "http://localhost:8000/" : "/api/"
+const baseURL = isDev ? "http://localhost:8000" : window.location.origin
 
 export function make_query_url(endpoint, params = {}) {
     var url = new URL(endpoint, baseURL)
@@ -11,7 +11,7 @@ export function make_query_url(endpoint, params = {}) {
 }
 
 export function cancel_rid(rid, force = false) {
-    fetch(make_query_url("cancel", { rid: rid, force: force }), {
+    fetch(make_query_url("api/cancel", { rid: rid, force: force }), {
         method: "POST",
     })
         .then((response) => response.json())
@@ -31,7 +31,7 @@ export function queue_experiment(file, class_name, repo_rev, args = {}, callback
 
     const body = JSON.stringify(expid)
 
-    fetch(make_query_url("schedule", {}), {
+    fetch(make_query_url("api/schedule", {}), {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -50,7 +50,7 @@ export function queue_experiment(file, class_name, repo_rev, args = {}, callback
 }
 
 export function update_schedule(callback) {
-    fetch(make_query_url("schedule", {}))
+    fetch(make_query_url("api/schedule", {}))
         .then((response) => response.json())
         .then((data) => {
             callback(data);
@@ -61,7 +61,7 @@ export function update_schedule(callback) {
 }
 
 export function update_explist(callback) {
-    fetch(make_query_url("explist", {}))
+    fetch(make_query_url("api/explist", {}))
         .then((response) => response.json())
         .then((data) => {
             callback(data);
