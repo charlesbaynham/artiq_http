@@ -1,0 +1,10 @@
+{
+  "name": "artiq-http",
+  "version": "0.0.1",
+  "scripts": {
+    "start": "cd frontend && npm start",
+    "preview": "cd frontend && npm preview",
+    "build": "cd frontend && npm build",
+    "clean": "git clean -xdf --exclude venv --exclude node_modules --exclude .env"
+  }
+}
