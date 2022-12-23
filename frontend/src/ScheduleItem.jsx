@@ -1,29 +1,13 @@
 import React from 'react';
 import Accordion from 'react-bootstrap/Accordion';
 
+import Container from 'react-bootstrap/Container';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
+
 import Table from 'react-bootstrap/Table';
 
-function BasicTable(props) {
-    return (
-        <Table striped bordered hover>
-            {/* <thead>
-                <tr>
-                    <th>#</th>
-                    <th>First Name</th>
-                    <th>Last Name</th>
-                    <th>Username</th>
-                </tr>
-            </thead> */}
-            <tbody>
-                <tr>
-                    <td><b>RID:</b></td>
-                    <td>{props.rid}</td>
-                </tr>
-            </tbody>
-        </Table>
-    );
-}
-
+import ScheduleCancelButton from './ScheduleCancelButton';
 
 function ScheduleItemNew(props) {
     const rid = props.rid
@@ -75,6 +59,7 @@ function ScheduleItemNew(props) {
                     </Accordion.Item>
                 </Accordion>
 
+                <ScheduleCancelButton rid={rid} />
 
             </Accordion.Body>
         </Accordion.Item>
