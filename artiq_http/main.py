@@ -86,10 +86,13 @@ async def submit_experiment(
     flush: bool = False,
     due_date: float = None,
 ) -> None:
-    return await api.control_schedule.submit_experiment(
-        expid,
-        pipeline,
-        priority,
-        flush,
-        due_date,
-    )
+    try:
+        return await api.control_schedule.submit_experiment(
+            expid,
+            pipeline,
+            priority,
+            flush,
+            due_date,
+        )
+    except ValueError as e:
+        raise HTTPException(422, str(e))

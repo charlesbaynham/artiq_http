@@ -11,7 +11,7 @@ class ExpID(BaseModel):
     log_level: int = logging.WARNING
     file: str
     class_name: str
-    arguments: Dict[str, Any]
+    arguments: Optional[Dict[str, Any]]
     repo_rev: Optional[str]
 
 

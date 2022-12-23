@@ -26,9 +26,14 @@ export function queue_experiment(file, class_name, repo_rev, args = {}, callback
         "repo_rev": repo_rev
     }
 
+    const body = JSON.stringify(expid)
+
     fetch(make_query_url("schedule", {}), {
         method: "POST",
-        body: expid
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: body
     })
         .then((response) => response.json())
         .then((data) => {
@@ -56,7 +61,6 @@ export function update_explist(callback) {
     fetch('http://localhost:8000/explist')
         .then((response) => response.json())
         .then((data) => {
-            console.log(data)
             callback(data);
         })
         .catch((err) => {

@@ -22,6 +22,4 @@ function SubmitNewButton(props) {
     >Submit</Button>
 }
 
-
-
 export default SubmitNewButton;
