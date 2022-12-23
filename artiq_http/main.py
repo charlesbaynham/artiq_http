@@ -116,9 +116,7 @@ else:
     print("Production mode")
     app.mount(
         "/",
-        StaticFiles(
-            directory=Path(__file__, "../../frontend/dist").resolve(), html=True
-        ),
+        StaticFiles(directory=Path(__file__, "../static").resolve(), html=True),
         name="static",
     )
 

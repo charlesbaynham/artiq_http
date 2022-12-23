@@ -6,7 +6,7 @@
     "frontend": "export NODE_ENV='development' && cd frontend && npm start",
     "backend": "export NODE_ENV='development' && uvicorn artiq_http.main:app --reload",
     "dev": "concurrently -k \"npm run frontend\" \"npm run backend\"",
-    "build": "rm -r artiq_http/static && cd frontend && npm run build && mv dist ../artiq_http/static",
+    "build": "(rm -r artiq_http/static || true) && cd frontend && npm run build && mv dist ../artiq_http/static",
     "clean": "git clean -xdf --exclude venv --exclude node_modules --exclude .env",
     "serve": "aqctl_artiq_http"
   }
