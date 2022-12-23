@@ -32,17 +32,13 @@ function Schedule() {
 
 
     return (
-        <>
-            <p>This is the schedule of what's up:</p>
-
-            <Accordion defaultActiveKey="0">
-                {
-                    Object.keys(exps).map((rid) =>
-                        <ScheduleItemNew key={rid} rid={rid} data={exps[rid]} />
-                    )
-                }
-            </Accordion>
-        </>
+        <Accordion defaultActiveKey="0">
+            {
+                Object.keys(exps).map((rid) =>
+                    <ScheduleItemNew key={rid} rid={rid} data={exps[rid]} />
+                )
+            }
+        </Accordion>
     )
 }
 
