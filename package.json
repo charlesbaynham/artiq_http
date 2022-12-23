@@ -3,11 +3,11 @@
   "version": "0.0.1",
   "scripts": {
     "install": "echo Do not use me, use \"nix develop\" instead!",
-    "frontend": "cd frontend && npm start",
-    "backend": "uvicorn artiq_http.main:app --reload",
-    "start": "concurrently -k \"npm run frontend\" \"npm run backend\"",
-    "preview": "cd frontend && npm preview",
+    "frontend": "export NODE_ENV='development' && cd frontend && npm start",
+    "backend": "export NODE_ENV='development' && uvicorn artiq_http.main:app --reload",
+    "dev": "concurrently -k \"npm run frontend\" \"npm run backend\"",
     "build": "cd frontend && npm run build",
-    "clean": "git clean -xdf --exclude venv --exclude node_modules --exclude .env"
+    "clean": "git clean -xdf --exclude venv --exclude node_modules --exclude .env",
+    "serve": "aqctl_artiq_http"
   }
 }

@@ -1,5 +1,5 @@
 
-const isDev = process.env.NODE_ENV !== 'production';
+const isDev = process.env.NODE_ENV === "development";
 const baseURL = isDev ? "http://localhost:8000" : window.location.origin
 
 export function make_query_url(endpoint, params = {}) {
