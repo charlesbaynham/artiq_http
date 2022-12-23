@@ -1,5 +1,4 @@
 from typing import Dict
-from typing import List
 
 from ._get_dict import get_dict
 from .models import ExperimentEntry

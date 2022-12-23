@@ -1,5 +1,4 @@
 from typing import Dict
-from typing import List
 
 from fastapi import APIRouter
 from fastapi import FastAPI
@@ -9,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import artiq_api as api
 from . import patch_pydantic_numpy
+from .config import config
 
 app = FastAPI()
 
@@ -104,4 +104,10 @@ async def submit_experiment(
 
 app.include_router(router, prefix="/api")
 
-app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")
+if config["dev_mode"]:
+    app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")
+else:
+
+    @app.get("/")
+    async def index():
+        return "HTML hosting is disabled in dev mode - access the react server from 'npm run frontend' directly"
