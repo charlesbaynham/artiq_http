@@ -1,13 +1,11 @@
 import React from 'react';
 import Accordion from 'react-bootstrap/Accordion';
 
-import Container from 'react-bootstrap/Container';
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
+import ButtonGroup from 'react-bootstrap/ButtonGroup';
 
 import Table from 'react-bootstrap/Table';
 
-import ScheduleCancelButton from './ScheduleCancelButton';
+import { ScheduleCancelButton, ScheduleForceCancelButton } from './ScheduleCancelButton';
 
 function ScheduleItemNew(props) {
     const rid = props.rid
@@ -59,7 +57,10 @@ function ScheduleItemNew(props) {
                     </Accordion.Item>
                 </Accordion>
 
-                <ScheduleCancelButton rid={rid} />
+                <ButtonGroup className="mt-3">
+                    <ScheduleCancelButton rid={rid} />
+                    <ScheduleForceCancelButton rid={rid} />
+                </ButtonGroup>
 
             </Accordion.Body>
         </Accordion.Item>
