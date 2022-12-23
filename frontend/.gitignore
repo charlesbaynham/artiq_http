@@ -1,3 +1,0 @@
-# Include build products here so that users don't need to have node etc
-# installed and can just serve the static html
-!dist
