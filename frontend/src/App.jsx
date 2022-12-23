@@ -1,6 +1,6 @@
 import React from "react";
 
-import Schedule from "./schedule";
+import Schedule from "./Schedule";
 
 export default () => (
   <Schedule />

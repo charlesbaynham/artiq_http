@@ -1,14 +1,8 @@
 import React from 'react';
-
+import Accordion from 'react-bootstrap/Accordion';
+import ScheduleItemNew from './ScheduleItem';
 
 const TIMEOUT = 1000;
-
-function ScheduleItem(rid, data) {
-    return <li key={rid}>
-        ({rid}) - {data.expid.class_name}</li>
-}
-
-
 
 function Schedule() {
     const [exps, setExps] = React.useState({});
@@ -36,20 +30,18 @@ function Schedule() {
     }, []);
 
 
-    const buildList = () => {
-        const rids = Object.keys(exps)
-
-        const listItems = rids.map((rid, ind) => { return ScheduleItem(rid, exps[rid]) });
-
-        return <ul>
-            {listItems}
-        </ul>
-    }
 
     return (
         <>
             <p>This is the schedule of what's up:</p>
-            {buildList()}
+
+            <Accordion defaultActiveKey="0">
+                {
+                    Object.keys(exps).map((rid) =>
+                        <ScheduleItemNew key={rid} rid={rid} data={exps[rid]} />
+                    )
+                }
+            </Accordion>
         </>
     )
 }
