@@ -42,8 +42,8 @@ function ScheduleItemNew(props) {
     )
 
     return (
-        <Accordion.Item eventKey="0">
-            <Accordion.Header><b>({props.rid})</b> &ensp; {props.data.expid.class_name}</Accordion.Header>
+        <Accordion.Item eventKey={rid}>
+            <Accordion.Header><b>({rid})</b> &ensp; {class_name} &ensp; <em>{status}</em></Accordion.Header>
             <Accordion.Body>
                 <Table striped bordered hover>
                     <tbody>
@@ -56,7 +56,7 @@ function ScheduleItemNew(props) {
                     </tbody>
                 </Table>
 
-                <Accordion defaultActiveKey="0">
+                <Accordion>
                     <Accordion.Item>
                         <Accordion.Header>
                             Arguments &ensp; <em>(click to expand)</em>
