@@ -1,5 +1,5 @@
 
-export function make_query_url(endpoint, params) {
+export function make_query_url(endpoint, params = {}) {
     var url = new URL(`/${endpoint}`, "http://localhost:8000")
 
     Object.keys(params).forEach(key => url.searchParams.append(key, params[key]))
@@ -47,7 +47,7 @@ export function queue_experiment(file, class_name, repo_rev, args = {}, callback
 }
 
 export function update_schedule(callback) {
-    fetch('http://localhost:8000/schedule')
+    fetch(make_query_url("schedule", {}))
         .then((response) => response.json())
         .then((data) => {
             callback(data);
@@ -58,7 +58,7 @@ export function update_schedule(callback) {
 }
 
 export function update_explist(callback) {
-    fetch('http://localhost:8000/explist')
+    fetch(make_query_url("explist", {}))
         .then((response) => response.json())
         .then((data) => {
             callback(data);
