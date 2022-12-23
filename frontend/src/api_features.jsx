@@ -1,6 +1,9 @@
 
+const isDev = process.env.NODE_ENV !== 'production';
+const baseURL = isDev ? "http://localhost:8000/" : "/api/"
+
 export function make_query_url(endpoint, params = {}) {
-    var url = new URL(`/${endpoint}`, "http://localhost:8000")
+    var url = new URL(endpoint, baseURL)
 
     Object.keys(params).forEach(key => url.searchParams.append(key, params[key]))
 
