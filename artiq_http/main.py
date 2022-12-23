@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Dict
 
 from fastapi import APIRouter
@@ -113,7 +114,13 @@ if config["dev_mode"]:
 
 else:
     print("Production mode")
-    app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")
+    app.mount(
+        "/",
+        StaticFiles(
+            directory=Path(__file__, "../../frontend/dist").resolve(), html=True
+        ),
+        name="static",
+    )
 
 
 def main():
