@@ -1,3 +1,8 @@
+# Node / npm stuff
+node_modules
+dist
+.cache
+
 # Nix result symlink
 result
 
