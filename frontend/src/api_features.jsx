@@ -26,7 +26,7 @@ export function queue_experiment(file, class_name, repo_rev, args = {}, callback
         "repo_rev": repo_rev
     }
 
-    fetch(make_query_url("submit", {}), {
+    fetch(make_query_url("schedule", {}), {
         method: "POST",
         body: expid
     })
