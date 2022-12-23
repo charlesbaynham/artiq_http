@@ -1,6 +1,12 @@
 import React from 'react';
 
 
+function ScheduleItem(rid, data) {
+    return <li key={rid}>
+        ({rid}) - {data.expid.class_name}</li>
+}
+
+
 function Schedule() {
     const [exps, setExps] = React.useState({});
 
@@ -17,37 +23,15 @@ function Schedule() {
             });
     }, []);
 
-    const objectMap = (obj, fn) =>
-        Object.fromEntries(
-            Object.entries(obj).map(
-                ([k, v], i) => [k, fn(v, k, i)]
-            )
-        )
 
     const buildList = () => {
-        // return <p>Placeholder</p>
-
         const rids = Object.keys(exps)
-        const list2 = Object.keys(exps).map((rid) => {
-            <li>{rid}</li>
-        })
 
-        const list = objectMap(exps, (rid, exp, ind) => {
-            return <li>{rid}</li>
-        })
-        console.log("Exps = ")
-        console.log(exps)
-        console.log("list2=")
-        console.log(list2)
-        console.log(rids)
+        const listItems = rids.map((rid, ind) => { return ScheduleItem(rid, exps[rid]) });
 
-        const mapped = rids.map((k, i) => { return <p>{i}</p> })
-
-        console.log("mapped")
-        console.log(mapped)
-
-
-        return <>{mapped}</>
+        return <ul>
+            {listItems}
+        </ul>
     }
 
     return (
