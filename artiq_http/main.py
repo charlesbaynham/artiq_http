@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import concurrent
 import logging
 import sys
 
@@ -27,36 +28,53 @@ def get_argparser():
     return parser
 
 
+class TrivialServer:
+    def ping():
+        return True
+
+
+async def run_rpc_server(args):
+    logger.info("Starting trivial RPC server.")
+    server = Server({"trivial": TrivialServer()}, None, True)
+
+    await server.start(common_args.bind_address_from_args(args), args.port)
+    try:
+        await server.wait_terminate()
+    finally:
+        await server.stop()
+
+
+async def run_fastapi_server(args):
+    loop = asyncio.get_event_loop()
+    with concurrent.futures.ProcessPoolExecutor() as pool:
+        await loop.run_in_executor(pool, fastapi, args)
+
+
+def fastapi(args):
+    uvicorn.run(fastapi_app, host="0.0.0.0", port=args.http_port),
+
+
 def main():
     args = get_argparser().parse_args()
     common_args.init_logger_from_args(args)
 
-    class TrivialServer:
-        def ping():
-            return True
+    async def main_loop():
+        tasks = [
+            asyncio.create_task(run_fastapi_server(args)),
+            asyncio.create_task(run_rpc_server(args)),
+        ]
+        for t in asyncio.as_completed(tasks):
+            try:
+                await t
+            except asyncio.CancelledError:
+                pass
 
-    async def run_rpc_server():
-        logger.info("Starting trivial RPC server.")
-        server = Server({"trivial": TrivialServer()}, None, True)
+            logger.info("One of RPC server or FastAPI server closed - terminating all")
+            for t in tasks:
+                t.cancel()
 
-        await server.start(common_args.bind_address_from_args(args), args.port)
-        try:
-            await server.wait_terminate()
-        finally:
-            await server.stop()
+    asyncio.run(main_loop())
 
-    def run_fastapi_server():
-        uvicorn.run(fastapi_app, host=args.host, port=args.http_port)
 
-    loop = asyncio.get_event_loop()
-
-    loop.create_task(loop.run_in_executor(None, run_fastapi_server))
-    try:
-        loop.run_until_complete(run_rpc_server())
-    except KeyboardInterrupt:
-        pass
-    finally:
-        loop.close()
-
-    if __name__ == "__main__":
-        main()
+if __name__ == "__main__":
+    main()
