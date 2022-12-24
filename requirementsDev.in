@@ -37,3 +37,4 @@ pip-tools
 ipython
 notebook
 jupytext
+check-manifest
