@@ -31,6 +31,7 @@ setuptools.setup(
     description="A controller for ARTIQ which exposes ARTIQ's functionality as a RESTful API",
     long_description=read("README.rst"),
     packages=setuptools.find_packages(exclude=("tests",)),
+    package_data={"artiq_http": ["static/*", "static/*/*"]},
     install_requires=[
         r
         for r in open("requirements.in").read().splitlines()
