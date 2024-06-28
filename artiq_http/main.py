@@ -1,8 +1,11 @@
 import argparse
 import asyncio
-import concurrent
+import concurrent.futures
 import logging
-import sys
+import os
+import signal
+import threading
+import time
 
 import uvicorn
 from sipyco import common_args
@@ -44,14 +47,33 @@ async def run_rpc_server(args):
         await server.stop()
 
 
-async def run_fastapi_server(args):
-    loop = asyncio.get_event_loop()
-    with concurrent.futures.ProcessPoolExecutor() as pool:
-        await loop.run_in_executor(pool, fastapi, args)
-
-
 def fastapi(args):
     uvicorn.run(fastapi_app, host="0.0.0.0", port=args.http_port),
+
+
+def start_thread_to_terminate_when_parent_process_dies(ppid):
+    # See https://stackoverflow.com/questions/71300294/how-to-terminate-pythons-processpoolexecutor-when-parent-process-dies
+    pid = os.getpid()
+
+    def f():
+        while True:
+            try:
+                os.kill(ppid, 0)
+            except OSError:
+                os.kill(pid, signal.SIGTERM)
+            time.sleep(1)
+
+    thread = threading.Thread(target=f, daemon=True)
+    thread.start()
+
+
+async def run_fastapi_server(args):
+    loop = asyncio.get_event_loop()
+    with concurrent.futures.ProcessPoolExecutor(
+        initializer=start_thread_to_terminate_when_parent_process_dies,
+        initargs=(os.getpid(),),
+    ) as pool:
+        await loop.run_in_executor(pool, fastapi, args)
 
 
 def main():
@@ -61,7 +83,7 @@ def main():
     async def main_loop():
         tasks = [
             asyncio.create_task(run_fastapi_server(args)),
-            asyncio.create_task(run_rpc_server(args)),
+            # asyncio.create_task(run_rpc_server(args)),
         ]
         for t in asyncio.as_completed(tasks):
             try:
