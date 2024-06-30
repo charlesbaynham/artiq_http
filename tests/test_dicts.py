@@ -1,8 +1,8 @@
 from fastapi.testclient import TestClient
 
-from artiq_http.main import app
+from artiq_http.main import fastapi_app
 
-client = TestClient(app)
+client = TestClient(fastapi_app)
 
 
 def test_read_main():
