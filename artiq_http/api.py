@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
+from typing import Dict
 
 from fastapi import APIRouter
 from fastapi import FastAPI
@@ -10,7 +11,6 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import artiq_api as api
-from . import patch_pydantic_numpy
 from .config import config
 
 

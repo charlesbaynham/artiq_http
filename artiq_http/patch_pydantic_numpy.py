@@ -29,17 +29,8 @@ def patch_pydantic_for_numpy():
         # Pydantic v2 approach - use custom serializers
         # In Pydantic v2, we need to configure FastAPI's default JSON encoder
         # This will be handled by adding custom serializers to FastAPI's JSONResponse
-        # For now, we'll patch the json module that FastAPI uses
-        try:
-            from pydantic_core import core_schema
-            from pydantic import GetCoreSchemaHandler
-
-            # Register numpy types as plain serializers
-            # This is handled at the FastAPI level in api.py
-            pass
-        except ImportError:
-            # If pydantic_core not available, skip patching
-            pass
+        # This is handled at the FastAPI level in api.py
+        pass
 
 
 def numpy_encoder(obj):

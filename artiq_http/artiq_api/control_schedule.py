@@ -1,7 +1,3 @@
-import logging
-import time
-
-from dateutil.parser import parse as parse_date
 from sipyco.pc_rpc import Client
 
 from ..config import config

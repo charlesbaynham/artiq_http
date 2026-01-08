@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 # asyncio loop. This is because sipyco uses private members of asyncio, breaking
 # uvloop
 try:
-    import uvloop  # type: ignore
-    import asyncio
+    import uvloop  # type: ignore  # noqa: F401
 
     sys.modules["uvloop"] = asyncio
 except ImportError:
@@ -25,9 +24,7 @@ except ImportError:
 
 
 def get_argparser():
-    parser = argparse.ArgumentParser(
-        description="""ARTIQ RESTful API and basic web interface."""
-    )
+    parser = argparse.ArgumentParser(description="""ARTIQ RESTful API and basic web interface.""")
     parser.add_argument(
         "--http-port",
         default=8000,
@@ -62,7 +59,7 @@ async def run_fastapi_server(args):
 
 
 def fastapi(args):
-    uvicorn.run(fastapi_app, host="0.0.0.0", port=args.http_port),
+    (uvicorn.run(fastapi_app, host="0.0.0.0", port=args.http_port),)
 
 
 def main():

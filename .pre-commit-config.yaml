@@ -9,12 +9,7 @@ repos:
       - id: end-of-file-fixer
       - id: mixed-line-ending
       - id: check-yaml
-
-  # Sort python imports
-  - repo: https://github.com/asottile/reorder_python_imports
-    rev: v3.9.0
-    hooks:
-    - id: reorder-python-imports
+        exclude: ^\.gitlab-ci\.yml$
 
   # Lint and format the code with ruff
   - repo: https://github.com/astral-sh/ruff-pre-commit
