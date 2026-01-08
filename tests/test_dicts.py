@@ -1,10 +1,12 @@
 import json
+from pathlib import Path
 from unittest.mock import patch, AsyncMock
 from fastapi.testclient import TestClient
 
 from artiq_http.main import fastapi_app
 
 client = TestClient(fastapi_app)
+LOG_DIR = Path(__file__).parent / "logs"
 
 
 def test_read_main():
@@ -16,16 +18,22 @@ def test_read_main():
 def test_schedule():
     response = client.get("/api/schedule")
     assert response.status_code == 200
+    LOG_DIR.mkdir(exist_ok=True)
+    (LOG_DIR / "schedule_debug.json").write_text(json.dumps(response.json()))
 
 
 def test_devices():
     response = client.get("/api/devices")
     assert response.status_code == 200
+    LOG_DIR.mkdir(exist_ok=True)
+    (LOG_DIR / "devices_debug.json").write_text(json.dumps(response.json()))
 
 
 def test_datasets():
     response = client.get("/api/datasets")
     assert response.status_code == 200
+    LOG_DIR.mkdir(exist_ok=True)
+    (LOG_DIR / "datasets_debug.json").write_text(json.dumps(response.json()))
 
 
 def test_get_explist():
@@ -36,8 +44,8 @@ def test_get_explist():
     data = response.json()
 
     # Write response to a debug file
-    with open("explist_debug.json", "w") as f:
-        json.dump(data, f, indent=4)
+    LOG_DIR.mkdir(exist_ok=True)
+    (LOG_DIR / "explist_debug.json").write_text(json.dumps(data))
 
     assert "experiments" in data
     assert "scanning" in data
@@ -67,6 +75,8 @@ def test_cancel_experiment_not_found(mock_get_schedule):
     response = client.post("/api/cancel?rid=999&force=false")
     assert response.status_code == 404
     assert "not found in schedule" in response.json()["detail"]
+    LOG_DIR.mkdir(exist_ok=True)
+    (LOG_DIR / "cancel_not_found_debug.json").write_text(json.dumps(response.json()))
 
 
 @patch("artiq_http.api.api.notifiers.get_schedule", new_callable=AsyncMock)
@@ -139,3 +149,5 @@ def test_submit_experiment_value_error(mock_submit):
     )
     assert response.status_code == 422
     assert "Invalid experiment configuration" in response.json()["detail"]
+    LOG_DIR.mkdir(exist_ok=True)
+    (LOG_DIR / "submit_value_error_debug.json").write_text(json.dumps(response.json()))
