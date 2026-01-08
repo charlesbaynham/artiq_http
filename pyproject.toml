@@ -1,0 +1,62 @@
+[tool.poetry]
+name = "artiq_http"
+version = "0.0.0"  # Placeholder, managed by poetry-dynamic-versioning
+description = "A controller for ARTIQ which exposes ARTIQ's functionality as a RESTful API"
+authors = ["Charles Baynham <charles.baynham@gmail.com>"]
+readme = "README.rst"
+packages = [{include = "artiq_http"}]
+include = [
+    "artiq_http/static/**/*",
+    "artiq_http/_version.py",
+    "VERSION.json",
+]
+
+[tool.poetry.scripts]
+aqctl_artiq_http = "artiq_http.main:main"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = {extras = ["standard"], version = "*"}
+uvicorn = "*"
+pydantic = "*"
+sipyco = {git = "https://git.m-labs.hk/M-Labs/sipyco.git"}
+pybase64 = "*"
+numpy = "*"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "*"
+ruff = "*"
+pytest = "*"
+coverage = "*"
+sphinx = "*"
+sphinx-autobuild = "*"
+sphinx-rtd-theme = "*"
+sphinxcontrib-svg2pdfconverter = "*"
+ipython = "*"
+notebook = "*"
+jupytext = "*"
+check-manifest = "*"
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "pep440"
+format-jinja = """
+    {%- if distance == 0 -%}
+        {{ serialize_pep440(base) }}
+    {%- else -%}
+        {{ serialize_pep440(base) }}+{{ commit }}
+        {%- if dirty -%}.d{%- endif -%}
+    {%- endif -%}
+"""
+
+[tool.ruff]
+line-length = 120
+exclude = ["docs", "artiq_http/_version.py"]
+
+[tool.ruff.lint]
+extend-ignore = ["W291"]

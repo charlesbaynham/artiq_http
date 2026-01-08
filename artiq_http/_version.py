@@ -12,6 +12,14 @@ OVERRIDE_ENVVAR = "PYTHON_VERSION_OVERRIDE"
 def get_version() -> str:
     """
     Returns a string describing the git version of the given project.
+
+    Priority order:
+    1. PYTHON_VERSION_OVERRIDE environment variable
+    2. Git-based version detection
+    3. VERSION.json fallback
+
+    Note: When the package is built/installed via Poetry, poetry-dynamic-versioning
+    will inject the correct __version__ into __init__.py at build time.
     """
     # If the override env var is set, use it
     if OVERRIDE_ENVVAR in os.environ and os.environ[OVERRIDE_ENVVAR]:

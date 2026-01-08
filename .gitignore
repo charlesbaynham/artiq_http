@@ -2,12 +2,6 @@
 node_modules
 .cache
 
-# Nix result symlink
-result
-
-# Direnv cache
-.direnv
-
 # Mypy cache
 .mypy_cache
 
