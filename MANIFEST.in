@@ -1,3 +1,0 @@
-include artiq_http/_version.py
-include requirements.in
-include requirementsDev.in
