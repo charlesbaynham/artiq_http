@@ -12,7 +12,8 @@ aqctl_artiq_http = "artiq_http.main:main"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = { extras = ["standard"], version = "*" }
+fastapi = { extras = ["standard"], version = "^0.88.0" }
+starlette = "^0.22.0"
 uvicorn = "*"
 pydantic = "*"
 sipyco = { git = "https://github.com/m-labs/sipyco.git", rev = "96fcefbea490a9b42c862393860d2e586b05d744" }

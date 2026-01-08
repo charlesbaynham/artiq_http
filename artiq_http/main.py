@@ -12,6 +12,17 @@ from .api import app as fastapi_app
 
 logger = logging.getLogger(__name__)
 
+# If uvloop is installed, prevent its use by replacing it with the default
+# asyncio loop. This is because sipyco uses private members of asyncio, breaking
+# uvloop
+try:
+    import uvloop  # type: ignore
+    import asyncio
+
+    sys.modules["uvloop"] = asyncio
+except ImportError:
+    pass
+
 
 def get_argparser():
     parser = argparse.ArgumentParser(
