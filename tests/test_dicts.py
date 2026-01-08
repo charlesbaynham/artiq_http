@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch, AsyncMock
 from fastapi.testclient import TestClient
 
@@ -33,6 +34,11 @@ def test_get_explist():
     assert response.status_code == 200
     # Response should be an ExperimentList model
     data = response.json()
+
+    # Write response to a debug file
+    with open("explist_debug.json", "w") as f:
+        json.dump(data, f, indent=4)
+
     assert "experiments" in data
     assert "scanning" in data
     assert "current_rev" in data
