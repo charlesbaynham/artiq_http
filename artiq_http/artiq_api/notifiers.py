@@ -14,7 +14,7 @@ async def get_schedule() -> Dict[int, ScheduleItem]:
     """
     schedule_raw = await get_dict("schedule")
 
-    return {k: ScheduleItem.parse_obj(v) for k, v in schedule_raw.items()}
+    return {k: ScheduleItem.model_validate(v) for k, v in schedule_raw.items()}
 
 
 async def get_devices():
@@ -44,7 +44,7 @@ async def get_explist() -> ExperimentList:
     experiment_list = []
     for name, data in explist_raw.items():
         data["name"] = name
-        experiment_list.append(ExperimentEntry.parse_obj(data))
+        experiment_list.append(ExperimentEntry.model_validate(data))
 
     return ExperimentList(
         current_rev=status["cur_rev"],
