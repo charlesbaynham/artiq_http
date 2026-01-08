@@ -1,25 +1,21 @@
 [tool.poetry]
 name = "artiq_http"
-version = "0.0.0"  # Placeholder, managed by poetry-dynamic-versioning
+version = "0.0.0"
 description = "A controller for ARTIQ which exposes ARTIQ's functionality as a RESTful API"
 authors = ["Charles Baynham <charles.baynham@gmail.com>"]
 readme = "README.rst"
-packages = [{include = "artiq_http"}]
-include = [
-    "artiq_http/static/**/*",
-    "artiq_http/_version.py",
-    "VERSION.json",
-]
+packages = [{ include = "artiq_http" }]
+include = ["artiq_http/static/**/*", "artiq_http/_version.py", "VERSION.json"]
 
 [tool.poetry.scripts]
 aqctl_artiq_http = "artiq_http.main:main"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = {extras = ["standard"], version = "*"}
+fastapi = { extras = ["standard"], version = "*" }
 uvicorn = "*"
 pydantic = "*"
-sipyco = {git = "https://git.m-labs.hk/M-Labs/sipyco.git"}
+sipyco = { git = "https://github.com/m-labs/sipyco.git", rev = "96fcefbea490a9b42c862393860d2e586b05d744" }
 pybase64 = "*"
 numpy = "*"
 
