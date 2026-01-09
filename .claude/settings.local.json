@@ -13,7 +13,10 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nMigrate from Nix to Poetry-based packaging\n\nRemove all Nix infrastructure \\(flake.nix, flake.lock, setup.py, etc.\\) and \nreplace with Poetry for dependency management and packaging. Key changes:\n\n- Upgrade to Python 3.11+ from 3.7-3.9\n- Replace flake8/black with ruff for faster linting\n- Use poetry-dynamic-versioning for git-based version strings\n- Install sipyco from git repository\n- Fix Pydantic v2 compatibility in patch_pydantic_numpy\n- Rewrite GitLab CI to use Poetry instead of Nix\n- Update README with Poetry installation and usage instructions\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(python -m pytest:*)",
       "Bash(poetry --version:*)",
-      "Bash(poetry run pytest:*)"
+      "Bash(poetry run pytest:*)",
+      "Bash(curl:*)",
+      "Bash(claude mcp add:*)",
+      "mcp__code-forge__upload_document"
     ]
   }
 }
