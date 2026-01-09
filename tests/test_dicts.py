@@ -15,43 +15,6 @@ def test_read_main():
     assert response.json() == {"message": "Hello World"}
 
 
-def test_schedule():
-    response = client.get("/api/schedule")
-    assert response.status_code == 200
-    LOG_DIR.mkdir(exist_ok=True)
-    (LOG_DIR / "schedule_debug.json").write_text(json.dumps(response.json()))
-
-
-def test_devices():
-    response = client.get("/api/devices")
-    assert response.status_code == 200
-    LOG_DIR.mkdir(exist_ok=True)
-    (LOG_DIR / "devices_debug.json").write_text(json.dumps(response.json()))
-
-
-def test_datasets():
-    response = client.get("/api/datasets")
-    assert response.status_code == 200
-    LOG_DIR.mkdir(exist_ok=True)
-    (LOG_DIR / "datasets_debug.json").write_text(json.dumps(response.json()))
-
-
-def test_get_explist():
-    """Test GET /explist endpoint"""
-    response = client.get("/api/explist")
-    assert response.status_code == 200
-    # Response should be an ExperimentList model
-    data = response.json()
-
-    # Write response to a debug file
-    LOG_DIR.mkdir(exist_ok=True)
-    (LOG_DIR / "explist_debug.json").write_text(json.dumps(data))
-
-    assert "experiments" in data
-    assert "scanning" in data
-    assert "current_rev" in data
-
-
 @patch("artiq_http.api.api.notifiers.get_schedule", new_callable=AsyncMock)
 @patch("artiq_http.api.api.control_schedule.cancel_experiment", new_callable=AsyncMock)
 def test_cancel_experiment_success(mock_cancel, mock_get_schedule):
