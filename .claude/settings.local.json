@@ -16,7 +16,8 @@
       "Bash(poetry run pytest:*)",
       "Bash(curl:*)",
       "Bash(claude mcp add:*)",
-      "mcp__code-forge__upload_document"
+      "mcp__code-forge__upload_document",
+      "mcp__code-forge__index_semantic"
     ]
   }
 }
