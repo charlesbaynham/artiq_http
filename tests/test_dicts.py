@@ -20,9 +20,7 @@ def test_read_main():
 def test_cancel_experiment_success(mock_cancel, mock_get_schedule):
     """Test POST /cancel with valid RID"""
     # Setup mock schedule with test RID
-    mock_get_schedule.return_value = {
-        123: {"pipeline": "main", "priority": 0, "status": "running"}
-    }
+    mock_get_schedule.return_value = {123: {"pipeline": "main", "priority": 0, "status": "running"}}
     mock_cancel.return_value = None
 
     response = client.post("/api/cancel?rid=123&force=false")
@@ -46,9 +44,7 @@ def test_cancel_experiment_not_found(mock_get_schedule):
 @patch("artiq_http.api.api.control_schedule.cancel_experiment", new_callable=AsyncMock)
 def test_cancel_experiment_with_force(mock_cancel, mock_get_schedule):
     """Test POST /cancel with force=True"""
-    mock_get_schedule.return_value = {
-        456: {"pipeline": "main", "priority": 0, "status": "running"}
-    }
+    mock_get_schedule.return_value = {456: {"pipeline": "main", "priority": 0, "status": "running"}}
     mock_cancel.return_value = None
 
     response = client.post("/api/cancel?rid=456&force=true")
@@ -68,9 +64,7 @@ def test_submit_experiment_success(mock_submit):
         "repo_rev": None,
     }
 
-    response = client.post(
-        "/api/schedule?pipeline=main&priority=0&flush=false", json=expid_data
-    )
+    response = client.post("/api/schedule?pipeline=main&priority=0&flush=false", json=expid_data)
     assert response.status_code == 200
 
 
@@ -107,9 +101,7 @@ def test_submit_experiment_value_error(mock_submit):
         "repo_rev": None,
     }
 
-    response = client.post(
-        "/api/schedule?pipeline=main&priority=0&flush=false", json=expid_data
-    )
+    response = client.post("/api/schedule?pipeline=main&priority=0&flush=false", json=expid_data)
     assert response.status_code == 422
     assert "Invalid experiment configuration" in response.json()["detail"]
     LOG_DIR.mkdir(exist_ok=True)

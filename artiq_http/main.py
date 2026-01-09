@@ -24,9 +24,7 @@ except ImportError:
 
 
 def get_argparser():
-    parser = argparse.ArgumentParser(
-        description="""ARTIQ RESTful API and basic web interface."""
-    )
+    parser = argparse.ArgumentParser(description="""ARTIQ RESTful API and basic web interface.""")
     parser.add_argument(
         "--http-port",
         default=8000,
