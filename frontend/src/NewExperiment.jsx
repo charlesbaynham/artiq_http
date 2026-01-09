@@ -27,8 +27,8 @@ function NewExperiment() {
 
     return <Accordion defaultActiveKey="0">
         {
-            exps.map((e, ind) =>
-                <NewExperimentItem key={ind} data={e} repo_rev={repo_rev} />
+            exps.map((e) =>
+                <NewExperimentItem key={`${e.file}:${e.class_name}`} data={e} repo_rev={repo_rev} />
             )
         }
     </Accordion>

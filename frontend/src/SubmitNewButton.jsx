@@ -6,20 +6,38 @@ import { queue_experiment } from './api_features'
 
 function SubmitNewButton(props) {
     const [isLoading, setLoading] = React.useState(false);
-    const handleClick = () => setLoading(true)
 
-    React.useEffect(() => {
-        if (isLoading) {
-            queue_experiment(props.file, props.class_name, props.repo_rev)
-            setLoading(false)
-        }
-    }, [isLoading])
+    const handleClick = () => {
+        setLoading(true);
+
+        queue_experiment(
+            props.file,
+            props.class_name,
+            props.repo_rev,
+            props.arguments || {},
+            (response) => {
+                setLoading(false);
+                // Check for error in response
+                if (response && response.detail) {
+                    if (props.onError) {
+                        props.onError(response.detail);
+                    }
+                }
+            },
+            (error) => {
+                setLoading(false);
+                if (props.onError) {
+                    props.onError(error.message || 'Submission failed');
+                }
+            }
+        );
+    };
 
     return <Button
         variant="primary"
         disabled={isLoading}
         onClick={!isLoading ? handleClick : null}
-    >Submit</Button>
+    >{isLoading ? 'Submitting...' : 'Submit'}</Button>
 }
 
 export default SubmitNewButton;
