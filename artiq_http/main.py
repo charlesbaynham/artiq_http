@@ -1,12 +1,8 @@
 import argparse
-import asyncio
-import concurrent
 import logging
 import sys
 
 import uvicorn
-from sipyco import common_args
-from sipyco.pc_rpc import Server
 
 from .api import app as fastapi_app
 
@@ -17,6 +13,7 @@ logger = logging.getLogger(__name__)
 # uvloop
 try:
     import uvloop  # type: ignore  # noqa: F401
+    import asyncio
 
     sys.modules["uvloop"] = asyncio
 except ImportError:
@@ -24,66 +21,38 @@ except ImportError:
 
 
 def get_argparser():
-    parser = argparse.ArgumentParser(
-        description="""ARTIQ RESTful API and basic web interface."""
+    parser = argparse.ArgumentParser(description="""ARTIQ RESTful API and basic web interface.""")
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port for HTTP server",
     )
     parser.add_argument(
-        "--http-port",
-        default=8000,
-        help="Port for HTTP interface (as opposed to RPC server)",
+        "--host",
+        default="0.0.0.0",
+        help="Host address to bind to",
     )
-
-    common_args.simple_network_args(parser, 10001)
-    common_args.verbosity_args(parser)
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        help="Logging level",
+    )
     return parser
-
-
-class TrivialServer:
-    def ping():
-        return True
-
-
-async def run_rpc_server(args):
-    logger.info("Starting trivial RPC server.")
-    server = Server({"trivial": TrivialServer()}, None, True)
-
-    await server.start(common_args.bind_address_from_args(args), args.port)
-    try:
-        await server.wait_terminate()
-    finally:
-        await server.stop()
-
-
-async def run_fastapi_server(args):
-    loop = asyncio.get_event_loop()
-    with concurrent.futures.ProcessPoolExecutor() as pool:
-        await loop.run_in_executor(pool, fastapi, args)
-
-
-def fastapi(args):
-    (uvicorn.run(fastapi_app, host="0.0.0.0", port=args.http_port),)
 
 
 def main():
     args = get_argparser().parse_args()
-    common_args.init_logger_from_args(args)
 
-    async def main_loop():
-        tasks = [
-            asyncio.create_task(run_fastapi_server(args)),
-            asyncio.create_task(run_rpc_server(args)),
-        ]
-        for t in asyncio.as_completed(tasks):
-            try:
-                await t
-            except asyncio.CancelledError:
-                pass
+    # Configure logging
+    logging.basicConfig(
+        level=getattr(logging, args.log_level),
+        format="%(levelname)s:%(name)s:%(message)s",
+    )
 
-            logger.info("One of RPC server or FastAPI server closed - terminating all")
-            for t in tasks:
-                t.cancel()
-
-    asyncio.run(main_loop())
+    logger.info("Starting ARTIQ HTTP server on %s:%d", args.host, args.port)
+    uvicorn.run(fastapi_app, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

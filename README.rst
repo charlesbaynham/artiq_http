@@ -57,12 +57,11 @@ Usage
     # Install production dependencies only
     poetry install --without dev
 
-    # Run the server
+    # Run the server (default port 8000)
     poetry run aqctl_artiq_http
 
-    # Or install and use directly
-    poetry install
-    aqctl_artiq_http
+    # Run on a custom port
+    poetry run aqctl_artiq_http --port 8080
 
 **Documentation:**
 
