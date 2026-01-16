@@ -20,7 +20,7 @@ export function cancel_rid(rid, force = false) {
         });
 }
 
-export function queue_experiment(file, class_name, repo_rev, args = {}, callback = null) {
+export function queue_experiment(file, class_name, repo_rev, args = {}, callback = null, onError = null) {
     const expid = {
         "log_level": 30,
         "file": file,
@@ -46,6 +46,9 @@ export function queue_experiment(file, class_name, repo_rev, args = {}, callback
         })
         .catch((err) => {
             console.log(err.message);
+            if (onError) {
+                onError(err);
+            }
         });
 }
 
