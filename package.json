@@ -4,8 +4,8 @@
   "scripts": {
     "install": "cd frontend && npm install",
     "frontend": "cd frontend && npm start",
-    "backend": "poetry run uvicorn artiq_http.main:fastapi_app",
+    "backend": "poetry run uvicorn artiq_http.main:fastapi_app --reload",
     "build": "(rm -r artiq_http/static || true) && cd frontend && npm run build && mv dist ../artiq_http/static",
-    "clean": "git clean -xdf --exclude venv --exclude node_modules --exclude .env",
+    "clean": "git clean -xdf --exclude venv --exclude node_modules --exclude .env"
   }
 }
