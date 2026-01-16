@@ -119,3 +119,6 @@ ENV/
 
 # IDE settings
 .vscode/.git.old
+
+# Agent state files (don't commit these)
+.agent-state/

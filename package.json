@@ -2,12 +2,15 @@
   "name": "artiq-http",
   "version": "0.0.1",
   "scripts": {
-    "install": "echo Do not use me, use \"nix develop\" instead!",
-    "frontend": "export NODE_ENV='development' && cd frontend && npm start",
-    "backend": "export NODE_ENV='development' && poetry run python -m artiq_http.main",
+    "install": "cd frontend && npm install",
+    "frontend": "cd frontend && npm start",
+    "backend": "poetry run uvicorn artiq_http.main:fastapi_app --reload",
     "dev": "concurrently -k \"npm run frontend\" \"npm run backend\"",
     "build": "(rm -r artiq_http/static || true) && cd frontend && npm run build && mv dist ../artiq_http/static",
     "clean": "git clean -xdf --exclude venv --exclude node_modules --exclude .env",
-    "serve": "aqctl_artiq_http"
+    "serve": "poetry run aqctl_artiq_http"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }
