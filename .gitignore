@@ -120,7 +120,5 @@ ENV/
 # IDE settings
 .vscode/.git.old
 
-# Claude OS state files (don't commit these)
-.claude-os/claude-os-state.json
-.claude-os/.index_state
-.claude-os/.commit_count
+# Agent state files (don't commit these)
+.agent-state/

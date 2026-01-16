@@ -1,9 +1,0 @@
-{
-  "project_name": "artiq_http",
-  "hooks": {
-    "on_session_start": [],
-    "on_session_end": [],
-    "on_commit": [],
-    "on_test_failure": []
-  }
-}

@@ -30,8 +30,15 @@ Usage
 
 .. code-block:: bash
 
-    # Run frontend development server
-    cd frontend && npm run dev
+    # Run frontend development server in one shell
+    cd frontend && npm run start
+
+    # Run the backend in another shell
+    poetry run aqctl_artiq_http
+
+**Tests:**
+
+.. code-block:: bash
 
     # Run Python tests
     poetry run pytest
