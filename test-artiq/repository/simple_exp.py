@@ -8,7 +8,7 @@ class MinimalExp(EnvExperiment):
     """
 
     def build(self):
-        self.setattr_argument("count", NumberValue(10, step=1, ndecimals=0))
+        self.setattr_argument("count", NumberValue(10, step=1, precision=0))
         self.setattr_argument("delay_ms", NumberValue(100, unit="ms"))
 
     def run(self):

@@ -6,6 +6,6 @@ services:
       - "1065:1065"
       - "1068:1068"
     volumes:
-      - ./repository:/home/micromamba/artiq/repository
-      - ./device_db.py:/home/micromamba/artiq/device_db.py
+      - ./repository:/artiq/repository
+      - ./device_db.py:/artiq/device_db.py
     restart: unless-stopped
