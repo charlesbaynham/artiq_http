@@ -20,6 +20,10 @@ See README.rst for instructions
   - `config.py` - Configuration
   - `artiq_api/` - ARTIQ API wrapper modules
 - `frontend/` - React frontend
+- `test-artiq/` - Local ARTIQ test environment (Docker)
+  - `repository/` - Minimal experiments for testing
+  - `Dockerfile` - ARTIQ + ndscan image
+  - `docker-compose.yml` - Test stack orchestration
 - `tests/` - Test suite
 - `docs/` - Sphinx documentation
 

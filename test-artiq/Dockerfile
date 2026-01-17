@@ -38,4 +38,4 @@ COPY device_db.py .
 EXPOSE 1066 1067 3250 3251
 
 # Start the master
-ENTRYPOINT ["micromamba", "run", "-n", "artiq", "artiq_master", "-r", "repository"]
+ENTRYPOINT ["micromamba", "run", "-n", "artiq", "artiq_master", "-r", "repository", "-vv"]
