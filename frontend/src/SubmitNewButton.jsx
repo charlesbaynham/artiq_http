@@ -2,7 +2,7 @@ import React from 'react';
 
 import Button from 'react-bootstrap/Button';
 
-import { queue_experiment } from './api_features'
+import { queue_experiment } from './api/client'
 
 function SubmitNewButton(props) {
     const [isLoading, setLoading] = React.useState(false);
@@ -15,23 +15,23 @@ function SubmitNewButton(props) {
             props.class_name,
             props.repo_rev,
             props.arguments || {},
-            props.pipeline || 'main',
-            (response) => {
+            props.pipeline || 'main'
+        )
+            .then((data) => {
                 setLoading(false);
-                // Check for error in response
-                if (response && response.detail) {
+                // Check for error in response (ArTIQ API might return error detail in JSON)
+                if (data && data.detail) {
                     if (props.onError) {
-                        props.onError(response.detail);
+                        props.onError(data.detail);
                     }
                 }
-            },
-            (error) => {
+            })
+            .catch((error) => {
                 setLoading(false);
                 if (props.onError) {
                     props.onError(error.message || 'Submission failed');
                 }
-            }
-        );
+            });
     };
 
     return <Button

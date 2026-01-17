@@ -3,7 +3,7 @@ import Accordion from 'react-bootstrap/Accordion';
 
 import NewExperimentItem from './NewExperimentItem';
 
-import { update_explist } from './api_features'
+import { get_explist } from './api/client'
 
 const TIMEOUT = 10000;
 
@@ -15,11 +15,17 @@ function NewExperiment() {
     const scanning = ("scanning" in explist) ? Boolean(explist['scanning']) : null;
 
     React.useEffect(() => {
-        // Update the schedule data now
-        update_explist(setExplist)
+        const fetchExplist = () => {
+            get_explist()
+                .then(setExplist)
+                .catch(err => console.error("Experiment list update error:", err.message));
+        };
 
-        // ...and schedule updates every second
-        const interval = setInterval(() => update_explist(setExplist), TIMEOUT);
+        // Update the experiment list now
+        fetchExplist();
+
+        // ...and schedule updates
+        const interval = setInterval(fetchExplist, TIMEOUT);
         return () => {
             clearInterval(interval);
         };

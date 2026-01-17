@@ -1,4 +1,5 @@
 import React from 'react';
+import { toDisplayValue, fromDisplayValue } from './api/ndscan';
 
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
@@ -142,34 +143,25 @@ export function PYONValueInput({ name, spec, value, onChange, onReset }) {
 
 // NDScan Float Input: handles float type with scale/unit conversion
 export function NDScanFloatInput({ schema, value, onChange, onReset, disabled }) {
-    const { fqn, description, type, default: defaultStr, spec } = schema;
+    const { fqn, default: defaultStr, spec } = schema;
     const { unit, scale, step, min, max } = spec || {};
 
     // Parse default from string to number
     const defaultVal = defaultStr ? parseFloat(defaultStr) : 0;
     const currentVal = value !== undefined && value !== null ? value : defaultVal;
 
-    // Apply scale for display (displayValue = rawValue / scale)
-    const displayValue = scale ? currentVal / scale : currentVal;
+    const displayValue = toDisplayValue(currentVal, scale);
     const isDefault = value === undefined || value === null;
 
     const handleChange = (e) => {
         const val = e.target.value;
-        if (val === '' || val === '-') {
-            onChange(fqn, val);
-        } else {
-            const num = parseFloat(val);
-            if (!isNaN(num)) {
-                // Convert back to raw value (rawValue = displayValue * scale)
-                const rawValue = scale ? num * scale : num;
-                onChange(fqn, rawValue);
-            }
-        }
+        const converted = fromDisplayValue(val, scale);
+        onChange(fqn, converted);
     };
 
-    const displayMin = min !== undefined && scale ? min / scale : min;
-    const displayMax = max !== undefined && scale ? max / scale : max;
-    const displayStep = step !== undefined && scale ? step / scale : step;
+    const displayMin = toDisplayValue(min, scale);
+    const displayMax = toDisplayValue(max, scale);
+    const displayStep = toDisplayValue(step, scale);
 
     return (
         <InputGroup size="sm">
@@ -195,33 +187,27 @@ export function NDScanFloatInput({ schema, value, onChange, onReset, disabled })
 
 // NDScan Int Input: handles integer type
 export function NDScanIntInput({ schema, value, onChange, onReset, disabled }) {
-    const { fqn, description, type, default: defaultStr, spec } = schema;
+    const { fqn, default: defaultStr, spec } = schema;
     const { unit, scale, step, min, max } = spec || {};
 
     // Parse default from string to integer
     const defaultVal = defaultStr ? parseInt(defaultStr) : 0;
     const currentVal = value !== undefined && value !== null ? value : defaultVal;
 
-    // Apply scale for display if present
-    const displayValue = scale ? currentVal / scale : currentVal;
+    const displayValue = toDisplayValue(currentVal, scale);
     const isDefault = value === undefined || value === null;
 
     const handleChange = (e) => {
         const val = e.target.value;
-        if (val === '' || val === '-') {
-            onChange(fqn, val);
-        } else {
-            const num = parseInt(val);
-            if (!isNaN(num)) {
-                const rawValue = scale ? num * scale : num;
-                onChange(fqn, rawValue);
-            }
-        }
+        const converted = fromDisplayValue(val, scale);
+        // Ensure it's an integer if it's a number
+        const finalValue = typeof converted === 'number' ? Math.round(converted) : converted;
+        onChange(fqn, finalValue);
     };
 
-    const displayMin = min !== undefined && scale ? min / scale : min;
-    const displayMax = max !== undefined && scale ? max / scale : max;
-    const displayStep = step !== undefined && scale ? step / scale : step;
+    const displayMin = toDisplayValue(min, scale);
+    const displayMax = toDisplayValue(max, scale);
+    const displayStep = toDisplayValue(step, scale);
 
     return (
         <InputGroup size="sm">

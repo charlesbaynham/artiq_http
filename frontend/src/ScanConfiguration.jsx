@@ -1,4 +1,5 @@
 import React from 'react';
+import { toDisplayValue, fromDisplayValue } from './api/ndscan';
 
 import Card from 'react-bootstrap/Card';
 import Form from 'react-bootstrap/Form';
@@ -130,8 +131,8 @@ function ScanConfiguration({ scan, schemata, onChange }) {
                         const scale = schema?.spec?.scale || 1;
 
                         // Apply scale for display (divide by scale to convert to display units)
-                        const displayStart = axis.range?.start !== undefined ? axis.range.start / scale : 0;
-                        const displayStop = axis.range?.stop !== undefined ? axis.range.stop / scale : 100;
+                        const displayStart = toDisplayValue(axis.range?.start, scale);
+                        const displayStop = toDisplayValue(axis.range?.stop, scale);
 
                         return (
                             <Card key={index} className="mb-2">
@@ -174,8 +175,7 @@ function ScanConfiguration({ scan, schemata, onChange }) {
                                                     type="number"
                                                     value={displayStart}
                                                     onChange={(e) => {
-                                                        const displayValue = parseFloat(e.target.value);
-                                                        const rawValue = displayValue * scale;
+                                                        const rawValue = fromDisplayValue(e.target.value, scale);
                                                         handleAxisChange(index, 'range.start', rawValue);
                                                     }}
                                                     step="any"
@@ -190,8 +190,7 @@ function ScanConfiguration({ scan, schemata, onChange }) {
                                                     type="number"
                                                     value={displayStop}
                                                     onChange={(e) => {
-                                                        const displayValue = parseFloat(e.target.value);
-                                                        const rawValue = displayValue * scale;
+                                                        const rawValue = fromDisplayValue(e.target.value, scale);
                                                         handleAxisChange(index, 'range.stop', rawValue);
                                                     }}
                                                     step="any"
