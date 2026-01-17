@@ -5,7 +5,7 @@ import NewExperimentItem from './NewExperimentItem';
 
 import { update_explist } from './api_features'
 
-const TIMEOUT = 1000;
+const TIMEOUT = 10000;
 
 function NewExperiment() {
     const [explist, setExplist] = React.useState({});

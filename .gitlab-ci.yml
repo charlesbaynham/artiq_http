@@ -92,19 +92,19 @@ make_docs:
       - html_out
     expire_in: 1 hour
 
-# Build a pdf
-pdf_compile:
-  needs: ["make_docs"]
-  stage: Build Documentation
-  image: charlesbaynham/ctanfull
-  artifacts:
-    paths:
-      - "*.pdf"
-    name: ${CI_COMMIT_REF_SLUG}_manual.pdf
-  script:
-    - cd latex
-    - make
-    - cp *.pdf ..
+# # Build a pdf
+# pdf_compile:
+#   needs: ["make_docs"]
+#   stage: Build Documentation
+#   image: charlesbaynham/ctanfull
+#   artifacts:
+#     paths:
+#       - "*.pdf"
+#     name: ${CI_COMMIT_REF_SLUG}_manual.pdf
+#   script:
+#     - cd latex
+#     - make
+#     - cp *.pdf ..
 
 # Upload the documentation to pages if we're on the master branch
 pages:

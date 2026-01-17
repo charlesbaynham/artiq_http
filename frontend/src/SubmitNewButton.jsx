@@ -15,6 +15,7 @@ function SubmitNewButton(props) {
             props.class_name,
             props.repo_rev,
             props.arguments || {},
+            props.pipeline || 'main',
             (response) => {
                 setLoading(false);
                 // Check for error in response

@@ -7,14 +7,84 @@ import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import Toast from 'react-bootstrap/Toast';
 import ToastContainer from 'react-bootstrap/ToastContainer';
+import Form from 'react-bootstrap/Form';
 
 import SubmitNewButton from "./SubmitNewButton";
-import { ArgumentRow } from "./ArgumentInputs";
+import { ArgumentRow, NDScanFloatInput, NDScanIntInput, NDScanBoolInput } from "./ArgumentInputs";
+import ScanConfiguration from "./ScanConfiguration";
 
-// Check if experiment has ndscan_params argument (skip these for now)
+// Check if experiment has ndscan_params argument
 function hasNdscanParams(arginfo) {
-    // FIXME: don't skip ndscan experiments
     return arginfo && Object.keys(arginfo).includes('ndscan_params');
+}
+
+// Parse ndscan_params from JSON-encoded default value
+function parseNdscanParams(arginfo) {
+    if (!hasNdscanParams(arginfo)) return null;
+
+    try {
+        const ndscanArg = arginfo['ndscan_params'];
+        const [spec] = ndscanArg;
+        const defaultValue = spec.default;
+
+        // Parse JSON string
+        const parsed = JSON.parse(defaultValue);
+        return parsed;
+    } catch (error) {
+        console.error('Error parsing ndscan_params:', error);
+        return null;
+    }
+}
+
+// Build FQN to fragment path lookup from instances
+function buildFqnToPathMap(instances) {
+    const fqnToPath = {};
+    if (!instances) return fqnToPath;
+
+    for (const [fragmentPath, fqns] of Object.entries(instances)) {
+        for (const fqn of fqns) {
+            // Use first occurrence if FQN appears in multiple fragments
+            if (!fqnToPath[fqn]) {
+                fqnToPath[fqn] = fragmentPath;
+            }
+        }
+    }
+    return fqnToPath;
+}
+
+// Get scanned parameter FQNs from scan axes
+function getScannedFqns(scan) {
+    if (!scan || !scan.axes) return new Set();
+    return new Set(scan.axes.map(axis => axis.fqn).filter(Boolean));
+}
+
+// Get localStorage key for experiment
+function getStorageKey(file, className) {
+    return `ndscan_${file}_${className}`;
+}
+
+// Load state from localStorage
+function loadNdscanState(file, className) {
+    try {
+        const key = getStorageKey(file, className);
+        const stored = localStorage.getItem(key);
+        if (stored) {
+            return JSON.parse(stored);
+        }
+    } catch (error) {
+        console.error('Error loading ndscan state from localStorage:', error);
+    }
+    return null;
+}
+
+// Save state to localStorage
+function saveNdscanState(file, className, state) {
+    try {
+        const key = getStorageKey(file, className);
+        localStorage.setItem(key, JSON.stringify(state));
+    } catch (error) {
+        console.error('Error saving ndscan state to localStorage:', error);
+    }
 }
 
 // Extract default values from arginfo
@@ -55,34 +125,109 @@ function NewExperimentItem(props) {
     const arginfo = props.data.arginfo;
     const repo_rev = props.repo_rev;
 
-    // Skip ndscan experiments
+    // Check if this is an ndscan experiment
     const isNdscan = hasNdscanParams(arginfo);
 
-    // Get default values and initialize state
-    const defaultValues = React.useMemo(() => getDefaultValues(arginfo), [arginfo]);
-    const [argValues, setArgValues] = React.useState(() => getDefaultValues(arginfo));
+    // Parse ndscan params if present
+    const ndscanParams = React.useMemo(() => isNdscan ? parseNdscanParams(arginfo) : null, [arginfo, isNdscan]);
+
+    // For regular experiments, get default values
+    const defaultValues = React.useMemo(() => !isNdscan ? getDefaultValues(arginfo) : {}, [arginfo, isNdscan]);
+
+    // State for regular experiments
+    const [argValues, setArgValues] = React.useState(() => !isNdscan ? getDefaultValues(arginfo) : {});
+
+    // State for ndscan experiments
+    const [ndscanOverrides, setNdscanOverrides] = React.useState({});
+    const [ndscanScan, setNdscanScan] = React.useState(null);
+    const [showAdvanced, setShowAdvanced] = React.useState(false);
+
+    // Initialize ndscan state from localStorage or defaults
+    React.useEffect(() => {
+        if (isNdscan && ndscanParams) {
+            const stored = loadNdscanState(file, class_name);
+            if (stored) {
+                setNdscanOverrides(stored.overrides || {});
+                setNdscanScan(stored.scan || ndscanParams.scan);
+            } else {
+                setNdscanOverrides({});
+                setNdscanScan(ndscanParams.scan);
+            }
+        }
+    }, [isNdscan, ndscanParams, file, class_name]);
+
+    // Save ndscan state to localStorage when it changes
+    React.useEffect(() => {
+        if (isNdscan && ndscanScan) {
+            saveNdscanState(file, class_name, {
+                overrides: ndscanOverrides,
+                scan: ndscanScan
+            });
+        }
+    }, [isNdscan, ndscanOverrides, ndscanScan, file, class_name]);
+
+    // Build FQN to path mapping for ndscan
+    const fqnToPath = React.useMemo(() => {
+        if (!isNdscan || !ndscanParams) return {};
+        return buildFqnToPathMap(ndscanParams.instances);
+    }, [isNdscan, ndscanParams]);
+
+    // Get scanned FQNs
+    const scannedFqns = React.useMemo(() => {
+        if (!isNdscan || !ndscanScan) return new Set();
+        return getScannedFqns(ndscanScan);
+    }, [isNdscan, ndscanScan]);
 
     // Toast state for error messages
     const [showError, setShowError] = React.useState(false);
     const [errorMessage, setErrorMessage] = React.useState('');
+    const [pipeline, setPipeline] = React.useState('main');
 
-    // Group arguments for display
-    const groupedArgs = React.useMemo(() => groupArguments(arginfo), [arginfo]);
-    const hasArguments = arginfo && Object.keys(arginfo).length > 0;
+    // Group arguments for display (regular experiments only)
+    const groupedArgs = React.useMemo(() => !isNdscan ? groupArguments(arginfo) : {}, [arginfo, isNdscan]);
+    const hasArguments = !isNdscan && arginfo && Object.keys(arginfo).length > 0;
 
-    // Handle argument value change
+    // Handle argument value change (regular experiments)
     const handleArgChange = (argName, value) => {
         setArgValues(prev => ({ ...prev, [argName]: value }));
     };
 
-    // Reset single argument to default
+    // Reset single argument to default (regular experiments)
     const handleResetArg = (argName) => {
         setArgValues(prev => ({ ...prev, [argName]: defaultValues[argName] }));
     };
 
-    // Reset all arguments to defaults
+    // Reset all arguments to defaults (regular experiments)
     const handleResetAll = () => {
         setArgValues(defaultValues);
+    };
+
+    // Handle ndscan parameter override change
+    const handleNdscanOverrideChange = (fqn, value) => {
+        setNdscanOverrides(prev => ({ ...prev, [fqn]: value }));
+    };
+
+    // Reset ndscan parameter to default (remove from overrides)
+    const handleNdscanOverrideReset = (fqn) => {
+        setNdscanOverrides(prev => {
+            const newOverrides = { ...prev };
+            delete newOverrides[fqn];
+            return newOverrides;
+        });
+    };
+
+    // Handle scan configuration change
+    const handleScanChange = (newScan) => {
+        setNdscanScan(newScan);
+    };
+
+    // Reset ndscan to defaults
+    const handleNdscanResetAll = () => {
+        if (ndscanParams) {
+            setNdscanOverrides({});
+            setNdscanScan(ndscanParams.scan);
+            localStorage.removeItem(getStorageKey(file, class_name));
+        }
     };
 
     // Handle submission error
@@ -98,10 +243,79 @@ function NewExperimentItem(props) {
         </tr>
     );
 
-    // Don't render ndscan experiments for now
-    if (isNdscan) {
-        return null;
-    }
+    // Render NDScan parameter row
+    const renderNdscanParam = (fqn, schema) => {
+        const { description, type } = schema;
+        const isScanned = scannedFqns.has(fqn);
+        const value = ndscanOverrides[fqn];
+
+        let InputComponent;
+        if (type === 'float') {
+            InputComponent = NDScanFloatInput;
+        } else if (type === 'int') {
+            InputComponent = NDScanIntInput;
+        } else if (type === 'bool') {
+            InputComponent = NDScanBoolInput;
+        } else {
+            return null; // Unknown type
+        }
+
+        return (
+            <Form.Group key={fqn} className="mb-2 row align-items-center">
+                <div className="col-4">
+                    <Form.Label className="mb-0" style={{ fontWeight: 500 }}>
+                        {description || fqn}
+                    </Form.Label>
+                </div>
+                <div className="col-8">
+                    <InputComponent
+                        schema={schema}
+                        value={value}
+                        onChange={handleNdscanOverrideChange}
+                        onReset={handleNdscanOverrideReset}
+                        disabled={isScanned}
+                    />
+                </div>
+            </Form.Group>
+        );
+    };
+
+    // Build arguments for submission
+    const getSubmissionArguments = () => {
+        if (isNdscan && ndscanParams) {
+            // Build ndscan_params object
+            const overridesFormatted = {};
+            for (const [fqn, value] of Object.entries(ndscanOverrides)) {
+                const path = fqnToPath[fqn] || '';
+                overridesFormatted[fqn] = [{
+                    path: path,
+                    value: value
+                }];
+            }
+
+            // Validate: no overlap between overrides and scan axes
+            const overrideFqns = new Set(Object.keys(ndscanOverrides));
+            const overlap = [...scannedFqns].filter(fqn => overrideFqns.has(fqn));
+            if (overlap.length > 0) {
+                handleError(`Parameters cannot be both overridden and scanned: ${overlap.join(', ')}`);
+                return null;
+            }
+
+            const ndscanParamsObj = {
+                instances: ndscanParams.instances,
+                schemata: ndscanParams.schemata,
+                always_shown: ndscanParams.always_shown,
+                overrides: overridesFormatted,
+                scan: ndscanScan
+            };
+
+            return {
+                ndscan_params: JSON.stringify(ndscanParamsObj)
+            };
+        } else {
+            return argValues;
+        }
+    };
 
     return (
         <Accordion.Item eventKey={class_name}>
@@ -115,7 +329,8 @@ function NewExperimentItem(props) {
                     </tbody>
                 </Table>
 
-                {hasArguments && (
+                {/* Regular experiment arguments */}
+                {!isNdscan && hasArguments && (
                     <div className="mt-3">
                         <h6>Arguments</h6>
                         {Object.entries(groupedArgs).map(([groupName, args]) => (
@@ -148,12 +363,104 @@ function NewExperimentItem(props) {
                     </div>
                 )}
 
+                {/* NDScan experiment parameters */}
+                {isNdscan && ndscanParams && (
+                    <div className="mt-3">
+                        <h6>NDScan Parameters</h6>
+
+                        {/* Display parameters grouped by fragment */}
+                        {ndscanParams.instances && Object.entries(ndscanParams.instances).map(([fragmentPath, fqns]) => {
+                            const fragmentName = fragmentPath === '' ? 'Root Parameters' : fragmentPath;
+
+                            // Separate always_shown from other params
+                            const alwaysShownSet = new Set(
+                                (ndscanParams.always_shown || []).map(item => {
+                                    // Handle tuple format from PYON
+                                    if (item && item.__jsonclass__ && item.__jsonclass__[0] === 'tuple') {
+                                        return item.__jsonclass__[1][0]; // [fqn, path]
+                                    }
+                                    return item;
+                                })
+                            );
+
+                            const alwaysShownParams = fqns.filter(fqn => alwaysShownSet.has(fqn));
+                            const advancedParams = fqns.filter(fqn => !alwaysShownSet.has(fqn));
+
+                            return (
+                                <Card key={fragmentPath} className="mb-2">
+                                    <Card.Header className="py-1 px-2" style={{ fontSize: '0.9em' }}>
+                                        {fragmentName}
+                                    </Card.Header>
+                                    <Card.Body className="py-2 px-3">
+                                        {/* Always shown parameters */}
+                                        {alwaysShownParams.map(fqn => {
+                                            const schema = ndscanParams.schemata[fqn];
+                                            return schema ? renderNdscanParam(fqn, schema) : null;
+                                        })}
+
+                                        {/* Advanced parameters (collapsible) */}
+                                        {advancedParams.length > 0 && (
+                                            <>
+                                                {alwaysShownParams.length > 0 && <hr className="my-2" />}
+                                                <Button
+                                                    variant="link"
+                                                    size="sm"
+                                                    onClick={() => setShowAdvanced(!showAdvanced)}
+                                                    className="p-0 mb-2"
+                                                >
+                                                    {showAdvanced ? '▼' : '▶'} Show Advanced Parameters ({advancedParams.length})
+                                                </Button>
+                                                {showAdvanced && advancedParams.map(fqn => {
+                                                    const schema = ndscanParams.schemata[fqn];
+                                                    return schema ? renderNdscanParam(fqn, schema) : null;
+                                                })}
+                                            </>
+                                        )}
+                                    </Card.Body>
+                                </Card>
+                            );
+                        })}
+
+                        {/* Scan Configuration */}
+                        {ndscanScan && (
+                            <ScanConfiguration
+                                scan={ndscanScan}
+                                schemata={ndscanParams.schemata}
+                                onChange={handleScanChange}
+                            />
+                        )}
+
+                        <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            onClick={handleNdscanResetAll}
+                            className="mb-3"
+                        >
+                            Reset All to Defaults
+                        </Button>
+                    </div>
+                )}
+
+                <Form.Group className="mt-3 mb-2">
+                    <Form.Label>Pipeline</Form.Label>
+                    <Form.Control
+                        type="text"
+                        value={pipeline}
+                        onChange={(e) => setPipeline(e.target.value)}
+                        placeholder="main"
+                    />
+                    <Form.Text className="text-muted">
+                        Specify which pipeline to submit to (default: main)
+                    </Form.Text>
+                </Form.Group>
+
                 <ButtonGroup className="mt-3">
                     <SubmitNewButton
                         file={file}
                         class_name={class_name}
                         repo_rev={repo_rev}
-                        arguments={argValues}
+                        arguments={getSubmissionArguments()}
+                        pipeline={pipeline}
                         onError={handleError}
                     />
                 </ButtonGroup>

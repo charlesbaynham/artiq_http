@@ -20,7 +20,7 @@ export function cancel_rid(rid, force = false) {
         });
 }
 
-export function queue_experiment(file, class_name, repo_rev, args = {}, callback = null, onError = null) {
+export function queue_experiment(file, class_name, repo_rev, args = {}, pipeline = 'main', callback = null, onError = null) {
     const expid = {
         "log_level": 30,
         "file": file,
@@ -31,7 +31,7 @@ export function queue_experiment(file, class_name, repo_rev, args = {}, callback
 
     const body = JSON.stringify(expid)
 
-    fetch(make_query_url("api/schedule", {}), {
+    fetch(make_query_url("api/schedule", { pipeline: pipeline }), {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
