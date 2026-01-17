@@ -1,10 +1,7 @@
 from pathlib import Path
-from typing import Any
-from typing import Dict
+from typing import Any, Dict
 
-from fastapi import APIRouter
-from fastapi import FastAPI
-from fastapi import HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.encoders import ENCODERS_BY_TYPE
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -48,6 +45,7 @@ class NumpyJSONResponse(JSONResponse):
     def render(self, content: Any) -> bytes:
         import json
         import math
+
         import numpy as np
 
         def sanitize_value(obj):

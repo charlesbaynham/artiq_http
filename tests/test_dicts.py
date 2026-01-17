@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, patch
+
 from fastapi.testclient import TestClient
 
 from artiq_http.main import fastapi_app

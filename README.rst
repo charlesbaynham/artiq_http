@@ -36,6 +36,19 @@ Usage
     # Run the backend in another shell
     poetry run aqctl_artiq_http
 
+**Local Test Environment:**
+
+A local ARTIQ master can be run using Docker for testing without a real physical ARTIQ master. This includes ``ndscan`` and some example experiments.
+
+.. code-block:: bash
+
+    # Start the local ARTIQ master
+    cd test-artiq
+    docker compose up -d
+
+    # The master will be available on the default ARTIQ ports (3250-3251)
+    # The default configuration in artiq_http is set to use 127.0.0.1
+
 **Tests:**
 
 .. code-block:: bash
