@@ -3,8 +3,10 @@ services:
     build: .
     container_name: artiq-test-master
     ports:
-      - "1065:1065"
-      - "1068:1068"
+      - "3250:3250"
+      - "3251:3251"
+      - "1066:1066"
+      - "1067:1067"
     volumes:
       - ./repository:/artiq/repository
       - ./device_db.py:/artiq/device_db.py

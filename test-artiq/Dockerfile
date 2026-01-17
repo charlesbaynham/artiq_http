@@ -35,7 +35,7 @@ COPY repository ./repository
 COPY device_db.py .
 
 # ARTIQ Master ports
-EXPOSE 1065 1066 1068
+EXPOSE 1066 1067 3250 3251
 
 # Start the master
 ENTRYPOINT ["micromamba", "run", "-n", "artiq", "artiq_master", "-r", "repository"]
