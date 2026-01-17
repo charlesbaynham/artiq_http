@@ -10,12 +10,12 @@
 
 services:
   backend:
-    image: ${CI_REGISTRY_IMAGE}/backend:latest
+    image: ${BACKEND_IMAGE:-registry.gitlab.com/aion-physics/code/artiq/drivers/artiq_http/backend:latest}
     labels:
       com.centurylinklabs.watchtower.scope: artiq_http
 
   frontend:
-    image: ${CI_REGISTRY_IMAGE}/frontend:latest
+    image: ${FRONTEND_IMAGE:-registry.gitlab.com/aion-physics/code/artiq/drivers/artiq_http/frontend:latest}
     labels:
       com.centurylinklabs.watchtower.scope: artiq_http
 
