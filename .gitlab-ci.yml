@@ -154,9 +154,6 @@ docker-backend:
       when: always
     - if: $CI_COMMIT_TAG
       when: always
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-      when: manual
-      allow_failure: true
 
 docker-frontend:
   stage: Docker
