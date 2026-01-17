@@ -15,9 +15,10 @@
 # ---
 
 # %%
-import random
-from sipyco import pyon
 import json
+import random
+
+from sipyco import pyon
 
 file = "explist_debug.json"
 
