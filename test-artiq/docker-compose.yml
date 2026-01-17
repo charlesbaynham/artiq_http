@@ -8,4 +8,4 @@ services:
     volumes:
       - ./repository:/artiq/repository
       - ./device_db.py:/artiq/device_db.py
-    restart: unless-stopped
+    restart: "no"
