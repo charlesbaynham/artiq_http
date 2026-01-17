@@ -140,6 +140,143 @@ export function PYONValueInput({ name, spec, value, onChange, onReset }) {
     );
 }
 
+// NDScan Float Input: handles float type with scale/unit conversion
+export function NDScanFloatInput({ schema, value, onChange, onReset, disabled }) {
+    const { fqn, description, type, default: defaultStr, spec } = schema;
+    const { unit, scale, step, min, max } = spec || {};
+
+    // Parse default from string to number
+    const defaultVal = defaultStr ? parseFloat(defaultStr) : 0;
+    const currentVal = value !== undefined && value !== null ? value : defaultVal;
+
+    // Apply scale for display (displayValue = rawValue / scale)
+    const displayValue = scale ? currentVal / scale : currentVal;
+    const isDefault = value === undefined || value === null;
+
+    const handleChange = (e) => {
+        const val = e.target.value;
+        if (val === '' || val === '-') {
+            onChange(fqn, val);
+        } else {
+            const num = parseFloat(val);
+            if (!isNaN(num)) {
+                // Convert back to raw value (rawValue = displayValue * scale)
+                const rawValue = scale ? num * scale : num;
+                onChange(fqn, rawValue);
+            }
+        }
+    };
+
+    const displayMin = min !== undefined && scale ? min / scale : min;
+    const displayMax = max !== undefined && scale ? max / scale : max;
+    const displayStep = step !== undefined && scale ? step / scale : step;
+
+    return (
+        <InputGroup size="sm">
+            <Form.Control
+                type="number"
+                value={displayValue}
+                onChange={handleChange}
+                step={displayStep || 'any'}
+                min={displayMin}
+                max={displayMax}
+                disabled={disabled}
+            />
+            {unit && <InputGroup.Text>{unit}</InputGroup.Text>}
+            {disabled && (
+                <InputGroup.Text className="text-muted">
+                    <small>Scanned</small>
+                </InputGroup.Text>
+            )}
+            <ResetButton onClick={() => onReset(fqn)} disabled={isDefault || disabled} />
+        </InputGroup>
+    );
+}
+
+// NDScan Int Input: handles integer type
+export function NDScanIntInput({ schema, value, onChange, onReset, disabled }) {
+    const { fqn, description, type, default: defaultStr, spec } = schema;
+    const { unit, scale, step, min, max } = spec || {};
+
+    // Parse default from string to integer
+    const defaultVal = defaultStr ? parseInt(defaultStr) : 0;
+    const currentVal = value !== undefined && value !== null ? value : defaultVal;
+
+    // Apply scale for display if present
+    const displayValue = scale ? currentVal / scale : currentVal;
+    const isDefault = value === undefined || value === null;
+
+    const handleChange = (e) => {
+        const val = e.target.value;
+        if (val === '' || val === '-') {
+            onChange(fqn, val);
+        } else {
+            const num = parseInt(val);
+            if (!isNaN(num)) {
+                const rawValue = scale ? num * scale : num;
+                onChange(fqn, rawValue);
+            }
+        }
+    };
+
+    const displayMin = min !== undefined && scale ? min / scale : min;
+    const displayMax = max !== undefined && scale ? max / scale : max;
+    const displayStep = step !== undefined && scale ? step / scale : step;
+
+    return (
+        <InputGroup size="sm">
+            <Form.Control
+                type="number"
+                value={displayValue}
+                onChange={handleChange}
+                step={displayStep || 1}
+                min={displayMin}
+                max={displayMax}
+                disabled={disabled}
+            />
+            {unit && <InputGroup.Text>{unit}</InputGroup.Text>}
+            {disabled && (
+                <InputGroup.Text className="text-muted">
+                    <small>Scanned</small>
+                </InputGroup.Text>
+            )}
+            <ResetButton onClick={() => onReset(fqn)} disabled={isDefault || disabled} />
+        </InputGroup>
+    );
+}
+
+// NDScan Bool Input: handles boolean type
+export function NDScanBoolInput({ schema, value, onChange, onReset, disabled }) {
+    const { fqn, description, type, default: defaultStr } = schema;
+
+    // Parse default from string to boolean
+    const defaultVal = defaultStr === 'True' || defaultStr === 'true';
+    const currentVal = value !== undefined && value !== null ? value : defaultVal;
+    const isDefault = value === undefined || value === null;
+
+    return (
+        <InputGroup size="sm">
+            <InputGroup.Checkbox
+                checked={Boolean(currentVal)}
+                onChange={(e) => onChange(fqn, e.target.checked)}
+                disabled={disabled}
+            />
+            <Form.Control
+                plaintext
+                readOnly
+                value={currentVal ? 'True' : 'False'}
+                style={{ paddingLeft: '0.5rem' }}
+            />
+            {disabled && (
+                <InputGroup.Text className="text-muted">
+                    <small>Scanned</small>
+                </InputGroup.Text>
+            )}
+            <ResetButton onClick={() => onReset(fqn)} disabled={isDefault || disabled} />
+        </InputGroup>
+    );
+}
+
 // Map argument type to component
 export function getArgumentInput(ty) {
     switch (ty) {
@@ -203,6 +340,9 @@ export default {
     BooleanValueInput,
     StringValueInput,
     PYONValueInput,
+    NDScanFloatInput,
+    NDScanIntInput,
+    NDScanBoolInput,
     getArgumentInput,
     ArgumentRow
 };
