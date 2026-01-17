@@ -1,9 +1,7 @@
 from typing import Dict
 
 from ._get_dict import get_dict
-from .models import ExperimentEntry
-from .models import ExperimentList
-from .models import ScheduleItem
+from .models import ExperimentEntry, ExperimentList, ScheduleItem
 
 
 async def get_schedule() -> Dict[int, ScheduleItem]:

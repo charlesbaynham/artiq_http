@@ -1,4 +1,4 @@
-from artiq.experiment import *  # noqa: F401, F403, F405
+from artiq.experiment import EnvExperiment, NumberValue
 
 
 class MinimalExp(EnvExperiment):

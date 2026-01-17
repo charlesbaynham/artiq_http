@@ -13,8 +13,9 @@ logger = logging.getLogger(__name__)
 # asyncio loop. This is because sipyco uses private members of asyncio, breaking
 # uvloop
 try:
-    import uvloop  # type: ignore  # noqa: F401
     import asyncio
+
+    import uvloop  # type: ignore  # noqa: F401
 
     sys.modules["uvloop"] = asyncio
 except ImportError:
