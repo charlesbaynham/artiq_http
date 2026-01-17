@@ -12,19 +12,19 @@ services:
   backend:
     image: ${CI_REGISTRY_IMAGE}/backend:latest
     labels:
-      - com.centurylinklabs.watchtower.scope=artiq_http
+      com.centurylinklabs.watchtower.scope: artiq_http
 
   frontend:
     image: ${CI_REGISTRY_IMAGE}/frontend:latest
     labels:
-      - com.centurylinklabs.watchtower.scope=artiq_http
+      com.centurylinklabs.watchtower.scope: artiq_http
 
   watchtower:
-    image: containrrr/watchtower
+    image: nickfedor/watchtower
     restart: always
     environment:
-      - WATCHTOWER_SCOPE=artiq_http
-      - WATCHTOWER_POLL_INTERVAL=30
-      - WATCHTOWER_CLEANUP=true
+      WATCHTOWER_SCOPE: artiq_http
+      WATCHTOWER_POLL_INTERVAL: 30
+      WATCHTOWER_CLEANUP: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
