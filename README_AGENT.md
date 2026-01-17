@@ -39,6 +39,16 @@ See README.rst for instructions
 - If on any other branch, use commits liberally. They will be squashed before merging
 - When making multi-step changes on development branches, you should automatically make a commit after each step without prompting the user
 
+## Local ARTIQ Testing
+
+After any major change to the backend or experiment discovery logic, you **must** verify the changes against the local ARTIQ test environment:
+
+1. Start the local master: `cd test-artiq && docker compose up -d`
+2. Verify connectivity: `poetry run sipyco_rpctool 127.0.0.1 3251 list-targets`
+3. Check logs for experiment discovery errors: `docker compose logs artiq-master`
+
+See `test-artiq/README.md` (or the walkthrough) for more details.
+
 ## Testing
 
 ```bash
