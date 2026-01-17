@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     git \
     bzip2 \
     ca-certificates \
+    iproute2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install micromamba
@@ -38,4 +39,5 @@ COPY device_db.py .
 EXPOSE 1066 1067 3250 3251
 
 # Start the master
-ENTRYPOINT ["micromamba", "run", "-n", "artiq", "artiq_master", "-r", "repository", "-vv"]
+# Start the master with verbose logging and bind to all interfaces
+ENTRYPOINT ["micromamba", "run", "-n", "artiq", "artiq_master", "-r", "repository", "--bind", "*", "-vv"]

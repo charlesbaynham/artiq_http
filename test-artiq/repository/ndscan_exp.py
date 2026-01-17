@@ -10,9 +10,9 @@ class NDScanExampleFrag(ExpFragment):
     """
 
     def build_fragment(self):
-        self.setattr_param("amplitude", FloatParam, description="Amplitude of the signal", min=0.0, max=1.0)
-        self.setattr_param("phase", FloatParam, description="Phase of the signal", min=0.0, max=2 * np.pi)
-        self.setattr_param("noise", FloatParam, description="Noise level of the signal", min=0.0)
+        self.setattr_param("amplitude", FloatParam, "Amplitude of the signal", 1.0, min=0.0, max=1.0)
+        self.setattr_param("phase", FloatParam, "Phase of the signal", 0.0, min=0.0, max=2 * np.pi)
+        self.setattr_param("noise", FloatParam, "Noise level of the signal", 0.1, min=0.0)
 
         self.amplitude: FloatParamHandle
         self.phase: FloatParamHandle
