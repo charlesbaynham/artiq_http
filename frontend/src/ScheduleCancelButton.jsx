@@ -2,19 +2,23 @@ import React from 'react';
 
 import Button from 'react-bootstrap/Button';
 
-import { cancel_rid } from './api_features'
+import { cancel_rid } from './api/client'
 
 function ScheduleCancelButton(props) {
     const [isLoading, setLoading] = React.useState(false);
-    const handleClick = () => setLoading(true)
 
-    React.useEffect(() => {
-        if (isLoading) {
-            cancel_rid(props.rid)
-            console.log(`RID ${props.rid} termination requested`)
-            setLoading(false)
-        }
-    }, [isLoading])
+    const handleClick = () => {
+        setLoading(true);
+        cancel_rid(props.rid)
+            .then(() => {
+                console.log(`RID ${props.rid} termination requested`);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(`Error cancelling RID ${props.rid}:`, err.message);
+                setLoading(false);
+            });
+    }
 
     return <Button
         variant="primary"
@@ -26,15 +30,19 @@ function ScheduleCancelButton(props) {
 
 function ScheduleForceCancelButton(props) {
     const [isLoading, setLoading] = React.useState(false);
-    const handleClick = () => setLoading(true)
 
-    React.useEffect(() => {
-        if (isLoading) {
-            cancel_rid(props.rid, true)
-            console.log(`RID ${props.rid} cancelled`)
-            setLoading(false)
-        }
-    }, [isLoading])
+    const handleClick = () => {
+        setLoading(true);
+        cancel_rid(props.rid, true)
+            .then(() => {
+                console.log(`RID ${props.rid} force cancelled`);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(`Error force cancelling RID ${props.rid}:`, err.message);
+                setLoading(false);
+            });
+    }
 
     return <Button
         variant="danger"

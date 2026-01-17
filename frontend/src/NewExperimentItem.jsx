@@ -13,110 +13,16 @@ import SubmitNewButton from "./SubmitNewButton";
 import { ArgumentRow, NDScanFloatInput, NDScanIntInput, NDScanBoolInput } from "./ArgumentInputs";
 import ScanConfiguration from "./ScanConfiguration";
 
-// Check if experiment has ndscan_params argument
-function hasNdscanParams(arginfo) {
-    return arginfo && Object.keys(arginfo).includes('ndscan_params');
-}
-
-// Parse ndscan_params from JSON-encoded default value
-function parseNdscanParams(arginfo) {
-    if (!hasNdscanParams(arginfo)) return null;
-
-    try {
-        const ndscanArg = arginfo['ndscan_params'];
-        const [spec] = ndscanArg;
-        const defaultValue = spec.default;
-
-        // Parse JSON string
-        const parsed = JSON.parse(defaultValue);
-        return parsed;
-    } catch (error) {
-        console.error('Error parsing ndscan_params:', error);
-        return null;
-    }
-}
-
-// Build FQN to fragment path lookup from instances
-function buildFqnToPathMap(instances) {
-    const fqnToPath = {};
-    if (!instances) return fqnToPath;
-
-    for (const [fragmentPath, fqns] of Object.entries(instances)) {
-        for (const fqn of fqns) {
-            // Use first occurrence if FQN appears in multiple fragments
-            if (!fqnToPath[fqn]) {
-                fqnToPath[fqn] = fragmentPath;
-            }
-        }
-    }
-    return fqnToPath;
-}
-
-// Get scanned parameter FQNs from scan axes
-function getScannedFqns(scan) {
-    if (!scan || !scan.axes) return new Set();
-    return new Set(scan.axes.map(axis => axis.fqn).filter(Boolean));
-}
-
-// Get localStorage key for experiment
-function getStorageKey(file, className) {
-    return `ndscan_${file}_${className}`;
-}
-
-// Load state from localStorage
-function loadNdscanState(file, className) {
-    try {
-        const key = getStorageKey(file, className);
-        const stored = localStorage.getItem(key);
-        if (stored) {
-            return JSON.parse(stored);
-        }
-    } catch (error) {
-        console.error('Error loading ndscan state from localStorage:', error);
-    }
-    return null;
-}
-
-// Save state to localStorage
-function saveNdscanState(file, className, state) {
-    try {
-        const key = getStorageKey(file, className);
-        localStorage.setItem(key, JSON.stringify(state));
-    } catch (error) {
-        console.error('Error saving ndscan state to localStorage:', error);
-    }
-}
-
-// Extract default values from arginfo
-function getDefaultValues(arginfo) {
-    const defaults = {};
-    if (!arginfo) return defaults;
-
-    for (const [argName, argData] of Object.entries(arginfo)) {
-        const [spec] = argData;
-        if (spec && spec.default !== undefined) {
-            defaults[argName] = spec.default;
-        }
-    }
-    return defaults;
-}
-
-// Group arguments by their group property
-function groupArguments(arginfo) {
-    const groups = {};
-    if (!arginfo) return groups;
-
-    for (const [argName, argData] of Object.entries(arginfo)) {
-        const [spec, group] = argData;
-        const groupName = group || 'General';
-
-        if (!groups[groupName]) {
-            groups[groupName] = [];
-        }
-        groups[groupName].push({ name: argName, argData });
-    }
-    return groups;
-}
+import {
+    hasNdscanParams,
+    parseNdscanParams,
+    buildFqnToPathMap,
+    getScannedFqns,
+    loadNdscanState,
+    saveNdscanState,
+    formatNdscanSubmission
+} from "./api/ndscan";
+import { getDefaultValues, groupArguments } from "./api/experiments";
 
 function NewExperimentItem(props) {
     const name = props.data.name;
@@ -283,16 +189,6 @@ function NewExperimentItem(props) {
     // Build arguments for submission
     const getSubmissionArguments = () => {
         if (isNdscan && ndscanParams) {
-            // Build ndscan_params object
-            const overridesFormatted = {};
-            for (const [fqn, value] of Object.entries(ndscanOverrides)) {
-                const path = fqnToPath[fqn] || '';
-                overridesFormatted[fqn] = [{
-                    path: path,
-                    value: value
-                }];
-            }
-
             // Validate: no overlap between overrides and scan axes
             const overrideFqns = new Set(Object.keys(ndscanOverrides));
             const overlap = [...scannedFqns].filter(fqn => overrideFqns.has(fqn));
@@ -301,17 +197,7 @@ function NewExperimentItem(props) {
                 return null;
             }
 
-            const ndscanParamsObj = {
-                instances: ndscanParams.instances,
-                schemata: ndscanParams.schemata,
-                always_shown: ndscanParams.always_shown,
-                overrides: overridesFormatted,
-                scan: ndscanScan
-            };
-
-            return {
-                ndscan_params: JSON.stringify(ndscanParamsObj)
-            };
+            return formatNdscanSubmission(ndscanParams, ndscanOverrides, ndscanScan, fqnToPath);
         } else {
             return argValues;
         }
