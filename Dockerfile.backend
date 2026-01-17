@@ -1,0 +1,41 @@
+# Stage 1: Build with Poetry
+FROM python:3.11 AS builder
+
+WORKDIR /app
+
+# Install Poetry
+RUN pip install --no-cache-dir poetry
+
+# Copy all files needed for version detection
+COPY pyproject.toml poetry.lock* ./
+COPY VERSION.json ./
+COPY README.rst ./
+
+# Configure Poetry to create virtualenv in project
+RUN poetry config virtualenvs.in-project true
+
+# Install dependencies (without dev dependencies)
+RUN poetry install --without dev --no-root
+
+# Copy application code
+COPY artiq_http/ ./artiq_http/
+
+# Install the application itself
+RUN poetry install --only-root
+
+# Stage 2: Runtime
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy virtualenv and application from builder
+COPY --from=builder /app/.venv .venv
+COPY --from=builder /app/artiq_http artiq_http
+COPY --from=builder /app/VERSION.json VERSION.json
+
+# Set PATH to use virtualenv
+ENV PATH="/app/.venv/bin:$PATH"
+
+EXPOSE 8000
+
+CMD ["aqctl_artiq_http"]

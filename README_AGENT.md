@@ -51,6 +51,22 @@ This project includes agent configuration in the `.agent/` directory:
 - `.agent/skills/` - Custom agent skills
 - `.agent/agents/` - Agent-specific configurations
 
+## Versioning
+
+This project uses manual semantic versioning. The version is stored in both:
+- `VERSION.json` - Primary source of truth
+- `pyproject.toml` - Poetry configuration (must match VERSION.json)
+
+**When making changes, update the version according to Semantic Versioning (semver) principles:**
+- **MAJOR** (X.0.0): Breaking changes to the API
+- **MINOR** (0.X.0): New features, backward-compatible
+- **PATCH** (0.0.X): Bug fixes, backward-compatible
+
+**Update both files whenever you make changes:**
+1. Determine the appropriate version increment based on the changes
+2. Update `VERSION.json`
+3. Update the `version` field in `pyproject.toml` to match
+
 ## Agent documentation
 
 - Whenever changes are made, review the agent guidance and update it if required

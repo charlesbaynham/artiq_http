@@ -1,0 +1,17 @@
+http://, https://localhost {
+    handle /api/* {
+        reverse_proxy {$API_URL:http://backend:8000}
+    }
+    handle /docs* {
+        reverse_proxy {$API_URL:http://backend:8000}
+    }
+    handle /openapi.json {
+        reverse_proxy {$API_URL:http://backend:8000}
+    }
+    handle {
+        root * /srv/result
+        encode gzip zstd
+        try_files {path} /index.html
+        file_server
+    }
+}

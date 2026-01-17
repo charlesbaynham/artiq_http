@@ -1,5 +1,6 @@
 import argparse
 import logging
+import os
 import sys
 
 import uvicorn
@@ -25,17 +26,17 @@ def get_argparser():
     parser.add_argument(
         "--port",
         type=int,
-        default=8000,
+        default=int(os.getenv("ARTIQ_HTTP_SERVER_PORT", "8000")),
         help="Port for HTTP server",
     )
     parser.add_argument(
         "--host",
-        default="0.0.0.0",
+        default=os.getenv("ARTIQ_HTTP_SERVER_HOST", "0.0.0.0"),
         help="Host address to bind to",
     )
     parser.add_argument(
         "--log-level",
-        default="INFO",
+        default=os.getenv("ARTIQ_HTTP_LOG_LEVEL", "INFO"),
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         help="Logging level",
     )

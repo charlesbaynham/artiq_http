@@ -1,0 +1,30 @@
+# Docker Compose override file for Watchtower auto-updates
+# Usage: docker compose -f docker-compose.yml -f compose.watchtower.yml up -d
+#
+# This configuration pulls images from GitLab Container Registry and uses
+# Watchtower to automatically update containers when new images are pushed.
+#
+# Before using, set these environment variables:
+#   - CI_REGISTRY_IMAGE: Your GitLab registry path (e.g., registry.gitlab.com/username/artiq_http)
+#   - CI_JOB_TOKEN or CI_REGISTRY_PASSWORD: Authentication token for pulling images
+
+services:
+  backend:
+    image: ${CI_REGISTRY_IMAGE}/backend:latest
+    labels:
+      - com.centurylinklabs.watchtower.scope=artiq_http
+
+  frontend:
+    image: ${CI_REGISTRY_IMAGE}/frontend:latest
+    labels:
+      - com.centurylinklabs.watchtower.scope=artiq_http
+
+  watchtower:
+    image: containrrr/watchtower
+    restart: always
+    environment:
+      - WATCHTOWER_SCOPE=artiq_http
+      - WATCHTOWER_POLL_INTERVAL=30
+      - WATCHTOWER_CLEANUP=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro

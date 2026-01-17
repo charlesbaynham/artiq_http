@@ -1,61 +1,46 @@
+import json
 import os
 import subprocess
 from pathlib import Path
 
 
-COMMAND = "git describe --tags --long --dirty --always".split(" ")
-UNTRACKED_CMD = "git status --porcelain".split(" ")
 VERSION_FILE = Path(__file__, "../../VERSION.json").resolve()
 OVERRIDE_ENVVAR = "PYTHON_VERSION_OVERRIDE"
 
 
 def get_version() -> str:
     """
-    Returns a string describing the git version of the given project.
+    Returns the version string from VERSION.json.
 
     Priority order:
     1. PYTHON_VERSION_OVERRIDE environment variable
-    2. Git-based version detection
-    3. VERSION.json fallback
-
-    Note: When the package is built/installed via Poetry, poetry-dynamic-versioning
-    will inject the correct __version__ into __init__.py at build time.
+    2. VERSION.json file
+    3. Git commit hash appended if available (for development builds)
     """
     # If the override env var is set, use it
     if OVERRIDE_ENVVAR in os.environ and os.environ[OVERRIDE_ENVVAR]:
         return os.environ[OVERRIDE_ENVVAR]
 
-    import json
+    # Read version from VERSION.json
+    version = json.loads(VERSION_FILE.read_text())["version"]
 
-    semver = json.loads(VERSION_FILE.read_text())["version"]
-
+    # In development, optionally append git commit hash
     try:
-        gitver = subprocess.check_output(COMMAND, universal_newlines=True).strip()
+        git_hash = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            universal_newlines=True,
+        ).strip()
 
-        # Thanks to pyfidelity/setuptools-git-version
-        try:
-            parts = gitver.split("-")
-            assert len(parts) in (3, 4)
-            dirty = len(parts) == 4
-            tag, count, sha = parts[:3]
+        # Check if working directory is dirty
+        git_status = subprocess.check_output(
+            ["git", "status", "--porcelain"],
+            stderr=subprocess.DEVNULL,
+            universal_newlines=True,
+        ).strip()
 
-            # Check for untracked files too
-            if not dirty:
-                if subprocess.check_output(
-                    UNTRACKED_CMD, universal_newlines=True
-                ).strip():
-                    dirty = True
-
-            if dirty:
-                dirty_str = ".d"
-            else:
-                dirty_str = ""
-
-            return f"{semver}+{sha.lstrip('g')}{dirty_str}"
-
-        except AssertionError:
-            return semver
+        dirty_suffix = ".d" if git_status else ""
+        return f"{version}+{git_hash}{dirty_suffix}"
     except (FileNotFoundError, subprocess.CalledProcessError):
-        # Git is not installed or this directory wasn't copied as a git repo for some reason
-        # Fall back to the baked-in semver
-        return semver
+        # Git not available or not a git repository
+        return version
