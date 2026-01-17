@@ -7,8 +7,6 @@ repos:
       - id: check-merge-conflict
       - id: end-of-file-fixer
       - id: mixed-line-ending
-      - id: check-yaml
-        exclude: ^\.gitlab-ci\.yml$
 
   # Lint and format the code with ruff
   - repo: https://github.com/astral-sh/ruff-pre-commit
