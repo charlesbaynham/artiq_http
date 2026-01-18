@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { get_dataset_names } from "./api/client";
 import NDScanPlot from "./NDScanPlot";
 import ListGroup from "react-bootstrap/ListGroup";
@@ -13,6 +14,7 @@ import Alert from "react-bootstrap/Alert";
 function NDScanPlotCollection() {
   const [prefixes, setPrefixes] = useState([]);
   const [selectedPrefix, setSelectedPrefix] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -36,9 +38,6 @@ function NDScanPlotCollection() {
       // Only update state if the list has changed
       if (JSON.stringify(discovered) !== JSON.stringify(prefixes)) {
         setPrefixes(discovered);
-        if (discovered.length > 0 && !selectedPrefix) {
-          setSelectedPrefix(discovered[0]);
-        }
       }
       setError(null);
     } catch (err) {
@@ -52,7 +51,23 @@ function NDScanPlotCollection() {
     fetchPrefixes();
     const interval = setInterval(fetchPrefixes, 5000);
     return () => clearInterval(interval);
-  }, [prefixes, selectedPrefix]);
+  }, [prefixes]);
+
+  // Sync selection with URL
+  useEffect(() => {
+    const scanInUrl = searchParams.get("scan");
+    if (scanInUrl) {
+      if (selectedPrefix !== scanInUrl) setSelectedPrefix(scanInUrl);
+    } else if (prefixes.length > 0 && !selectedPrefix) {
+      // Default to first found scan if none selected and none in URL
+      setSelectedPrefix(prefixes[0]);
+    }
+  }, [searchParams, prefixes, selectedPrefix]);
+
+  const handleSelect = (prefix) => {
+    setSelectedPrefix(prefix);
+    setSearchParams({ scan: prefix });
+  };
 
   if (loading && prefixes.length === 0) {
     return (
@@ -91,7 +106,7 @@ function NDScanPlotCollection() {
                   key={prefix}
                   action
                   active={selectedPrefix === prefix}
-                  onClick={() => setSelectedPrefix(prefix)}
+                  onClick={() => handleSelect(prefix)}
                   className="py-2 px-3 small border-0 mb-1 rounded"
                   style={{ cursor: "pointer" }}
                 >

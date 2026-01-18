@@ -5,8 +5,18 @@ import NewNDScanItem from "./NewNDScanItem";
 import { isNDScanExperiment } from "./api/ndscan";
 import CollapsibleSection from "./CollapsibleSection";
 
-function ExperimentSubmission({ experiment, repo_rev }) {
-  if (!experiment) {
+function ExperimentSubmission({ explist, experiment, repo_rev }) {
+  // experiment is now a string ID: "file:class_name"
+  // explist contains { experiments: [...] }
+
+  const findExperiment = (id) => {
+    if (!id || !explist || !explist.experiments) return null;
+    return explist.experiments.find((e) => `${e.file}:${e.class_name}` === id);
+  };
+
+  const expData = findExperiment(experiment);
+
+  if (!expData) {
     return (
       <Card className="mt-4 shadow-sm border-0 bg-secondary bg-opacity-10">
         <Card.Body className="text-center p-5 text-muted">
@@ -20,7 +30,6 @@ function ExperimentSubmission({ experiment, repo_rev }) {
     );
   }
 
-  const { experiment: expData } = experiment;
   const Component = isNDScanExperiment(expData.arginfo)
     ? NewNDScanItem
     : NewExperimentItem;

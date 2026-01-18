@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
@@ -11,7 +12,7 @@ import ExperimentSubmission from "./ExperimentSubmission";
 import DatasetExplorer from "./DatasetExplorer";
 import NDScanPlotCollection from "./NDScanPlotCollection";
 import ConnectionErrorModal from "./ConnectionErrorModal";
-import { get_health } from "./api/client";
+import { get_health, get_explist } from "./api/client";
 import MobileNavigation from "./MobileNavigation";
 
 const HEALTH_CHECK_INTERVAL = 5000; // 5 seconds
@@ -20,18 +21,103 @@ function App() {
   const [selectedExperiment, setSelectedExperiment] = useState(null);
   const [repoRev, setRepoRev] = useState(null);
   const [connectionError, setConnectionError] = useState(null); // null, "backend", or "artiq"
-  const [currentPage, setCurrentPage] = useState("schedule"); // For mobile navigation
 
-  const handleSelect = (experiment, rev) => {
-    setSelectedExperiment(experiment);
-    setRepoRev(rev);
-    // On mobile, automatically switch to configure page when experiment is selected
-    setCurrentPage("configure");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Determine current page from URL path
+  const getPageFromPath = (pathname) => {
+    if (pathname.startsWith("/datasets")) return "datasets";
+    if (pathname.startsWith("/plots")) return "plots";
+    if (pathname.startsWith("/schedule")) return "schedule";
+    if (pathname.startsWith("/configure")) return "configure";
+    if (pathname.startsWith("/running")) return "running";
+    return "schedule"; // Default
   };
+
+  const currentPage = getPageFromPath(location.pathname);
+
+  // Deep linking for Experiment Selection
+  useEffect(() => {
+    const exp = searchParams.get("experiment");
+    const rev = searchParams.get("rev");
+    if (exp) {
+      setSelectedExperiment(exp);
+      setRepoRev(rev);
+    }
+  }, [searchParams]);
 
   const handlePageChange = (page) => {
-    setCurrentPage(page);
+    // Map page IDs to routes
+    const routes = {
+      running: "/running",
+      datasets: "/datasets",
+      plots: "/plots",
+      schedule: "/schedule",
+      configure: "/configure",
+    };
+    const route = routes[page] || "/schedule";
+    navigate(route);
   };
+
+  // Scroll to active section on Desktop
+  useEffect(() => {
+    // Only scroll if we are on desktop (>768px check roughly, or just do it always since mobile hides sections)
+    // We can use the section id logic or just scroll the window
+    const element = document.getElementById(`section-${currentPage}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [currentPage]);
+
+  // Fetch experiment list
+  const [explist, setExplist] = useState({});
+  useEffect(() => {
+    const fetchExplist = () => {
+      // Import locally or just assume it's available? Need to add import.
+      get_explist()
+        .then(setExplist)
+        .catch((err) =>
+          console.error("Experiment list update error:", err.message),
+        );
+    };
+    fetchExplist();
+    const interval = setInterval(fetchExplist, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Sync selection logic - store as string in URL
+  const handleSelect = (node) => {
+    // node from ExperimentTree is { experiment: { file: "...", class_name: "..." } }
+    // We want a unique ID. Composite key: "file:class_name"
+    const exp = node.experiment;
+    const uniqueId = `${exp.file}:${exp.class_name}`;
+
+    setSelectedExperiment(uniqueId);
+    setRepoRev(explist.repo_rev);
+
+    const params = new URLSearchParams();
+    params.set("experiment", uniqueId);
+    if (explist.repo_rev) params.set("rev", explist.repo_rev);
+    navigate({ pathname: "/configure", search: params.toString() });
+
+    // Scroll to Configure Submission section
+    setTimeout(() => {
+      const element = document.getElementById("section-configure");
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
+  };
+
+  // Re-hydrate from URL
+  useEffect(() => {
+    const expParam = searchParams.get("experiment");
+    if (expParam) {
+      setSelectedExperiment(expParam);
+    }
+  }, [searchParams]);
 
   // Health check polling
   useEffect(() => {
@@ -73,6 +159,7 @@ function App() {
 
         {/* Running Section */}
         <Row
+          id="section-running"
           className={`pt-2 page-section ${
             currentPage === "running" ? "active" : ""
           }`}
@@ -86,12 +173,13 @@ function App() {
 
         {/* Datasets Section */}
         <Row
+          id="section-datasets"
           className={`pt-2 page-section ${
             currentPage === "datasets" ? "active" : ""
           }`}
         >
           <Col>
-            <CollapsibleSection title="Datasets">
+            <CollapsibleSection title="Datasets" defaultExpanded={false}>
               <DatasetExplorer />
             </CollapsibleSection>
           </Col>
@@ -99,12 +187,13 @@ function App() {
 
         {/* Plots Section */}
         <Row
+          id="section-plots"
           className={`pt-2 page-section ${
             currentPage === "plots" ? "active" : ""
           }`}
         >
           <Col>
-            <CollapsibleSection title="Plots">
+            <CollapsibleSection title="Plots" defaultExpanded={false}>
               <NDScanPlotCollection />
             </CollapsibleSection>
           </Col>
@@ -112,6 +201,7 @@ function App() {
 
         {/* Schedule New Section */}
         <Row
+          id="section-schedule"
           className={`pt-2 page-section ${
             currentPage === "schedule" ? "active" : ""
           }`}
@@ -119,6 +209,7 @@ function App() {
           <Col>
             <CollapsibleSection title="Schedule new">
               <NewExperiment
+                explist={explist}
                 onSelect={handleSelect}
                 selectedExperiment={selectedExperiment}
               />
@@ -128,6 +219,7 @@ function App() {
 
         {/* Configure Submission Section */}
         <Row
+          id="section-configure"
           className={`pt-2 page-section ${
             currentPage === "configure" ? "active" : ""
           }`}
@@ -135,6 +227,7 @@ function App() {
           <Col>
             <CollapsibleSection title="Configure Submission">
               <ExperimentSubmission
+                explist={explist}
                 experiment={selectedExperiment}
                 repo_rev={repoRev}
               />

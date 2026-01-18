@@ -42,26 +42,13 @@ function buildTree(experiments, searchTerm) {
   return tree;
 }
 
-function NewExperiment({ onSelect, selectedExperiment }) {
-  const [explist, setExplist] = React.useState({});
+function NewExperiment({ explist, onSelect, selectedExperiment }) {
   const [searchTerm, setSearchTerm] = React.useState("");
 
-  const exps = "experiments" in explist ? explist["experiments"] : [];
-  const repo_rev = "repo_rev" in explist ? explist["repo_rev"] : null;
-
-  React.useEffect(() => {
-    const fetchExplist = () => {
-      get_explist()
-        .then(setExplist)
-        .catch((err) =>
-          console.error("Experiment list update error:", err.message),
-        );
-    };
-
-    fetchExplist();
-    const interval = setInterval(fetchExplist, TIMEOUT);
-    return () => clearInterval(interval);
-  }, []);
+  const exps =
+    explist && "experiments" in explist ? explist["experiments"] : [];
+  const repo_rev =
+    explist && "repo_rev" in explist ? explist["repo_rev"] : null;
 
   const tree = React.useMemo(
     () => buildTree(exps, searchTerm),
