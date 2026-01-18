@@ -15,7 +15,11 @@ function DatasetExplorer() {
   const [allNames, setAllNames] = useState([]);
   const [filteredNames, setFilteredNames] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDatasets, setSelectedDatasets] = useState([]);
+  const [selectedDatasets, setSelectedDatasets] = useState(() => {
+    // Restore selected datasets from localStorage on mount
+    const saved = localStorage.getItem("selectedDatasets");
+    return saved ? JSON.parse(saved) : [];
+  });
   const [datasetValues, setDatasetValues] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -45,6 +49,27 @@ function DatasetExplorer() {
     // Cleanup interval on unmount
     return () => clearInterval(intervalId);
   }, []);
+
+  // Restore dataset values for previously selected datasets on mount
+  useEffect(() => {
+    const restoreValues = async () => {
+      if (selectedDatasets.length > 0) {
+        try {
+          const data = await get_dataset_values(selectedDatasets);
+          setDatasetValues(data);
+        } catch (err) {
+          setError(`Failed to restore dataset values: ${err.message}`);
+        }
+      }
+    };
+
+    restoreValues();
+  }, []); // Only run on mount
+
+  // Save selected datasets to localStorage whenever selection changes
+  useEffect(() => {
+    localStorage.setItem("selectedDatasets", JSON.stringify(selectedDatasets));
+  }, [selectedDatasets]);
 
   // Filter names based on search query
   useEffect(() => {
