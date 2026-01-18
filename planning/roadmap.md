@@ -12,6 +12,8 @@ This roadmap tracks the Upcoming features planned for the next phase of developm
 - [x] [NDScan Plot Visualizations](ndscan-plot-visualizations.md) - Automatic visualization of NDScan datasets with 0D, 1D, and 2D plots
 - [x] [URL Path Encoding](url-path-encoding.md) - Deep linking and browser navigation support for focused UI views
 - [ ] [Use SSE for Plot Updates](sse-updates.md) - Stream dataset updates in real-time instead of polling
+- [x] [Realistic NDScan Experiments](realistic-ndscan-experiments.md) - Replace dummy experiments with realistic NDScan examples including nested fragments and complex parameters
+
 
 ## Backburner
 
