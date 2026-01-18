@@ -221,6 +221,44 @@ async def get_dataset_values(names: str):
     return result
 
 
+@router.get("/health")
+async def get_health():
+    """Get backend health and ARTIQ connection status
+
+    Returns:
+        dict: Health status including ARTIQ connection state
+    """
+    # Check connection status of all subscribers
+    subscribers = api.persistent_subscriber.subscriber_manager._subscribers
+    details = {}
+    connected_count = 0
+
+    for name, subscriber in subscribers.items():
+        is_connected = subscriber.is_connected()
+        details[name] = is_connected
+        if is_connected:
+            connected_count += 1
+
+    total_count = len(subscribers)
+
+    # Determine overall status
+    if connected_count == total_count:
+        status = "healthy"
+        artiq_connected = True
+    elif connected_count > 0:
+        status = "degraded"
+        artiq_connected = True
+    else:
+        status = "unhealthy"
+        artiq_connected = False
+
+    return {
+        "status": status,
+        "artiq_connected": artiq_connected,
+        "details": details,
+    }
+
+
 @router.post("/cancel")
 async def cancel_experiment(rid: int, force: bool = False) -> None:
     """Cancel a running experiment
