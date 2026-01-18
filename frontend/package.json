@@ -13,6 +13,7 @@
     "http-proxy-middleware": "^2.0.6",
     "react": "^18.2.0",
     "react-bootstrap": "^2.7.0",
+    "react-bootstrap-icons": "^1.11.6",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {

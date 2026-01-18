@@ -62,3 +62,14 @@ export function get_schedule() {
 export function get_explist() {
   return api_fetch("api/explist");
 }
+
+export function get_dataset_names() {
+  return api_fetch("api/datasets/names");
+}
+
+export function get_dataset_values(names) {
+  const namesParam = Array.isArray(names) ? names.join(",") : names;
+  return api_fetch("api/datasets/values", {
+    params: { names: namesParam },
+  });
+}

@@ -13,6 +13,11 @@ function MobileNavigation({ currentPage, onPageChange }) {
       icon: "▶️", // Play/running icon
     },
     {
+      id: "datasets",
+      label: "Datasets",
+      icon: "📊", // Data/chart icon
+    },
+    {
       id: "schedule",
       label: "Schedule",
       icon: "📋", // List/schedule icon
