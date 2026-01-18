@@ -28,7 +28,6 @@ function DatasetExplorer() {
   useEffect(() => {
     const fetchNames = async () => {
       try {
-        setLoading(true);
         const data = await get_dataset_names();
         setAllNames(data.names);
         setFilteredNames(data.names);
