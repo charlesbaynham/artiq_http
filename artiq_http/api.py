@@ -1,3 +1,5 @@
+import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict
 
@@ -9,6 +11,8 @@ from fastapi.staticfiles import StaticFiles
 
 from . import artiq_api as api
 from .config import config
+
+logger = logging.getLogger(__name__)
 
 
 # Register numpy encoders with FastAPI's jsonable_encoder
@@ -99,7 +103,34 @@ class NumpyJSONResponse(JSONResponse):
         ).encode("utf-8")
 
 
-app = FastAPI(default_response_class=NumpyJSONResponse)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan - startup and shutdown"""
+    # Startup
+    from . import artiq_api
+
+    logger.info("Starting persistent subscribers...")
+    await artiq_api.persistent_subscriber.subscriber_manager.start()
+
+    # Wait for subscribers to initialize (with timeout)
+    logger.info("Waiting for subscribers to initialize...")
+    initialized = await artiq_api.persistent_subscriber.subscriber_manager.wait_for_init(timeout=10.0)
+    if initialized:
+        logger.info("Persistent subscribers started and initialized successfully")
+    else:
+        logger.warning(
+            "Persistent subscribers started but initialization timed out - API will return 503 until connected"
+        )
+
+    yield
+
+    # Shutdown
+    logger.info("Stopping persistent subscribers...")
+    await artiq_api.persistent_subscriber.subscriber_manager.stop()
+    logger.info("Persistent subscribers stopped successfully")
+
+
+app = FastAPI(default_response_class=NumpyJSONResponse, lifespan=lifespan)
 
 router = APIRouter()
 

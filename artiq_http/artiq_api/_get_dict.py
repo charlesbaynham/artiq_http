@@ -13,9 +13,7 @@ async def get_dict(notifier_name, timeout=3.0) -> dict:
     Get a dict that's being served from a Sipyco sync_strut :class:`.Notifier`
 
     Args:
-        host (str): Server to connect to
         notifier_name (str): Name of RPC notifier
-        port (int, optional): Network port. Defaults to 3250.
         timeout (float, optional): Timeout before giving up. Defaults to 3.0.
 
     Returns:

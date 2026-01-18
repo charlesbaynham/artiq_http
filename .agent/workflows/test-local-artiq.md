@@ -10,6 +10,13 @@ To verify changes against a local ARTIQ master:
    docker compose up -d
    ```
 
+   **For development with auto-reload on file changes**:
+   ```bash
+   cd test-artiq
+   docker compose watch
+   ```
+   This will automatically restart the ARTIQ master when you modify experiments in `repository/` or `device_db.py`. Press Ctrl+C to stop watch mode.
+
 2. **Wait for the master to initialize** (usually ~5-10 seconds).
 
 3. **Verify connectivity and discovery**:
