@@ -8,6 +8,7 @@ import CollapsibleSection from "./CollapsibleSection";
 import Schedule from "./Schedule";
 import NewExperiment from "./NewExperiment";
 import ExperimentSubmission from "./ExperimentSubmission";
+import DatasetExplorer from "./DatasetExplorer";
 
 function App() {
   const [selectedExperiment, setSelectedExperiment] = useState(null);
@@ -26,6 +27,13 @@ function App() {
         <Col>
           <CollapsibleSection title="Running">
             <Schedule />
+          </CollapsibleSection>
+        </Col>
+      </Row>
+      <Row className="pt-2">
+        <Col>
+          <CollapsibleSection title="Datasets">
+            <DatasetExplorer />
           </CollapsibleSection>
         </Col>
       </Row>
