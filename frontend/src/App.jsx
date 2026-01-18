@@ -11,6 +11,7 @@ import ExperimentSubmission from "./ExperimentSubmission";
 import DatasetExplorer from "./DatasetExplorer";
 import ConnectionErrorModal from "./ConnectionErrorModal";
 import { get_health } from "./api/client";
+import MobileNavigation from "./MobileNavigation";
 
 const HEALTH_CHECK_INTERVAL = 5000; // 5 seconds
 
@@ -18,10 +19,17 @@ function App() {
   const [selectedExperiment, setSelectedExperiment] = useState(null);
   const [repoRev, setRepoRev] = useState(null);
   const [connectionError, setConnectionError] = useState(null); // null, "backend", or "artiq"
+  const [currentPage, setCurrentPage] = useState("schedule"); // For mobile navigation
 
   const handleSelect = (experiment, rev) => {
     setSelectedExperiment(experiment);
     setRepoRev(rev);
+    // On mobile, automatically switch to configure page when experiment is selected
+    setCurrentPage("configure");
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
   };
 
   // Health check polling
@@ -54,7 +62,7 @@ function App() {
   }, []);
 
   return (
-    <>
+    <div className="app-container">
       <ConnectionErrorModal
         errorType={connectionError}
         show={connectionError !== null}
@@ -62,21 +70,38 @@ function App() {
       <Container fluid className="p-3 p-md-4">
         <h1 className="mb-4">ARTIQ HTTP interface</h1>
 
-        <Row className="pt-2">
+        {/* Running Section */}
+        <Row
+          className={`pt-2 page-section ${
+            currentPage === "running" ? "active" : ""
+          }`}
+        >
           <Col>
             <CollapsibleSection title="Running">
               <Schedule />
             </CollapsibleSection>
           </Col>
         </Row>
-        <Row className="pt-2">
+
+        {/* Datasets Section */}
+        <Row
+          className={`pt-2 page-section ${
+            currentPage === "datasets" ? "active" : ""
+          }`}
+        >
           <Col>
             <CollapsibleSection title="Datasets">
               <DatasetExplorer />
             </CollapsibleSection>
           </Col>
         </Row>
-        <Row className="pt-2">
+
+        {/* Schedule New Section */}
+        <Row
+          className={`pt-2 page-section ${
+            currentPage === "schedule" ? "active" : ""
+          }`}
+        >
           <Col>
             <CollapsibleSection title="Schedule new">
               <NewExperiment
@@ -86,16 +111,30 @@ function App() {
             </CollapsibleSection>
           </Col>
         </Row>
-        <Row className="pt-2">
+
+        {/* Configure Submission Section */}
+        <Row
+          className={`pt-2 page-section ${
+            currentPage === "configure" ? "active" : ""
+          }`}
+        >
           <Col>
-            <ExperimentSubmission
-              experiment={selectedExperiment}
-              repo_rev={repoRev}
-            />
+            <CollapsibleSection title="Configure Submission">
+              <ExperimentSubmission
+                experiment={selectedExperiment}
+                repo_rev={repoRev}
+              />
+            </CollapsibleSection>
           </Col>
         </Row>
       </Container>
-    </>
+
+      {/* Mobile Navigation - only visible on mobile */}
+      <MobileNavigation
+        currentPage={currentPage}
+        onPageChange={handlePageChange}
+      />
+    </div>
   );
 }
 

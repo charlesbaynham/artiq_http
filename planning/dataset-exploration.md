@@ -9,12 +9,9 @@ Provide a way to browse, search, and inspect ARTIQ datasets through the web UI.
 ### Problem Statement
 ARTIQ datasets can be large and numerous. Currently, there's no way to easily see what datasets are available or inspect their values without using the ARTIQ dashboard or custom scripts. This feature addresses the need for a central, searchable view of all broadcasted datasets.
 
-Datasets use a hierarchical structure with `.` as a separator (e.g., `scope.channel1.voltage`). The UI should reflect this structure to make browsing easier.
-
 ### Expected Outcomes
-- A new "Datasets" page (mobile) or section (desktop).
+- A new "Datasets" page in the navigation.
 - Search and filtering by dataset name.
-- Hierarchical browsing of datasets.
 - Detailed view of dataset values (scalars, lists, and numpy arrays).
 - Responsive design for mobile and desktop.
 
