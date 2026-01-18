@@ -73,3 +73,7 @@ export function get_dataset_values(names) {
     params: { names: namesParam },
   });
 }
+
+export function get_health() {
+  return api_fetch("api/health");
+}
