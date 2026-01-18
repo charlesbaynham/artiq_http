@@ -9,6 +9,7 @@ import Schedule from "./Schedule";
 import NewExperiment from "./NewExperiment";
 import ExperimentSubmission from "./ExperimentSubmission";
 import DatasetExplorer from "./DatasetExplorer";
+import NDScanPlotCollection from "./NDScanPlotCollection";
 import ConnectionErrorModal from "./ConnectionErrorModal";
 import { get_health } from "./api/client";
 import MobileNavigation from "./MobileNavigation";
@@ -92,6 +93,19 @@ function App() {
           <Col>
             <CollapsibleSection title="Datasets">
               <DatasetExplorer />
+            </CollapsibleSection>
+          </Col>
+        </Row>
+
+        {/* Plots Section */}
+        <Row
+          className={`pt-2 page-section ${
+            currentPage === "plots" ? "active" : ""
+          }`}
+        >
+          <Col>
+            <CollapsibleSection title="Plots">
+              <NDScanPlotCollection />
             </CollapsibleSection>
           </Col>
         </Row>

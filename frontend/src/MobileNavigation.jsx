@@ -18,6 +18,11 @@ function MobileNavigation({ currentPage, onPageChange }) {
       icon: "📊", // Data/chart icon
     },
     {
+      id: "plots",
+      label: "Plots",
+      icon: "📈", // Graph/plot icon
+    },
+    {
       id: "schedule",
       label: "Schedule",
       icon: "📋", // List/schedule icon
