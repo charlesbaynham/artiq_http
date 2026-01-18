@@ -103,7 +103,7 @@ function DatasetExplorer() {
 
       <div className="row">
         <div className="col-md-6">
-          <h5>Available Datasets ({filteredNames.length})</h5>
+          <h5>Available Datasets ({allNames.length})</h5>
           <div
             className="border rounded p-2"
             style={{ maxHeight: "500px", overflowY: "auto" }}
