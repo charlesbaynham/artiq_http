@@ -1,0 +1,34 @@
+services:
+  # Test ARTIQ Master Server
+  artiq-test-master:
+    build:
+      context: ./test-artiq
+      dockerfile: Dockerfile
+    container_name: artiq-test-master
+    expose:
+      - "3250"
+      - "3251"
+      - "1066"
+      - "1067"
+    restart: "no"
+    develop:
+      watch:
+        # Watch repository directory for experiment changes
+        - action: sync+restart
+          path: ./test-artiq/repository
+          target: /artiq/repository
+          ignore:
+            - __pycache__/
+        # Watch device_db.py for configuration changes
+        - action: sync+restart
+          path: ./test-artiq/device_db.py
+          target: /artiq/device_db.py
+
+  # Override backend to connect to test ARTIQ master
+  backend:
+    environment:
+      - ARTIQ_HTTP_HOST=artiq-test-master
+      - ARTIQ_HTTP_PORT_NOTIFIERS=3250
+      - ARTIQ_HTTP_PORT_CLIENTS=3251
+    depends_on:
+      - artiq-test-master

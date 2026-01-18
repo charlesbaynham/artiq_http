@@ -10,9 +10,7 @@ After making big frontend changes, testing should be done by following these ste
    ```
 
 2. **Run a local dev server**: Start the frontend development server to test changes interactively.
-   ```bash
-   npm run frontend
-   ```
+   You may also need to start the backend server. See the main readme for commands for both of these.
 
 3. **Verify in the browser**:
    - Open the application in the **Chrome browser**.
