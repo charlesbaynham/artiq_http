@@ -81,6 +81,19 @@ function DatasetExplorer() {
     setSelectedDatasets(newSelected);
   };
 
+  // Refresh values for all selected datasets
+  const refreshSelectedDatasets = async () => {
+    if (selectedDatasets.length === 0) return;
+
+    try {
+      const data = await get_dataset_values(selectedDatasets);
+      setDatasetValues(data);
+      setError(null);
+    } catch (err) {
+      setError(`Failed to refresh dataset values: ${err.message}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center p-4">
@@ -124,7 +137,16 @@ function DatasetExplorer() {
         </div>
 
         <div className="col-md-6">
-          <h5>Selected Datasets ({selectedDatasets.length})</h5>
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <h5>Selected Datasets ({selectedDatasets.length})</h5>
+            <button
+              className="btn btn-sm btn-outline-primary"
+              onClick={refreshSelectedDatasets}
+              disabled={selectedDatasets.length === 0}
+            >
+              🔄 Refresh
+            </button>
+          </div>
           <div
             className="border rounded p-3"
             style={{ maxHeight: "500px", overflowY: "auto" }}
