@@ -63,15 +63,15 @@ NDScan outputs datasets in a well-structured, consistent format, but these datas
 ## Acceptance Criteria
 
 <!-- To be defined during planning phase -->
-- [ ] 0D scans display as time-series plots with all samples visible
-- [ ] 1D scans display as line plots with proper axis labels
-- [ ] 2D scans display as heatmaps with color scales
-- [ ] Plots handle multiple samples per point correctly
-- [ ] Plots handle unevenly spaced points correctly
-- [ ] Users can see a list of available plots from current datasets
-- [ ] Plots update automatically via polling
-- [ ] Plot interactions (zoom, pan, reset) work smoothly
-- [ ] Code architecture supports future migration to streaming updates
+- [x] 0D scans display as time-series plots with all samples visible
+- [x] 1D scans display as line plots with proper axis labels
+- [x] 2D scans display as heatmaps with color scales
+- [x] Plots handle multiple samples per point correctly
+- [x] Plots handle unevenly spaced points correctly
+- [x] Users can see a list of available plots from current datasets
+- [x] Plots update automatically via polling
+- [x] Plot interactions (zoom, pan, reset) work smoothly
+- [x] Code architecture supports future migration to streaming updates
 
 ## Example Datasets for Testing
 
@@ -105,7 +105,8 @@ This hands-on exploration will inform the implementation of the dataset parser a
 ## Notes
 
 Created: 2026-01-18
-Status: Planning
+Status: Complete
+Completion Date: 2026-01-18
 
 ### NDScan Dataset Structure Reference
 
