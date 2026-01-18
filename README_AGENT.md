@@ -51,9 +51,17 @@ See `test-artiq/README.md` (or the walkthrough) for more details.
 
 ## Testing
 
+To run the unit tests, use the following commands:
+
 ```bash
+# Run basic tests
 poetry run pytest
-poetry run coverage run -m pytest
+
+# Run all tests, including those requiring a real ARTIQ stack (Docker)
+poetry run pytest --realserver
+
+# Run with coverage
+poetry run coverage run -m pytest --realserver
 poetry run coverage report
 ```
 
