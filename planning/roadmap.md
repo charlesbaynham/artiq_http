@@ -10,6 +10,7 @@ This roadmap tracks the Upcoming features planned for the next phase of developm
 - [x] [Error states for connection](error-states-connection.md) - Provide feedback for backend and ARTIQ connection failures
 - [ ] [Superhero Bootstrap Theme](superhero-bootstrap-theme.md) - Modern dark theme for improved aesthetics and reduced eye strain
 - [ ] [NDScan Plot Visualizations](ndscan-plot-visualizations.md) - Automatic visualization of NDScan datasets with 0D, 1D, and 2D plots
+- [ ] [Use SSE for Plot Updates](sse-updates.md) - Stream dataset updates in real-time instead of polling
 
 ## Backburner
 
@@ -18,7 +19,6 @@ Features that are not yet fleshed out, but will be one day.
 - [ ] Git Branching
 - [ ] Console Logs
 - [ ] URLs should encode paths to the part of the interface that's in focus
-- [ ] Plot datasets should use Server Sent Events (SSE) to stream updates instead of polling
 
 ## Usage
 
