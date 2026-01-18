@@ -20,7 +20,7 @@ function DatasetExplorer() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch dataset names on mount
+  // Fetch dataset names on mount and every 5 seconds
   useEffect(() => {
     const fetchNames = async () => {
       try {
@@ -36,7 +36,14 @@ function DatasetExplorer() {
       }
     };
 
+    // Fetch immediately on mount
     fetchNames();
+
+    // Set up interval to fetch every 5 seconds
+    const intervalId = setInterval(fetchNames, 5000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   // Filter names based on search query
