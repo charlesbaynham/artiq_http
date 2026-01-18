@@ -5,14 +5,15 @@
 
 This roadmap tracks the Upcoming features planned for the next phase of development. Each feature has a dedicated planning document with detailed goals and implementation plans.
 
-- [ ] [UI Pages for Mobile](ui-pages-for-mobile.md) - Responsive, mobile-first interface with pagination and touch-friendly interactions
+- [ ] [Dataset Exploration](dataset-exploration.md) - Browse, search, and inspect ARTIQ datasets through the web UI
+- [x] [UI Pages for Mobile](ui-pages-for-mobile.md) - Responsive, mobile-first interface with pagination and touch-friendly interactions
+- [ ] [Error states for connection](error-states-connection.md) - Provide feedback for backend and ARTIQ connection failures
 
 ## Backburner
 
 Features that are not yet fleshed out, but will be one day.
 
 - [ ] Git Branching
-- [ ] Dataset Exploration
 - [ ] Plotting Support
 - [ ] Console Logs
 
