@@ -26,6 +26,10 @@ RUN micromamba create -n artiq -y \
 RUN micromamba run -n artiq pip install git+https://github.com/OxfordIonTrapGroup/oitg
 RUN micromamba run -n artiq pip install git+https://github.com/OxfordIonTrapGroup/ndscan
 
+# Pin sipyco to the version we use currently
+# TODO: be more robust / general
+RUN micromamba run -n artiq pip install git+https://github.com/m-labs/sipyco.git@96fcefbea490a9b42c862393860d2e586b05d744
+
 # Force llvmlite back to 0.39 to avoid worker crashes
 # This is necessary because pip might upgrade it during the git installs
 RUN micromamba install -n artiq -y -c conda-forge llvmlite=0.39

@@ -17,7 +17,7 @@ async def submit_experiment(
 
     remote = Client(config["host"], config["port_clients"], rpc_name)
     try:
-        rid = remote.submit(pipeline, expid.dict(), priority, due_date, flush)
+        rid = remote.submit(pipeline, expid.model_dump(), priority, due_date, flush)
         return rid
     finally:
         remote.close_rpc()

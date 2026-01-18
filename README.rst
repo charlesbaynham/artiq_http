@@ -56,8 +56,11 @@ A local ARTIQ master can be run using Docker for testing without a real physical
     # Run Python tests
     poetry run pytest
 
+    # Run all tests including those requiring a real ARTIQ master (starts stack automatically)
+    poetry run pytest --realserver
+
     # Run with coverage
-    poetry run coverage run -m pytest
+    poetry run coverage run -m pytest --realserver
     poetry run coverage report
 
     # Linting and formatting

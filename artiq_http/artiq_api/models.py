@@ -17,8 +17,8 @@ class ScheduleItem(BaseModel):
     priority: int
     due_date: Optional[float]
     flush: bool
-    status: str
-    repo_msg: str
+    status: Optional[str]
+    repo_msg: Optional[str]
     expid: ExpID
 
 
