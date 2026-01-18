@@ -376,11 +376,21 @@ function NewNDScanItem(props) {
                     return filteredParams.map(([fqn, schema]) => (
                       <div
                         key={fqn}
-                        className="p-1 px-2 d-flex justify-content-between align-items-center border-bottom small"
+                        className="p-1 px-2 d-flex justify-content-between align-items-center border-bottom small ndscan-param-row"
                         style={{
                           backgroundColor: visibleFqns.has(fqn)
                             ? "#e7f1ff"
                             : "transparent",
+                        }}
+                        onClick={() => {
+                          // On mobile, clicking anywhere toggles visibility
+                          if (window.innerWidth < 768) {
+                            if (visibleFqns.has(fqn)) {
+                              removeFQNFromVisibleParams(fqn);
+                            } else {
+                              addFQNToVisibleParams(fqn);
+                            }
+                          }
                         }}
                       >
                         <div
@@ -400,7 +410,9 @@ function NewNDScanItem(props) {
                               ? "outline-danger"
                               : "outline-primary"
                           }
-                          onClick={() => {
+                          onClick={(e) => {
+                            // Prevent double-firing on mobile
+                            e.stopPropagation();
                             if (visibleFqns.has(fqn)) {
                               removeFQNFromVisibleParams(fqn);
                             } else {
@@ -408,6 +420,7 @@ function NewNDScanItem(props) {
                             }
                           }}
                           style={{ padding: "0 0.5rem" }}
+                          className="desktop-only"
                         >
                           {visibleFqns.has(fqn) ? "Hide" : "Show"}
                         </Button>
@@ -449,11 +462,21 @@ function NewNDScanItem(props) {
                                 {params.map(([fqn, schema]) => (
                                   <div
                                     key={fqn}
-                                    className="p-1 px-2 d-flex justify-content-between align-items-center border-bottom small"
+                                    className="p-1 px-2 d-flex justify-content-between align-items-center border-bottom small ndscan-param-row"
                                     style={{
                                       backgroundColor: visibleFqns.has(fqn)
                                         ? "#e7f1ff"
                                         : "transparent",
+                                    }}
+                                    onClick={() => {
+                                      // On mobile, clicking anywhere toggles visibility
+                                      if (window.innerWidth < 768) {
+                                        if (visibleFqns.has(fqn)) {
+                                          removeFQNFromVisibleParams(fqn);
+                                        } else {
+                                          addFQNToVisibleParams(fqn);
+                                        }
+                                      }
                                     }}
                                   >
                                     <div
@@ -473,7 +496,9 @@ function NewNDScanItem(props) {
                                           ? "outline-danger"
                                           : "outline-primary"
                                       }
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        // Prevent double-firing on mobile
+                                        e.stopPropagation();
                                         if (visibleFqns.has(fqn)) {
                                           removeFQNFromVisibleParams(fqn);
                                         } else {
@@ -481,6 +506,7 @@ function NewNDScanItem(props) {
                                         }
                                       }}
                                       style={{ padding: "0 0.5rem" }}
+                                      className="desktop-only"
                                     >
                                       {visibleFqns.has(fqn) ? "Hide" : "Show"}
                                     </Button>
