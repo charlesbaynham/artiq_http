@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import artiq_api as api
+from . import sse
 from .config import config
 
 logger = logging.getLogger(__name__)
@@ -301,6 +302,7 @@ async def submit_experiment(
 
 
 app.include_router(router, prefix="/api")
+app.include_router(sse.router, prefix="/api")
 
 if config["dev_mode"]:
     print("Development mode")
