@@ -150,24 +150,24 @@ These endpoints should leverage the existing `PersistentSubscriber` data structu
 ## Acceptance Criteria
 
 ### Backend
-- [ ] `GET /api/datasets/names` endpoint returns list of dataset names
-- [ ] `GET /api/datasets/values?names=...` endpoint returns values for requested datasets
-- [ ] Both endpoints use existing PersistentSubscriber infrastructure
-- [ ] Automated tests pass for new endpoints
+- [x] `GET /api/datasets/names` endpoint returns list of dataset names
+- [x] `GET /api/datasets/values?names=...` endpoint returns values for requested datasets
+- [x] Both endpoints use existing PersistentSubscriber infrastructure
+- [x] Automated tests pass for new endpoints
 
 ### Frontend
-- [ ] Datasets section/page is accessible from main navigation
-- [ ] Search bar filters dataset names in real-time
-- [ ] Hierarchical tree view displays datasets grouped by `.` separator
-- [ ] Clicking a dataset fetches and displays its value
-- [ ] Dataset values display correctly (scalars, lists, arrays)
-- [ ] Layout is responsive (collapsible section on desktop, page on mobile)
-- [ ] Integration with existing mobile navigation works seamlessly
+- [x] Datasets section/page is accessible from main navigation
+- [x] Search bar filters dataset names in real-time
+- [x] Hierarchical tree view displays datasets grouped by `.` separator
+- [x] Clicking a dataset fetches and displays its value
+- [x] Dataset values display correctly (scalars, lists, arrays)
+- [x] Layout is responsive (collapsible section on desktop, page on mobile)
+- [x] Integration with existing mobile navigation works seamlessly
 
 ### Testing
-- [ ] All automated tests pass
-- [ ] Manual testing confirms UI functionality
-- [ ] Feature works with Docker ARTIQ stack
+- [x] All automated tests pass
+- [x] Manual testing confirms UI functionality
+- [x] Feature works with Docker ARTIQ stack
 
 ## Dependencies & Prerequisites
 
@@ -176,8 +176,10 @@ None identified. The backend infrastructure for dataset broadcasting via `Persis
 ## Notes
 
 Created: 2026-01-18
-Status: In Progress
+Status: Complete
+Completed: 2026-01-18
 
 ### Progress Log
 
-2026-01-18: Implementation plan created, awaiting user approval
+2026-01-18 19:18: Implementation plan created and approved
+2026-01-18 19:22: Implementation completed - all tests passing, frontend builds successfully
