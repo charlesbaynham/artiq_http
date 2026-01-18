@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import Form from "react-bootstrap/Form";
 import Alert from "react-bootstrap/Alert";
 import Spinner from "react-bootstrap/Spinner";
@@ -57,6 +58,23 @@ function DatasetExplorer() {
     }
   }, [searchQuery, allNames]);
 
+  // Sync with URL Params
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Initialize from URL
+  useEffect(() => {
+    const selectedInUrl = searchParams.getAll("select");
+    if (selectedInUrl.length > 0) {
+      setSelectedDatasets(selectedInUrl);
+      // And we need to fetch values for them
+      get_dataset_values(selectedInUrl)
+        .then((data) => {
+          setDatasetValues((prev) => ({ ...prev, ...data }));
+        })
+        .catch((err) => console.error(err));
+    }
+  }, []); // Only on mount
+
   // Handle dataset selection
   const handleSelect = async (datasetName) => {
     // Toggle selection
@@ -78,6 +96,14 @@ function DatasetExplorer() {
       }
     }
     setSelectedDatasets(newSelected);
+
+    // Update URL
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev);
+      newParams.delete("select");
+      newSelected.forEach((name) => newParams.append("select", name));
+      return newParams;
+    });
   };
 
   // Refresh values for all selected datasets
