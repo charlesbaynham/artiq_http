@@ -39,7 +39,9 @@ PHYSICS_VERBS = [
     "Alignment",
 ]
 
-TEMPLATE = """from artiq.experiment import EnvExperiment, NumberValue
+TEMPLATE = """
+from artiq.experiment import EnvExperiment, NumberValue
+from time import sleep
 
 class {class_name}(EnvExperiment):
     \"\"\"{docstring}
@@ -47,10 +49,11 @@ class {class_name}(EnvExperiment):
 
     def build(self):
         self.setattr_argument("count", NumberValue({count}, step=1, precision=0))
-        self.setattr_argument("delay", NumberValue({delay}, unit="ms"))
+        self.setattr_argument("delay", NumberValue({delay}, unit="s"))
 
     def run(self):
         print("Starting {name}")
+        sleep(self.delay)
         self.set_dataset("results", self.count, broadcast=True)
         print("{name} Complete")
 """
