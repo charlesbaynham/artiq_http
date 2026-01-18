@@ -76,7 +76,7 @@ function NewExperiment({ onSelect, selectedExperiment }) {
 
   return (
     <div>
-      <div className="experiment-browser-container border rounded p-3 bg-white shadow-sm">
+      <div className="experiment-browser-container border rounded p-3 bg-secondary bg-opacity-10">
         <InputGroup className="mb-4">
           <InputGroup.Text>🔍</InputGroup.Text>
           <Form.Control

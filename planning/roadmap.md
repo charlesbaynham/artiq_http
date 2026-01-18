@@ -8,7 +8,7 @@ This roadmap tracks the Upcoming features planned for the next phase of developm
 - [x] [Dataset Exploration](dataset-exploration.md) - Browse, search, and inspect ARTIQ datasets through the web UI
 - [x] [UI Pages for Mobile](ui-pages-for-mobile.md) - Responsive, mobile-first interface with pagination and touch-friendly interactions
 - [x] [Error states for connection](error-states-connection.md) - Provide feedback for backend and ARTIQ connection failures
-- [ ] [Superhero Bootstrap Theme](superhero-bootstrap-theme.md) - Modern dark theme for improved aesthetics and reduced eye strain
+- [x] [Superhero Bootstrap Theme](superhero-bootstrap-theme.md) - Modern dark theme for improved aesthetics and reduced eye strain
 - [ ] [NDScan Plot Visualizations](ndscan-plot-visualizations.md) - Automatic visualization of NDScan datasets with 0D, 1D, and 2D plots
 
 ## Backburner

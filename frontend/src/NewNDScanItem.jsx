@@ -525,7 +525,7 @@ function NewNDScanItem(props) {
 
           {/* Display Visible Parameters */}
           {combinedFQNs.size === 0 && (
-            <div className="text-center p-3 border rounded bg-light text-muted small mb-3">
+            <div className="text-center p-3 border rounded bg-secondary bg-opacity-25 text-muted small mb-3">
               No parameters are currently visible. Use the search above to add
               parameters.
             </div>

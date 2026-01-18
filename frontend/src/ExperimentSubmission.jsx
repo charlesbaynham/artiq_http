@@ -8,7 +8,7 @@ import CollapsibleSection from "./CollapsibleSection";
 function ExperimentSubmission({ experiment, repo_rev }) {
   if (!experiment) {
     return (
-      <Card className="mt-4 shadow-sm border-0 bg-light">
+      <Card className="mt-4 shadow-sm border-0 bg-secondary bg-opacity-10">
         <Card.Body className="text-center p-5 text-muted">
           <h5>No experiment selected</h5>
           <p>
@@ -27,11 +27,9 @@ function ExperimentSubmission({ experiment, repo_rev }) {
 
   return (
     <div className="mt-4">
-      <CollapsibleSection title="Configure Submission">
-        <div className="submission-form-container">
-          <Component data={expData} repo_rev={repo_rev} />
-        </div>
-      </CollapsibleSection>
+      <div className="submission-form-container">
+        <Component data={expData} repo_rev={repo_rev} />
+      </div>
     </div>
   );
 }
