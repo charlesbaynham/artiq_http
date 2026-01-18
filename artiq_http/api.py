@@ -182,6 +182,45 @@ async def get_datasets():
     return await api.notifiers.get_datasets()
 
 
+@router.get("/datasets/names")
+async def get_dataset_names():
+    """Get list of all dataset names (keys only)
+
+    Returns a lightweight list of dataset names without their values,
+    enabling efficient browsing and searching.
+
+    Returns:
+        dict: {"names": ["dataset1", "dataset2", ...]}
+    """
+    datasets = await api.notifiers.get_datasets()
+    return {"names": list(datasets.keys())}
+
+
+@router.get("/datasets/values", response_model=None)
+async def get_dataset_values(names: str):
+    """Get values for specific datasets
+
+    Args:
+        names: Comma-separated list of dataset names to fetch
+
+    Returns:
+        dict: Requested datasets with their values
+    """
+    # Parse comma-separated names
+    requested_names = [name.strip() for name in names.split(",") if name.strip()]
+
+    # Get all datasets from persistent subscriber
+    all_datasets = await api.notifiers.get_datasets()
+
+    # Filter to only requested datasets
+    result = {}
+    for name in requested_names:
+        if name in all_datasets:
+            result[name] = all_datasets[name]
+
+    return result
+
+
 @router.post("/cancel")
 async def cancel_experiment(rid: int, force: bool = False) -> None:
     """Cancel a running experiment

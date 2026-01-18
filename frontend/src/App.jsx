@@ -8,6 +8,7 @@ import CollapsibleSection from "./CollapsibleSection";
 import Schedule from "./Schedule";
 import NewExperiment from "./NewExperiment";
 import ExperimentSubmission from "./ExperimentSubmission";
+import DatasetExplorer from "./DatasetExplorer";
 import MobileNavigation from "./MobileNavigation";
 
 function App() {
@@ -44,6 +45,19 @@ function App() {
           </Col>
         </Row>
 
+        {/* Datasets Section */}
+        <Row
+          className={`pt-2 page-section ${
+            currentPage === "datasets" ? "active" : ""
+          }`}
+        >
+          <Col>
+            <CollapsibleSection title="Datasets">
+              <DatasetExplorer />
+            </CollapsibleSection>
+          </Col>
+        </Row>
+
         {/* Schedule New Section */}
         <Row
           className={`pt-2 page-section ${
@@ -67,10 +81,12 @@ function App() {
           }`}
         >
           <Col>
-            <ExperimentSubmission
-              experiment={selectedExperiment}
-              repo_rev={repoRev}
-            />
+            <CollapsibleSection title="Configure Submission">
+              <ExperimentSubmission
+                experiment={selectedExperiment}
+                repo_rev={repoRev}
+              />
+            </CollapsibleSection>
           </Col>
         </Row>
       </Container>
