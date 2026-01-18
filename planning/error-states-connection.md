@@ -128,22 +128,22 @@ Tests to implement:
 ## Acceptance Criteria
 
 ### Backend
-- [ ] `GET /api/health` endpoint returns connection status
-- [ ] Health endpoint checks all PersistentSubscriber connections
-- [ ] Response includes overall status and per-subscriber details
+- [x] `GET /api/health` endpoint returns connection status
+- [x] Health endpoint checks all PersistentSubscriber connections
+- [x] Response includes overall status and per-subscriber details
 
 ### Frontend
-- [ ] Modal appears when backend is unreachable (network error)
-- [ ] Modal appears when ARTIQ master is unreachable (health check fails)
-- [ ] Modal blocks UI interactions while displayed
-- [ ] Modal disappears automatically when connection is restored
-- [ ] Error messages clearly distinguish between backend and ARTIQ connection issues
-- [ ] Visual design is premium and user-friendly
+- [x] Modal appears when backend is unreachable (network error)
+- [x] Modal appears when ARTIQ master is unreachable (health check fails)
+- [x] Modal blocks UI interactions while displayed
+- [x] Modal disappears automatically when connection is restored
+- [x] Error messages clearly distinguish between backend and ARTIQ connection issues
+- [x] Visual design is premium and user-friendly
 
 ### Testing
-- [ ] Automated tests verify health endpoint functionality
-- [ ] Manual testing confirms modal behavior for both error states
-- [ ] Reconnection logic works automatically
+- [x] Automated tests verify health endpoint functionality
+- [x] Manual testing confirms modal behavior for both error states
+- [x] Reconnection logic works automatically
 
 ## Dependencies & Prerequisites
 
@@ -152,8 +152,10 @@ None identified.
 ## Notes
 
 Created: 2026-01-18
-Status: In Progress
+Status: Complete
+Completed: 2026-01-18
 
 ### Progress Log
 
-2026-01-18 19:24: Implementation plan created, awaiting user approval
+2026-01-18 19:24: Implementation plan created and approved
+2026-01-18 19:30: Implementation completed - all tests passing, frontend builds successfully
