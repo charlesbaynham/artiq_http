@@ -28,3 +28,14 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "realserver" in item.keywords:
                 item.add_marker(skip_realserver)
+
+
+@pytest.fixture(scope="module")
+def client():
+    """Create a TestClient with lifespan context for persistent subscribers"""
+    from fastapi.testclient import TestClient
+
+    from artiq_http.api import app
+
+    with TestClient(app) as test_client:
+        yield test_client
