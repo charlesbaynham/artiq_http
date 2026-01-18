@@ -122,10 +122,10 @@ function NewExperimentItem(props) {
             {Object.entries(groupedArgs).map(([groupName, args]) => (
               <Card
                 key={groupName}
-                className="mb-3 border-light shadow-none bg-light bg-opacity-10"
+                className="mb-3 border-secondary shadow-none bg-secondary bg-opacity-10"
               >
                 <Card.Header
-                  className="py-2 px-3 bg-light"
+                  className="py-2 px-3 bg-secondary bg-opacity-25"
                   style={{ fontSize: "0.9em", fontWeight: 600 }}
                 >
                   {groupName}
