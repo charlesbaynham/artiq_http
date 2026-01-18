@@ -52,7 +52,7 @@ function DatasetValue({ name, datasetData }) {
       return (
         <details>
           <summary>Array ({val.length} elements)</summary>
-          <pre className="mt-2 p-2 bg-light border rounded">
+          <pre className="mt-2 p-2 bg-dark border rounded">
             {JSON.stringify(val, null, 2)}
           </pre>
         </details>
@@ -63,7 +63,7 @@ function DatasetValue({ name, datasetData }) {
       return (
         <details>
           <summary>Object</summary>
-          <pre className="mt-2 p-2 bg-light border rounded">
+          <pre className="mt-2 p-2 bg-dark border rounded">
             {JSON.stringify(val, null, 2)}
           </pre>
         </details>
@@ -83,7 +83,7 @@ function DatasetValue({ name, datasetData }) {
       {metadata && Object.keys(metadata).length > 0 && (
         <details className="mt-2 ms-3">
           <summary className="text-muted small">Metadata</summary>
-          <pre className="mt-1 p-2 bg-light border rounded small">
+          <pre className="mt-1 p-2 bg-dark border rounded small">
             {JSON.stringify(metadata, null, 2)}
           </pre>
         </details>
