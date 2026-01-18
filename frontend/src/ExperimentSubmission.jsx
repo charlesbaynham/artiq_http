@@ -3,6 +3,7 @@ import Card from "react-bootstrap/Card";
 import NewExperimentItem from "./NewExperimentItem";
 import NewNDScanItem from "./NewNDScanItem";
 import { isNDScanExperiment } from "./api/ndscan";
+import CollapsibleSection from "./CollapsibleSection";
 
 function ExperimentSubmission({ experiment, repo_rev }) {
   if (!experiment) {
@@ -26,10 +27,11 @@ function ExperimentSubmission({ experiment, repo_rev }) {
 
   return (
     <div className="mt-4">
-      <h4 className="mb-3">Configure Submission</h4>
-      <div className="submission-form-container">
-        <Component data={expData} repo_rev={repo_rev} />
-      </div>
+      <CollapsibleSection title="Configure Submission">
+        <div className="submission-form-container">
+          <Component data={expData} repo_rev={repo_rev} />
+        </div>
+      </CollapsibleSection>
     </div>
   );
 }
