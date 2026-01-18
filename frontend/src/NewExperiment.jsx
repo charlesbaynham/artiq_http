@@ -3,7 +3,7 @@ import Form from "react-bootstrap/Form";
 import InputGroup from "react-bootstrap/InputGroup";
 
 import ExperimentTree from "./ExperimentTree";
-import ExperimentSubmission from "./ExperimentSubmission";
+
 import { get_explist } from "./api/client";
 
 const TIMEOUT = 10000;
@@ -42,10 +42,9 @@ function buildTree(experiments, searchTerm) {
   return tree;
 }
 
-function NewExperiment() {
+function NewExperiment({ onSelect, selectedExperiment }) {
   const [explist, setExplist] = React.useState({});
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [selectedExperiment, setSelectedExperiment] = React.useState(null);
 
   const exps = "experiments" in explist ? explist["experiments"] : [];
   const repo_rev = "repo_rev" in explist ? explist["repo_rev"] : null;
@@ -70,7 +69,9 @@ function NewExperiment() {
   );
 
   const handleSelect = (node) => {
-    setSelectedExperiment(node);
+    if (onSelect) {
+      onSelect(node, repo_rev);
+    }
   };
 
   return (
@@ -121,11 +122,6 @@ function NewExperiment() {
           )}
         </div>
       </div>
-
-      <ExperimentSubmission
-        experiment={selectedExperiment}
-        repo_rev={repo_rev}
-      />
     </div>
   );
 }
