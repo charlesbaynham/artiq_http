@@ -18,6 +18,7 @@ Features that are not yet fleshed out, but will be one day.
 - [ ] Git Branching
 - [ ] Console Logs
 - [ ] URLs should encode paths to the part of the interface that's in focus
+- [ ] Plot datasets should use Server Sent Events (SSE) to stream updates instead of polling
 
 ## Usage
 
