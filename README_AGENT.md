@@ -20,8 +20,8 @@ See README.rst for instructions
   - `config.py` - Configuration
   - `artiq_api/` - ARTIQ API wrapper modules
 - `frontend/` - React frontend
-- `test-artiq/` - Local ARTIQ test environment (Docker)
-  - `repository/` - Minimal experiments for testing
+- `test-artiq/` - Local ARTIQ test environment (Docker). This directory mimics the structure of an external ARTIQ experiment repository for testing purposes, but is a subdirectory of this project.
+  - `repository/` - Minimal experiments for testing. This folder represents the root of the "mock" ARTIQ repository. Note that it is not a git repository, despite the name.
   - `Dockerfile` - ARTIQ + ndscan image
   - `docker-compose.yml` - Test stack orchestration
 - `tests/` - Test suite

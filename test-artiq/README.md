@@ -1,6 +1,6 @@
 # Local ARTIQ Test Environment
 
-This directory contains a Docker-based ARTIQ master setup for local testing and development. It provides a safe alternative to connecting to a real ARTIQ master.
+This directory contains a Docker-based ARTIQ master setup for local testing and development. It provides a safe alternative to connecting to a real ARTIQ master by mimicking the structure of an external ARTIQ experiment repository.
 
 ## Features
 
