@@ -33,6 +33,7 @@ export function useSSEDataset(prefix, options = {}) {
   const eventSourceRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const mountedRef = useRef(true);
+  const lastConnectionAttemptRef = useRef(0);
 
   // Merge update data into existing data
   const mergeUpdate = useCallback((updateData) => {
@@ -55,6 +56,24 @@ export function useSSEDataset(prefix, options = {}) {
   // Connect to SSE endpoint
   const connect = useCallback(() => {
     if (!prefix || !enabled) return;
+
+    // Rate-limit reconnection attempts to 1 per second
+    const now = Date.now();
+    const timeSinceLastAttempt = now - lastConnectionAttemptRef.current;
+    const minReconnectInterval = 1000; // 1 second minimum
+
+    if (timeSinceLastAttempt < minReconnectInterval) {
+      // Schedule the connection attempt after the rate limit period
+      const delay = minReconnectInterval - timeSinceLastAttempt;
+      reconnectTimeoutRef.current = setTimeout(() => {
+        if (mountedRef.current && enabled) {
+          connect();
+        }
+      }, delay);
+      return;
+    }
+
+    lastConnectionAttemptRef.current = now;
 
     // Clean up any existing connection
     if (eventSourceRef.current) {

@@ -36,7 +36,7 @@ class {class_name}Frag(ExpFragment):
         self.signal: FloatChannel
 
     def run_once(self):
-        time.sleep(100)
+        time.sleep(0.3)
         f = self.frequency.get()
         a = self.amplitude.get()
         noise_on = self.enable_noise.get()
@@ -88,7 +88,7 @@ class {class_name}Frag(ExpFragment):
         self.duration: FloatParamHandle
 
     def run_once(self):
-        time.sleep(100)
+        time.sleep(0.3)
         # In a real experiment, we'd use frequency/duration here
         # f = self.frequency.get()
         # t = self.duration.get()
@@ -122,7 +122,7 @@ class {class_name}Frag(ExpFragment):
         self.ch2_proc: FloatChannel
 
     def run_once(self):
-        time.sleep(100)
+        time.sleep(0.3)
         x = self.x_val.get()
 
         v1 = np.sin(x) + np.random.normal(0, 0.05)
