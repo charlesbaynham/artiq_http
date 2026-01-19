@@ -9,6 +9,7 @@ SECONDARY_FOLDERS = ["Laser", "Magnetic", "RF", "Optical", "Global"]
 # Template 1: Basic component test with various parameter types
 TEMPLATE_BASIC = """
 import numpy as np
+import time
 from ndscan.experiment import FloatParam, FloatChannel, BoolParam, IntParam, ExpFragment, make_fragment_scan_exp
 from ndscan.experiment.parameters import FloatParamHandle, BoolParamHandle, IntParamHandle
 
@@ -35,6 +36,7 @@ class {class_name}Frag(ExpFragment):
         self.signal: FloatChannel
 
     def run_once(self):
+        time.sleep(100)
         f = self.frequency.get()
         a = self.amplitude.get()
         noise_on = self.enable_noise.get()
@@ -52,6 +54,7 @@ class {class_name}Frag(ExpFragment):
 # Template 2: Nested experiment (Rabi Flopping simulation)
 TEMPLATE_NESTED = """
 import numpy as np
+import time
 from ndscan.experiment import FloatParam, FloatChannel, BoolParam, IntParam, ExpFragment, make_fragment_scan_exp
 from ndscan.experiment.parameters import FloatParamHandle, BoolParamHandle, IntParamHandle
 
@@ -85,6 +88,7 @@ class {class_name}Frag(ExpFragment):
         self.duration: FloatParamHandle
 
     def run_once(self):
+        time.sleep(100)
         # In a real experiment, we'd use frequency/duration here
         # f = self.frequency.get()
         # t = self.duration.get()
@@ -98,6 +102,7 @@ class {class_name}Frag(ExpFragment):
 # Template 3: Multi-channel results
 TEMPLATE_MULTI = """
 import numpy as np
+import time
 from ndscan.experiment import FloatParam, FloatChannel, BoolParam, IntParam, ExpFragment, make_fragment_scan_exp
 from ndscan.experiment.parameters import FloatParamHandle, BoolParamHandle, IntParamHandle
 
@@ -117,6 +122,7 @@ class {class_name}Frag(ExpFragment):
         self.ch2_proc: FloatChannel
 
     def run_once(self):
+        time.sleep(100)
         x = self.x_val.get()
 
         v1 = np.sin(x) + np.random.normal(0, 0.05)
