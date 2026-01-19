@@ -25,7 +25,7 @@ tmux send-keys "npm run frontend" C-m
 # Select the right pane and split it horizontally (top/bottom) for ARTIQ
 tmux select-pane -t 1
 tmux split-window -v -c "$SCRIPT_DIR/test-artiq"
-tmux send-keys "docker compose up" C-m
+tmux send-keys "docker compose up --build" C-m
 
 # Final layout:
 # +----------+----------+
