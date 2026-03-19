@@ -1,488 +1,195 @@
 import React from "react";
 
-import Accordion from 'react-bootstrap/Accordion';
-import Table from 'react-bootstrap/Table';
-import ButtonGroup from 'react-bootstrap/ButtonGroup';
-import Button from 'react-bootstrap/Button';
-import Card from 'react-bootstrap/Card';
-import Toast from 'react-bootstrap/Toast';
-import ToastContainer from 'react-bootstrap/ToastContainer';
-import Form from 'react-bootstrap/Form';
+import Accordion from "react-bootstrap/Accordion";
+import Table from "react-bootstrap/Table";
+import ButtonGroup from "react-bootstrap/ButtonGroup";
+import Button from "react-bootstrap/Button";
+import Card from "react-bootstrap/Card";
+import Toast from "react-bootstrap/Toast";
+import ToastContainer from "react-bootstrap/ToastContainer";
+import Form from "react-bootstrap/Form";
 
 import SubmitNewButton from "./SubmitNewButton";
-import { ArgumentRow, NDScanFloatInput, NDScanIntInput, NDScanBoolInput } from "./ArgumentInputs";
-import ScanConfiguration from "./ScanConfiguration";
-
-// Check if experiment has ndscan_params argument
-function hasNdscanParams(arginfo) {
-    return arginfo && Object.keys(arginfo).includes('ndscan_params');
-}
-
-// Parse ndscan_params from JSON-encoded default value
-function parseNdscanParams(arginfo) {
-    if (!hasNdscanParams(arginfo)) return null;
-
-    try {
-        const ndscanArg = arginfo['ndscan_params'];
-        const [spec] = ndscanArg;
-        const defaultValue = spec.default;
-
-        // Parse JSON string
-        const parsed = JSON.parse(defaultValue);
-        return parsed;
-    } catch (error) {
-        console.error('Error parsing ndscan_params:', error);
-        return null;
-    }
-}
-
-// Build FQN to fragment path lookup from instances
-function buildFqnToPathMap(instances) {
-    const fqnToPath = {};
-    if (!instances) return fqnToPath;
-
-    for (const [fragmentPath, fqns] of Object.entries(instances)) {
-        for (const fqn of fqns) {
-            // Use first occurrence if FQN appears in multiple fragments
-            if (!fqnToPath[fqn]) {
-                fqnToPath[fqn] = fragmentPath;
-            }
-        }
-    }
-    return fqnToPath;
-}
-
-// Get scanned parameter FQNs from scan axes
-function getScannedFqns(scan) {
-    if (!scan || !scan.axes) return new Set();
-    return new Set(scan.axes.map(axis => axis.fqn).filter(Boolean));
-}
-
-// Get localStorage key for experiment
-function getStorageKey(file, className) {
-    return `ndscan_${file}_${className}`;
-}
-
-// Load state from localStorage
-function loadNdscanState(file, className) {
-    try {
-        const key = getStorageKey(file, className);
-        const stored = localStorage.getItem(key);
-        if (stored) {
-            return JSON.parse(stored);
-        }
-    } catch (error) {
-        console.error('Error loading ndscan state from localStorage:', error);
-    }
-    return null;
-}
-
-// Save state to localStorage
-function saveNdscanState(file, className, state) {
-    try {
-        const key = getStorageKey(file, className);
-        localStorage.setItem(key, JSON.stringify(state));
-    } catch (error) {
-        console.error('Error saving ndscan state to localStorage:', error);
-    }
-}
-
-// Extract default values from arginfo
-function getDefaultValues(arginfo) {
-    const defaults = {};
-    if (!arginfo) return defaults;
-
-    for (const [argName, argData] of Object.entries(arginfo)) {
-        const [spec] = argData;
-        if (spec && spec.default !== undefined) {
-            defaults[argName] = spec.default;
-        }
-    }
-    return defaults;
-}
-
-// Group arguments by their group property
-function groupArguments(arginfo) {
-    const groups = {};
-    if (!arginfo) return groups;
-
-    for (const [argName, argData] of Object.entries(arginfo)) {
-        const [spec, group] = argData;
-        const groupName = group || 'General';
-
-        if (!groups[groupName]) {
-            groups[groupName] = [];
-        }
-        groups[groupName].push({ name: argName, argData });
-    }
-    return groups;
-}
+import { ArgumentRow } from "./ArgumentInputs";
+import {
+  getDefaultValues,
+  groupArguments,
+  loadExperimentState,
+  saveExperimentState,
+} from "./api/experiments";
 
 function NewExperimentItem(props) {
-    const name = props.data.name;
-    const file = props.data.file;
-    const class_name = props.data.class_name;
-    const arginfo = props.data.arginfo;
-    const repo_rev = props.repo_rev;
+  const name = props.data.name;
+  const file = props.data.file;
+  const class_name = props.data.class_name;
+  const arginfo = props.data.arginfo;
+  const repo_rev = props.repo_rev;
 
-    // Check if this is an ndscan experiment
-    const isNdscan = hasNdscanParams(arginfo);
+  // Get default values
+  const defaultValues = React.useMemo(
+    () => getDefaultValues(arginfo),
+    [arginfo],
+  );
 
-    // Parse ndscan params if present
-    const ndscanParams = React.useMemo(() => isNdscan ? parseNdscanParams(arginfo) : null, [arginfo, isNdscan]);
+  // Load initial state from localStorage or defaults
+  const [argValues, setArgValues] = React.useState(() => {
+    const stored = loadExperimentState(file, class_name);
+    return stored ? stored.argValues : defaultValues;
+  });
+  const [pipeline, setPipeline] = React.useState(() => {
+    const stored = loadExperimentState(file, class_name);
+    return stored ? stored.pipeline : "main";
+  });
 
-    // For regular experiments, get default values
-    const defaultValues = React.useMemo(() => !isNdscan ? getDefaultValues(arginfo) : {}, [arginfo, isNdscan]);
+  // Toast state for error messages
+  const [showError, setShowError] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState("");
 
-    // State for regular experiments
-    const [argValues, setArgValues] = React.useState(() => !isNdscan ? getDefaultValues(arginfo) : {});
+  // Save to localStorage when state changes
+  React.useEffect(() => {
+    saveExperimentState(file, class_name, { argValues, pipeline });
+  }, [file, class_name, argValues, pipeline]);
 
-    // State for ndscan experiments
-    const [ndscanOverrides, setNdscanOverrides] = React.useState({});
-    const [ndscanScan, setNdscanScan] = React.useState(null);
-    const [showAdvanced, setShowAdvanced] = React.useState(false);
+  // Group arguments for display
+  const groupedArgs = React.useMemo(() => groupArguments(arginfo), [arginfo]);
+  const hasArguments = arginfo && Object.keys(arginfo).length > 0;
 
-    // Initialize ndscan state from localStorage or defaults
-    React.useEffect(() => {
-        if (isNdscan && ndscanParams) {
-            const stored = loadNdscanState(file, class_name);
-            if (stored) {
-                setNdscanOverrides(stored.overrides || {});
-                setNdscanScan(stored.scan || ndscanParams.scan);
-            } else {
-                setNdscanOverrides({});
-                setNdscanScan(ndscanParams.scan);
-            }
-        }
-    }, [isNdscan, ndscanParams, file, class_name]);
+  // Handle argument value change
+  const handleArgChange = (argName, value) => {
+    setArgValues((prev) => ({ ...prev, [argName]: value }));
+  };
 
-    // Save ndscan state to localStorage when it changes
-    React.useEffect(() => {
-        if (isNdscan && ndscanScan) {
-            saveNdscanState(file, class_name, {
-                overrides: ndscanOverrides,
-                scan: ndscanScan
-            });
-        }
-    }, [isNdscan, ndscanOverrides, ndscanScan, file, class_name]);
+  // Reset single argument to default
+  const handleResetArg = (argName) => {
+    setArgValues((prev) => ({ ...prev, [argName]: defaultValues[argName] }));
+  };
 
-    // Build FQN to path mapping for ndscan
-    const fqnToPath = React.useMemo(() => {
-        if (!isNdscan || !ndscanParams) return {};
-        return buildFqnToPathMap(ndscanParams.instances);
-    }, [isNdscan, ndscanParams]);
+  // Reset all arguments to defaults
+  const handleResetAll = () => {
+    setArgValues(defaultValues);
+  };
 
-    // Get scanned FQNs
-    const scannedFqns = React.useMemo(() => {
-        if (!isNdscan || !ndscanScan) return new Set();
-        return getScannedFqns(ndscanScan);
-    }, [isNdscan, ndscanScan]);
+  // Handle submission error
+  const handleError = (message) => {
+    setErrorMessage(message);
+    setShowError(true);
+  };
 
-    // Toast state for error messages
-    const [showError, setShowError] = React.useState(false);
-    const [errorMessage, setErrorMessage] = React.useState('');
-    const [pipeline, setPipeline] = React.useState('main');
+  const table_row = (rowName, entry) => (
+    <tr key={rowName}>
+      <td>
+        <b>{rowName}:</b>
+      </td>
+      <td>{entry}</td>
+    </tr>
+  );
 
-    // Group arguments for display (regular experiments only)
-    const groupedArgs = React.useMemo(() => !isNdscan ? groupArguments(arginfo) : {}, [arginfo, isNdscan]);
-    const hasArguments = !isNdscan && arginfo && Object.keys(arginfo).length > 0;
+  // Build arguments for submission
+  const getSubmissionArguments = () => {
+    return argValues;
+  };
 
-    // Handle argument value change (regular experiments)
-    const handleArgChange = (argName, value) => {
-        setArgValues(prev => ({ ...prev, [argName]: value }));
-    };
+  return (
+    <Card className="shadow-sm border-0">
+      <Card.Header className="bg-primary text-white py-3">
+        <div className="d-flex justify-content-between align-items-center">
+          <h5 className="mb-0">{class_name}</h5>
+          <small className="opacity-75">{file}</small>
+        </div>
+      </Card.Header>
+      <Card.Body className="p-4">
+        <Table striped bordered hover size="sm" className="mb-4">
+          <tbody>
+            {table_row("Name", name)}
+            {table_row("Class name", class_name)}
+            {table_row("File", file)}
+          </tbody>
+        </Table>
 
-    // Reset single argument to default (regular experiments)
-    const handleResetArg = (argName) => {
-        setArgValues(prev => ({ ...prev, [argName]: defaultValues[argName] }));
-    };
-
-    // Reset all arguments to defaults (regular experiments)
-    const handleResetAll = () => {
-        setArgValues(defaultValues);
-    };
-
-    // Handle ndscan parameter override change
-    const handleNdscanOverrideChange = (fqn, value) => {
-        setNdscanOverrides(prev => ({ ...prev, [fqn]: value }));
-    };
-
-    // Reset ndscan parameter to default (remove from overrides)
-    const handleNdscanOverrideReset = (fqn) => {
-        setNdscanOverrides(prev => {
-            const newOverrides = { ...prev };
-            delete newOverrides[fqn];
-            return newOverrides;
-        });
-    };
-
-    // Handle scan configuration change
-    const handleScanChange = (newScan) => {
-        setNdscanScan(newScan);
-    };
-
-    // Reset ndscan to defaults
-    const handleNdscanResetAll = () => {
-        if (ndscanParams) {
-            setNdscanOverrides({});
-            setNdscanScan(ndscanParams.scan);
-            localStorage.removeItem(getStorageKey(file, class_name));
-        }
-    };
-
-    // Handle submission error
-    const handleError = (message) => {
-        setErrorMessage(message);
-        setShowError(true);
-    };
-
-    const table_row = (rowName, entry) => (
-        <tr key={rowName}>
-            <td><b>{rowName}:</b></td>
-            <td>{entry}</td>
-        </tr>
-    );
-
-    // Render NDScan parameter row
-    const renderNdscanParam = (fqn, schema) => {
-        const { description, type } = schema;
-        const isScanned = scannedFqns.has(fqn);
-        const value = ndscanOverrides[fqn];
-
-        let InputComponent;
-        if (type === 'float') {
-            InputComponent = NDScanFloatInput;
-        } else if (type === 'int') {
-            InputComponent = NDScanIntInput;
-        } else if (type === 'bool') {
-            InputComponent = NDScanBoolInput;
-        } else {
-            return null; // Unknown type
-        }
-
-        return (
-            <Form.Group key={fqn} className="mb-2 row align-items-center">
-                <div className="col-4">
-                    <Form.Label className="mb-0" style={{ fontWeight: 500 }}>
-                        {description || fqn}
-                    </Form.Label>
-                </div>
-                <div className="col-8">
-                    <InputComponent
-                        schema={schema}
-                        value={value}
-                        onChange={handleNdscanOverrideChange}
-                        onReset={handleNdscanOverrideReset}
-                        disabled={isScanned}
+        {/* Regular experiment arguments */}
+        {hasArguments && (
+          <div className="mt-4">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h6 className="mb-0 fw-bold">Arguments</h6>
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={handleResetAll}
+              >
+                Reset All to Defaults
+              </Button>
+            </div>
+            {Object.entries(groupedArgs).map(([groupName, args]) => (
+              <Card
+                key={groupName}
+                className="mb-3 border-secondary shadow-none bg-secondary bg-opacity-10"
+              >
+                <Card.Header
+                  className="py-2 px-3 bg-secondary bg-opacity-25"
+                  style={{ fontSize: "0.9em", fontWeight: 600 }}
+                >
+                  {groupName}
+                </Card.Header>
+                <Card.Body className="py-3 px-3">
+                  {args.map(({ name: argName, argData }) => (
+                    <ArgumentRow
+                      key={argName}
+                      name={argName}
+                      argInfo={argData}
+                      value={argValues[argName]}
+                      onChange={handleArgChange}
+                      onReset={handleResetArg}
                     />
-                </div>
-            </Form.Group>
-        );
-    };
+                  ))}
+                </Card.Body>
+              </Card>
+            ))}
+          </div>
+        )}
 
-    // Build arguments for submission
-    const getSubmissionArguments = () => {
-        if (isNdscan && ndscanParams) {
-            // Build ndscan_params object
-            const overridesFormatted = {};
-            for (const [fqn, value] of Object.entries(ndscanOverrides)) {
-                const path = fqnToPath[fqn] || '';
-                overridesFormatted[fqn] = [{
-                    path: path,
-                    value: value
-                }];
-            }
+        <Form.Group className="mt-4 mb-3">
+          <Form.Label className="fw-bold">Pipeline</Form.Label>
+          <Form.Control
+            type="text"
+            value={pipeline}
+            onChange={(e) => setPipeline(e.target.value)}
+            placeholder="main"
+          />
+          <Form.Text className="text-muted">
+            Specify which pipeline to submit to (default: main)
+          </Form.Text>
+        </Form.Group>
 
-            // Validate: no overlap between overrides and scan axes
-            const overrideFqns = new Set(Object.keys(ndscanOverrides));
-            const overlap = [...scannedFqns].filter(fqn => overrideFqns.has(fqn));
-            if (overlap.length > 0) {
-                handleError(`Parameters cannot be both overridden and scanned: ${overlap.join(', ')}`);
-                return null;
-            }
+        <div className="d-grid mt-4">
+          <SubmitNewButton
+            file={file}
+            class_name={class_name}
+            repo_rev={repo_rev}
+            arguments={getSubmissionArguments()}
+            pipeline={pipeline}
+            onError={handleError}
+            className="btn-lg"
+          />
+        </div>
 
-            const ndscanParamsObj = {
-                instances: ndscanParams.instances,
-                schemata: ndscanParams.schemata,
-                always_shown: ndscanParams.always_shown,
-                overrides: overridesFormatted,
-                scan: ndscanScan
-            };
-
-            return {
-                ndscan_params: JSON.stringify(ndscanParamsObj)
-            };
-        } else {
-            return argValues;
-        }
-    };
-
-    return (
-        <Accordion.Item eventKey={class_name}>
-            <Accordion.Header>{class_name} &emsp; <em>{file}</em></Accordion.Header>
-            <Accordion.Body>
-                <Table striped bordered hover size="sm">
-                    <tbody>
-                        {table_row("Name", name)}
-                        {table_row("Class name", class_name)}
-                        {table_row("File", file)}
-                    </tbody>
-                </Table>
-
-                {/* Regular experiment arguments */}
-                {!isNdscan && hasArguments && (
-                    <div className="mt-3">
-                        <h6>Arguments</h6>
-                        {Object.entries(groupedArgs).map(([groupName, args]) => (
-                            <Card key={groupName} className="mb-2">
-                                <Card.Header className="py-1 px-2" style={{ fontSize: '0.9em' }}>
-                                    {groupName}
-                                </Card.Header>
-                                <Card.Body className="py-2 px-3">
-                                    {args.map(({ name: argName, argData }) => (
-                                        <ArgumentRow
-                                            key={argName}
-                                            name={argName}
-                                            argInfo={argData}
-                                            value={argValues[argName]}
-                                            onChange={handleArgChange}
-                                            onReset={handleResetArg}
-                                        />
-                                    ))}
-                                </Card.Body>
-                            </Card>
-                        ))}
-                        <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            onClick={handleResetAll}
-                            className="mb-3"
-                        >
-                            Reset All to Defaults
-                        </Button>
-                    </div>
-                )}
-
-                {/* NDScan experiment parameters */}
-                {isNdscan && ndscanParams && (
-                    <div className="mt-3">
-                        <h6>NDScan Parameters</h6>
-
-                        {/* Display parameters grouped by fragment */}
-                        {ndscanParams.instances && Object.entries(ndscanParams.instances).map(([fragmentPath, fqns]) => {
-                            const fragmentName = fragmentPath === '' ? 'Root Parameters' : fragmentPath;
-
-                            // Separate always_shown from other params
-                            const alwaysShownSet = new Set(
-                                (ndscanParams.always_shown || []).map(item => {
-                                    // Handle tuple format from PYON
-                                    if (item && item.__jsonclass__ && item.__jsonclass__[0] === 'tuple') {
-                                        return item.__jsonclass__[1][0]; // [fqn, path]
-                                    }
-                                    return item;
-                                })
-                            );
-
-                            const alwaysShownParams = fqns.filter(fqn => alwaysShownSet.has(fqn));
-                            const advancedParams = fqns.filter(fqn => !alwaysShownSet.has(fqn));
-
-                            return (
-                                <Card key={fragmentPath} className="mb-2">
-                                    <Card.Header className="py-1 px-2" style={{ fontSize: '0.9em' }}>
-                                        {fragmentName}
-                                    </Card.Header>
-                                    <Card.Body className="py-2 px-3">
-                                        {/* Always shown parameters */}
-                                        {alwaysShownParams.map(fqn => {
-                                            const schema = ndscanParams.schemata[fqn];
-                                            return schema ? renderNdscanParam(fqn, schema) : null;
-                                        })}
-
-                                        {/* Advanced parameters (collapsible) */}
-                                        {advancedParams.length > 0 && (
-                                            <>
-                                                {alwaysShownParams.length > 0 && <hr className="my-2" />}
-                                                <Button
-                                                    variant="link"
-                                                    size="sm"
-                                                    onClick={() => setShowAdvanced(!showAdvanced)}
-                                                    className="p-0 mb-2"
-                                                >
-                                                    {showAdvanced ? '▼' : '▶'} Show Advanced Parameters ({advancedParams.length})
-                                                </Button>
-                                                {showAdvanced && advancedParams.map(fqn => {
-                                                    const schema = ndscanParams.schemata[fqn];
-                                                    return schema ? renderNdscanParam(fqn, schema) : null;
-                                                })}
-                                            </>
-                                        )}
-                                    </Card.Body>
-                                </Card>
-                            );
-                        })}
-
-                        {/* Scan Configuration */}
-                        {ndscanScan && (
-                            <ScanConfiguration
-                                scan={ndscanScan}
-                                schemata={ndscanParams.schemata}
-                                onChange={handleScanChange}
-                            />
-                        )}
-
-                        <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            onClick={handleNdscanResetAll}
-                            className="mb-3"
-                        >
-                            Reset All to Defaults
-                        </Button>
-                    </div>
-                )}
-
-                <Form.Group className="mt-3 mb-2">
-                    <Form.Label>Pipeline</Form.Label>
-                    <Form.Control
-                        type="text"
-                        value={pipeline}
-                        onChange={(e) => setPipeline(e.target.value)}
-                        placeholder="main"
-                    />
-                    <Form.Text className="text-muted">
-                        Specify which pipeline to submit to (default: main)
-                    </Form.Text>
-                </Form.Group>
-
-                <ButtonGroup className="mt-3">
-                    <SubmitNewButton
-                        file={file}
-                        class_name={class_name}
-                        repo_rev={repo_rev}
-                        arguments={getSubmissionArguments()}
-                        pipeline={pipeline}
-                        onError={handleError}
-                    />
-                </ButtonGroup>
-
-                {/* Error Toast */}
-                <ToastContainer position="bottom-end" className="p-3">
-                    <Toast
-                        show={showError}
-                        onClose={() => setShowError(false)}
-                        delay={5000}
-                        autohide
-                        bg="danger"
-                    >
-                        <Toast.Header>
-                            <strong className="me-auto">Submission Error</strong>
-                        </Toast.Header>
-                        <Toast.Body className="text-white">{errorMessage}</Toast.Body>
-                    </Toast>
-                </ToastContainer>
-            </Accordion.Body>
-        </Accordion.Item>
-    );
+        {/* Error Toast */}
+        <ToastContainer position="bottom-end" className="p-3">
+          <Toast
+            show={showError}
+            onClose={() => setShowError(false)}
+            delay={5000}
+            autohide
+            bg="danger"
+          >
+            <Toast.Header>
+              <strong className="me-auto">Submission Error</strong>
+            </Toast.Header>
+            <Toast.Body className="text-white">{errorMessage}</Toast.Body>
+          </Toast>
+        </ToastContainer>
+      </Card.Body>
+    </Card>
+  );
 }
 
 export default NewExperimentItem;

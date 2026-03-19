@@ -20,6 +20,10 @@ See README.rst for instructions
   - `config.py` - Configuration
   - `artiq_api/` - ARTIQ API wrapper modules
 - `frontend/` - React frontend
+- `test-artiq/` - Local ARTIQ test environment (Docker). This directory mimics the structure of an external ARTIQ experiment repository for testing purposes, but is a subdirectory of this project.
+  - `repository/` - Minimal experiments for testing. This folder represents the root of the "mock" ARTIQ repository. Note that it is not a git repository, despite the name.
+  - `Dockerfile` - ARTIQ + ndscan image
+  - `docker-compose.yml` - Test stack orchestration
 - `tests/` - Test suite
 - `docs/` - Sphinx documentation
 
@@ -35,11 +39,29 @@ See README.rst for instructions
 - If on any other branch, use commits liberally. They will be squashed before merging
 - When making multi-step changes on development branches, you should automatically make a commit after each step without prompting the user
 
+## Local ARTIQ Testing
+
+After any major change to the backend or experiment discovery logic, you **must** verify the changes against the local ARTIQ test environment:
+
+1. Start the local master: `cd test-artiq && docker compose up -d`
+2. Verify connectivity: `poetry run sipyco_rpctool 127.0.0.1 3251 list-targets`
+3. Check logs for experiment discovery errors: `docker compose logs artiq-master`
+
+See `test-artiq/README.md` (or the walkthrough) for more details.
+
 ## Testing
 
+To run the unit tests, use the following commands:
+
 ```bash
+# Run basic tests
 poetry run pytest
-poetry run coverage run -m pytest
+
+# Run all tests, including those requiring a real ARTIQ stack (Docker)
+poetry run pytest --realserver
+
+# Run with coverage
+poetry run coverage run -m pytest --realserver
 poetry run coverage report
 ```
 

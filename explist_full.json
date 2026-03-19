@@ -1,0 +1,3947 @@
+{
+  "current_rev": "N/A",
+  "scanning": false,
+  "experiments": [
+    {
+      "name": "Trapping/RF/Dummy experiment for Sisyphus Compression",
+      "file": "Trapping/RF/Sisyphus_Compression_605.py",
+      "class_name": "SisyphusCompression605",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 56,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 6.1962567457584585,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/RF/Dummy experiment for EIT Compression",
+      "file": "Trapping/RF/EIT_Compression_124.py",
+      "class_name": "EITCompression124",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 4,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 1.243613831857166,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/RF/Dummy experiment for Sisyphus Prep",
+      "file": "Trapping/RF/Sisyphus_Prep_755.py",
+      "class_name": "SisyphusPrep755",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 77,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 4.718430585295108,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/Laser/Dummy experiment for Quadrupole Shift",
+      "file": "Trapping/Laser/Quadrupole_Shift_422.py",
+      "class_name": "QuadrupoleShift422",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 98,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 6.231267084031614,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/Laser/Dummy experiment for Zeeman Shift",
+      "file": "Trapping/Laser/Zeeman_Shift_934.py",
+      "class_name": "ZeemanShift934",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 76,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 1.2352231364538342,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/Laser/Dummy experiment for EIT Transition",
+      "file": "Trapping/Laser/EIT_Transition_579.py",
+      "class_name": "EITTransition579",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 7,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 4.364524965711314,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/Laser/Dummy experiment for Dipole Expansion",
+      "file": "Trapping/Laser/Dipole_Expansion_650.py",
+      "class_name": "DipoleExpansion650",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 49,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 2.9457414374783637,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/Magnetic/Dummy experiment for Hyperfine Spectroscopy",
+      "file": "Trapping/Magnetic/Hyperfine_Spectroscopy_175.py",
+      "class_name": "HyperfineSpectroscopy175",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 64,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 5.320536632947293,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/Magnetic/Dummy experiment for Rabi Cooling",
+      "file": "Trapping/Magnetic/Rabi_Cooling_631.py",
+      "class_name": "RabiCooling631",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 27,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 6.504835323649563,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/Magnetic/Dummy experiment for Sisyphus Excitation",
+      "file": "Trapping/Magnetic/Sisyphus_Excitation_595.py",
+      "class_name": "SisyphusExcitation595",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 2,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 4.183097513273039,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/Optical/Dummy experiment for Sideband Transition",
+      "file": "Trapping/Optical/Sideband_Transition_216.py",
+      "class_name": "SidebandTransition216",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 44,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 2.9951385416093808,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/Optical/Dummy experiment for Sideband Cooling",
+      "file": "Trapping/Optical/Sideband_Cooling_455.py",
+      "class_name": "SidebandCooling455",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 67,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 2.36695952565798,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/Optical/Dummy experiment for Clock Readout",
+      "file": "Trapping/Optical/Clock_Readout_975.py",
+      "class_name": "ClockReadout975",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 77,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 7.764884205236528,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/Global/Dummy experiment for Hyperfine Loading",
+      "file": "Trapping/Global/Hyperfine_Loading_110.py",
+      "class_name": "HyperfineLoading110",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 5,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 2.0550130580885493,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/Global/Dummy experiment for Sisyphus Prep",
+      "file": "Trapping/Global/Sisyphus_Prep_626.py",
+      "class_name": "SisyphusPrep626",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 85,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 4.796635451361606,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/Global/Dummy experiment for Bell Alignment",
+      "file": "Trapping/Global/Bell_Alignment_567.py",
+      "class_name": "BellAlignment567",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 60,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 8.484630703054904,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/Global/Dummy experiment for MOT Alignment",
+      "file": "Trapping/Global/MOT_Alignment_212.py",
+      "class_name": "MOTAlignment212",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 8,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 2.1205639823648967,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Trapping/Global/Dummy experiment for Quadrupole Spectroscopy",
+      "file": "Trapping/Global/Quadrupole_Spectroscopy_989.py",
+      "class_name": "QuadrupoleSpectroscopy989",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 55,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 6.111352989292574,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "NDScan Example Fragment",
+      "file": "ndscan_exp.py",
+      "class_name": "NDScanExampleExp",
+      "arginfo": {
+        "ndscan_params": [
+          {
+            "ty": "PYONValue",
+            "default": "{\"instances\":{\"\":[\"ndscan_exp.NDScanExampleFrag.amplitude\",\"ndscan_exp.NDScanExampleFrag.phase\",\"ndscan_exp.NDScanExampleFrag.noise\"]},\"schemata\":{\"ndscan_exp.NDScanExampleFrag.amplitude\":{\"fqn\":\"ndscan_exp.NDScanExampleFrag.amplitude\",\"description\":\"Amplitude of the signal\",\"type\":\"float\",\"default\":\"1.0\",\"spec\":{\"is_scannable\":true,\"scale\":1,\"step\":0.1,\"min\":0.0,\"max\":1.0}},\"ndscan_exp.NDScanExampleFrag.phase\":{\"fqn\":\"ndscan_exp.NDScanExampleFrag.phase\",\"description\":\"Phase of the signal\",\"type\":\"float\",\"default\":\"0.0\",\"spec\":{\"is_scannable\":true,\"scale\":1,\"step\":0.1,\"min\":0.0,\"max\":6.283185307179586}},\"ndscan_exp.NDScanExampleFrag.noise\":{\"fqn\":\"ndscan_exp.NDScanExampleFrag.noise\",\"description\":\"Noise level of the signal\",\"type\":\"float\",\"default\":\"0.1\",\"spec\":{\"is_scannable\":true,\"scale\":1,\"step\":0.1,\"min\":0.0}}},\"always_shown\":[{\"__jsonclass__\":[\"tuple\",[[\"ndscan_exp.NDScanExampleFrag.amplitude\",\"\"]]]},{\"__jsonclass__\":[\"tuple\",[[\"ndscan_exp.NDScanExampleFrag.phase\",\"\"]]]},{\"__jsonclass__\":[\"tuple\",[[\"ndscan_exp.NDScanExampleFrag.noise\",\"\"]]]}],\"overrides\":{},\"scan\":{\"axes\":[],\"num_repeats\":1,\"no_axes_mode\":\"single\",\"randomise_order_globally\":false}}"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": "ndscan",
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/RF/Dummy experiment for Dipole Spectroscopy",
+      "file": "Cooling/RF/Dipole_Spectroscopy_477.py",
+      "class_name": "DipoleSpectroscopy477",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 8,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 0.3268749680860751,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/RF/Dummy experiment for STIRAP Compression",
+      "file": "Cooling/RF/STIRAP_Compression_550.py",
+      "class_name": "STIRAPCompression550",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 18,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 0.5940720364144798,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/RF/Dummy experiment for Doppler Shift",
+      "file": "Cooling/RF/Doppler_Shift_981.py",
+      "class_name": "DopplerShift981",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 56,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 1.9968293955269196,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/RF/Dummy experiment for STIRAP Excitation",
+      "file": "Cooling/RF/STIRAP_Excitation_959.py",
+      "class_name": "STIRAPExcitation959",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 23,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 9.620168665274866,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/RF/Dummy experiment for Sisyphus Loading",
+      "file": "Cooling/RF/Sisyphus_Loading_892.py",
+      "class_name": "SisyphusLoading892",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 71,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 8.598205186148098,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Laser/Dummy experiment for Ramsey Shift",
+      "file": "Cooling/Laser/Ramsey_Shift_167.py",
+      "class_name": "RamseyShift167",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 48,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 3.2928879596963108,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Laser/Dummy experiment for Rabi Cooling",
+      "file": "Cooling/Laser/Rabi_Cooling_243.py",
+      "class_name": "RabiCooling243",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 33,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 2.624044970867394,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Laser/Dummy experiment for Zeeman Expansion",
+      "file": "Cooling/Laser/Zeeman_Expansion_615.py",
+      "class_name": "ZeemanExpansion615",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 13,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 4.451210638652682,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Laser/Dummy experiment for Hyperfine Readout",
+      "file": "Cooling/Laser/Hyperfine_Readout_838.py",
+      "class_name": "HyperfineReadout838",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 83,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 1.1148517131114453,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Laser/Dummy experiment for STIRAP Prep",
+      "file": "Cooling/Laser/STIRAP_Prep_330.py",
+      "class_name": "STIRAPPrep330",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 58,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 9.456361876757413,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Magnetic/Dummy experiment for EIT Spectroscopy",
+      "file": "Cooling/Magnetic/EIT_Spectroscopy_727.py",
+      "class_name": "EITSpectroscopy727",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 26,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 2.2895529542820694,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Magnetic/Dummy experiment for EIT Cooling",
+      "file": "Cooling/Magnetic/EIT_Cooling_380.py",
+      "class_name": "EITCooling380",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 39,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 5.687006293435976,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Magnetic/Dummy experiment for STIRAP Alignment",
+      "file": "Cooling/Magnetic/STIRAP_Alignment_639.py",
+      "class_name": "STIRAPAlignment639",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 74,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 9.656651188493528,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Magnetic/Dummy experiment for Stark Cooling",
+      "file": "Cooling/Magnetic/Stark_Cooling_991.py",
+      "class_name": "StarkCooling991",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 28,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 4.088671870550868,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Magnetic/Dummy experiment for Stark Readout",
+      "file": "Cooling/Magnetic/Stark_Readout_683.py",
+      "class_name": "StarkReadout683",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 13,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 6.242161554676934,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Optical/Dummy experiment for Doppler Alignment",
+      "file": "Cooling/Optical/Doppler_Alignment_785.py",
+      "class_name": "DopplerAlignment785",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 23,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 8.219064184960956,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Optical/Dummy experiment for Hyperfine Cooling",
+      "file": "Cooling/Optical/Hyperfine_Cooling_756.py",
+      "class_name": "HyperfineCooling756",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 40,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 7.679647650309202,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Optical/Dummy experiment for Stark Expansion",
+      "file": "Cooling/Optical/Stark_Expansion_946.py",
+      "class_name": "StarkExpansion946",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 73,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 4.111741172746352,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Optical/Dummy experiment for Doppler Prep",
+      "file": "Cooling/Optical/Doppler_Prep_101.py",
+      "class_name": "DopplerPrep101",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 41,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 0.2112769174375716,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Global/Dummy experiment for Sideband Excitation",
+      "file": "Cooling/Global/Sideband_Excitation_644.py",
+      "class_name": "SidebandExcitation644",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 57,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 8.386894568751794,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Global/Dummy experiment for Zeeman Prep",
+      "file": "Cooling/Global/Zeeman_Prep_938.py",
+      "class_name": "ZeemanPrep938",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 84,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 1.1176998512129401,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Cooling/Global/Dummy experiment for EIT Expansion",
+      "file": "Cooling/Global/EIT_Expansion_231.py",
+      "class_name": "EITExpansion231",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 61,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 3.5866598178068623,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/RF/Dummy experiment for Dipole Loading",
+      "file": "Entanglement/RF/Dipole_Loading_781.py",
+      "class_name": "DipoleLoading781",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 25,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 3.2683777338069673,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/RF/Dummy experiment for Zeeman Loading",
+      "file": "Entanglement/RF/Zeeman_Loading_399.py",
+      "class_name": "ZeemanLoading399",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 55,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 8.247893528019949,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/RF/Dummy experiment for Bell Cooling",
+      "file": "Entanglement/RF/Bell_Cooling_479.py",
+      "class_name": "BellCooling479",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 92,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 0.8219227129622577,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/RF/Dummy experiment for Hyperfine Compression",
+      "file": "Entanglement/RF/Hyperfine_Compression_184.py",
+      "class_name": "HyperfineCompression184",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 55,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 7.295650642944435,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/RF/Dummy experiment for EIT Flops",
+      "file": "Entanglement/RF/EIT_Flops_752.py",
+      "class_name": "EITFlops752",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 62,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 1.8418961701058247,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Laser/Dummy experiment for Bell Cooling",
+      "file": "Entanglement/Laser/Bell_Cooling_823.py",
+      "class_name": "BellCooling823",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 38,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 1.6196015513555673,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Laser/Dummy experiment for Hyperfine Transition",
+      "file": "Entanglement/Laser/Hyperfine_Transition_191.py",
+      "class_name": "HyperfineTransition191",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 52,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 8.639401807605799,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Laser/Dummy experiment for Zeeman Flops",
+      "file": "Entanglement/Laser/Zeeman_Flops_205.py",
+      "class_name": "ZeemanFlops205",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 9,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 3.9193009544680733,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Magnetic/Dummy experiment for Zeeman Cooling",
+      "file": "Entanglement/Magnetic/Zeeman_Cooling_108.py",
+      "class_name": "ZeemanCooling108",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 5,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 9.456265508031054,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Magnetic/Dummy experiment for Doppler Readout",
+      "file": "Entanglement/Magnetic/Doppler_Readout_745.py",
+      "class_name": "DopplerReadout745",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 42,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 7.549602479305851,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Magnetic/Dummy experiment for Sideband Excitation",
+      "file": "Entanglement/Magnetic/Sideband_Excitation_192.py",
+      "class_name": "SidebandExcitation192",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 82,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 7.592921973262895,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Magnetic/Dummy experiment for Ramsey Prep",
+      "file": "Entanglement/Magnetic/Ramsey_Prep_818.py",
+      "class_name": "RamseyPrep818",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 69,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 3.9863764919095983,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Magnetic/Dummy experiment for Rabi Cooling",
+      "file": "Entanglement/Magnetic/Rabi_Cooling_238.py",
+      "class_name": "RabiCooling238",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 50,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 4.870203648072142,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Optical/Dummy experiment for MOT Spectroscopy",
+      "file": "Entanglement/Optical/MOT_Spectroscopy_381.py",
+      "class_name": "MOTSpectroscopy381",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 82,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 5.931085525454256,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Optical/Dummy experiment for Zeeman Transition",
+      "file": "Entanglement/Optical/Zeeman_Transition_691.py",
+      "class_name": "ZeemanTransition691",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 72,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 6.295582503811944,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Optical/Dummy experiment for MOT Expansion",
+      "file": "Entanglement/Optical/MOT_Expansion_769.py",
+      "class_name": "MOTExpansion769",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 75,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 7.593431473831684,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Optical/Dummy experiment for STIRAP Cooling",
+      "file": "Entanglement/Optical/STIRAP_Cooling_838.py",
+      "class_name": "STIRAPCooling838",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 99,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 1.8399523236528654,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Optical/Dummy experiment for Stark Prep",
+      "file": "Entanglement/Optical/Stark_Prep_219.py",
+      "class_name": "StarkPrep219",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 55,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 6.321910471579196,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Global/Dummy experiment for Dipole Transition",
+      "file": "Entanglement/Global/Dipole_Transition_870.py",
+      "class_name": "DipoleTransition870",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 44,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 8.629985846114609,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Global/Dummy experiment for Rabi Loading",
+      "file": "Entanglement/Global/Rabi_Loading_366.py",
+      "class_name": "RabiLoading366",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 58,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 2.187613468552625,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Entanglement/Global/Dummy experiment for Ramsey Shift",
+      "file": "Entanglement/Global/Ramsey_Shift_331.py",
+      "class_name": "RamseyShift331",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 47,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 8.040352638772625,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/RF/Dummy experiment for Bell Compression",
+      "file": "Calibration/RF/Bell_Compression_734.py",
+      "class_name": "BellCompression734",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 33,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 0.15651470033133927,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/RF/Dummy experiment for Ramsey Spectroscopy",
+      "file": "Calibration/RF/Ramsey_Spectroscopy_253.py",
+      "class_name": "RamseySpectroscopy253",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 76,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 3.6683296554100795,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/RF/Dummy experiment for Bell Prep",
+      "file": "Calibration/RF/Bell_Prep_883.py",
+      "class_name": "BellPrep883",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 10,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 4.77753900507344,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/RF/Dummy experiment for Rabi Prep",
+      "file": "Calibration/RF/Rabi_Prep_201.py",
+      "class_name": "RabiPrep201",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 1,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 7.301439929981456,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/RF/Dummy experiment for Stark Flops",
+      "file": "Calibration/RF/Stark_Flops_198.py",
+      "class_name": "StarkFlops198",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 51,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 3.662180342817987,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Laser/Dummy experiment for Stark Readout",
+      "file": "Calibration/Laser/Stark_Readout_563.py",
+      "class_name": "StarkReadout563",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 30,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 6.260708877282385,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Laser/Dummy experiment for Stark Compression",
+      "file": "Calibration/Laser/Stark_Compression_782.py",
+      "class_name": "StarkCompression782",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 98,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 5.420339976809763,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Laser/Dummy experiment for Hyperfine Prep",
+      "file": "Calibration/Laser/Hyperfine_Prep_997.py",
+      "class_name": "HyperfinePrep997",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 65,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 1.6743995121901936,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Magnetic/Dummy experiment for Rabi Expansion",
+      "file": "Calibration/Magnetic/Rabi_Expansion_977.py",
+      "class_name": "RabiExpansion977",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 47,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 8.71552203143198,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Magnetic/Dummy experiment for Dipole Expansion",
+      "file": "Calibration/Magnetic/Dipole_Expansion_520.py",
+      "class_name": "DipoleExpansion520",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 34,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 6.991004595441292,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Magnetic/Dummy experiment for Clock Alignment",
+      "file": "Calibration/Magnetic/Clock_Alignment_203.py",
+      "class_name": "ClockAlignment203",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 13,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 0.18031965571956426,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Magnetic/Dummy experiment for Dipole Cooling",
+      "file": "Calibration/Magnetic/Dipole_Cooling_774.py",
+      "class_name": "DipoleCooling774",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 40,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 7.138422492032814,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Optical/Dummy experiment for Zeeman Prep",
+      "file": "Calibration/Optical/Zeeman_Prep_109.py",
+      "class_name": "ZeemanPrep109",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 49,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 8.289130651601509,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Optical/Dummy experiment for Dipole Loading",
+      "file": "Calibration/Optical/Dipole_Loading_693.py",
+      "class_name": "DipoleLoading693",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 86,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 6.239888283601989,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Optical/Dummy experiment for Hyperfine Readout",
+      "file": "Calibration/Optical/Hyperfine_Readout_805.py",
+      "class_name": "HyperfineReadout805",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 87,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 4.493034533030306,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Optical/Dummy experiment for STIRAP Cooling",
+      "file": "Calibration/Optical/STIRAP_Cooling_124.py",
+      "class_name": "STIRAPCooling124",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 77,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 4.995190830853691,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Optical/Dummy experiment for Dipole Flops",
+      "file": "Calibration/Optical/Dipole_Flops_353.py",
+      "class_name": "DipoleFlops353",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 6,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 0.14195981929939733,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Global/Dummy experiment for MOT Alignment",
+      "file": "Calibration/Global/MOT_Alignment_685.py",
+      "class_name": "MOTAlignment685",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 42,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 4.510346148121623,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Global/Dummy experiment for Rabi Prep",
+      "file": "Calibration/Global/Rabi_Prep_562.py",
+      "class_name": "RabiPrep562",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 3,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 4.160720824279079,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Global/Dummy experiment for Ramsey Compression",
+      "file": "Calibration/Global/Ramsey_Compression_666.py",
+      "class_name": "RamseyCompression666",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 42,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 2.21594982504646,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Calibration/Global/Dummy experiment for Sideband Cooling",
+      "file": "Calibration/Global/Sideband_Cooling_755.py",
+      "class_name": "SidebandCooling755",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 32,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 2.595706625638502,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Minimal Experiment",
+      "file": "simple_exp.py",
+      "class_name": "SimpleExp",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 10,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/RF/Dummy experiment for STIRAP Spectroscopy",
+      "file": "Spectroscopy/RF/STIRAP_Spectroscopy_575.py",
+      "class_name": "STIRAPSpectroscopy575",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 16,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 1.0935490932931007,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/RF/Dummy experiment for Stark Transition",
+      "file": "Spectroscopy/RF/Stark_Transition_867.py",
+      "class_name": "StarkTransition867",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 18,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 2.7100412318084754,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/RF/Dummy experiment for Ramsey Readout",
+      "file": "Spectroscopy/RF/Ramsey_Readout_570.py",
+      "class_name": "RamseyReadout570",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 48,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 1.8187952454734224,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/Laser/Dummy experiment for Bell Loading",
+      "file": "Spectroscopy/Laser/Bell_Loading_505.py",
+      "class_name": "BellLoading505",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 87,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 7.458363553578367,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/Laser/Dummy experiment for Dipole Compression",
+      "file": "Spectroscopy/Laser/Dipole_Compression_943.py",
+      "class_name": "DipoleCompression943",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 74,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 7.173656488542971,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/Laser/Dummy experiment for Doppler Shift",
+      "file": "Spectroscopy/Laser/Doppler_Shift_887.py",
+      "class_name": "DopplerShift887",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 14,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 0.7315708617455534,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/Laser/Dummy experiment for EIT Excitation",
+      "file": "Spectroscopy/Laser/EIT_Excitation_873.py",
+      "class_name": "EITExcitation873",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 84,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 7.189129158398115,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/Magnetic/Dummy experiment for Rabi Compression",
+      "file": "Spectroscopy/Magnetic/Rabi_Compression_780.py",
+      "class_name": "RabiCompression780",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 77,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 0.8862112984409695,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/Magnetic/Dummy experiment for MOT Shift",
+      "file": "Spectroscopy/Magnetic/MOT_Shift_761.py",
+      "class_name": "MOTShift761",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 51,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 8.109695387973407,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/Magnetic/Dummy experiment for Sideband Expansion",
+      "file": "Spectroscopy/Magnetic/Sideband_Expansion_925.py",
+      "class_name": "SidebandExpansion925",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 59,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 2.716483488712607,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/Optical/Dummy experiment for Ramsey Transition",
+      "file": "Spectroscopy/Optical/Ramsey_Transition_986.py",
+      "class_name": "RamseyTransition986",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 39,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 9.940375965303552,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/Optical/Dummy experiment for Sisyphus Readout",
+      "file": "Spectroscopy/Optical/Sisyphus_Readout_124.py",
+      "class_name": "SisyphusReadout124",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 17,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 6.412017203183655,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/Optical/Dummy experiment for STIRAP Readout",
+      "file": "Spectroscopy/Optical/STIRAP_Readout_315.py",
+      "class_name": "STIRAPReadout315",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 24,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 1.8082208973101708,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/Global/Dummy experiment for Sisyphus Prep",
+      "file": "Spectroscopy/Global/Sisyphus_Prep_288.py",
+      "class_name": "SisyphusPrep288",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 74,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 4.4824876095624075,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/Global/Dummy experiment for Ramsey Loading",
+      "file": "Spectroscopy/Global/Ramsey_Loading_408.py",
+      "class_name": "RamseyLoading408",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 85,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 5.285657135727512,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/Global/Dummy experiment for Dipole Alignment",
+      "file": "Spectroscopy/Global/Dipole_Alignment_122.py",
+      "class_name": "DipoleAlignment122",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 81,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 2.407103040009732,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/Global/Dummy experiment for Bell Shift",
+      "file": "Spectroscopy/Global/Bell_Shift_391.py",
+      "class_name": "BellShift391",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 95,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 7.269508875466368,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    },
+    {
+      "name": "Spectroscopy/Global/Dummy experiment for Hyperfine Flops",
+      "file": "Spectroscopy/Global/Hyperfine_Flops_960.py",
+      "class_name": "HyperfineFlops960",
+      "arginfo": {
+        "count": [
+          {
+            "ty": "NumberValue",
+            "default": 53,
+            "unit": "",
+            "scale": 1.0,
+            "step": 1,
+            "min": null,
+            "max": null,
+            "precision": 0,
+            "type": "auto"
+          },
+          null,
+          null
+        ],
+        "delay": [
+          {
+            "ty": "NumberValue",
+            "default": 5.680274776119167,
+            "unit": "s",
+            "scale": 1.0,
+            "step": 0.1,
+            "min": null,
+            "max": null,
+            "precision": 2,
+            "type": "auto"
+          },
+          null,
+          null
+        ]
+      },
+      "argument_ui": null,
+      "scheduler_defaults": {}
+    }
+  ]
+}

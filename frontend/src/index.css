@@ -1,0 +1,464 @@
+/* ========================================
+   CSS Custom Properties (Design Tokens)
+   ======================================== */
+:root {
+    /* Breakpoints */
+    --breakpoint-mobile: 768px;
+    --breakpoint-tablet: 1024px;
+
+    /* Spacing scale */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+
+    /* Touch targets (WCAG/Apple/Google guidelines) */
+    --touch-target-min: 44px;
+    --touch-target-comfortable: 56px;
+
+    /* Mobile navigation */
+    --mobile-nav-height: 60px;
+
+    /* Colors (Superhero Theme matches) */
+    --color-primary: #df691a;
+    --color-bg: #2b3e50;
+    --color-text: #ebebeb;
+    --color-text-muted: #abb6c2;
+    --color-border: #4e5d6c;
+    --color-hover: #4e5d6c;
+    --color-success: #5cb85c;
+    --color-info: #5bc0de;
+    --color-warning: #f0ad4e;
+    --color-danger: #d9534f;
+}
+
+/* ========================================
+   Global Styles
+   ======================================== */
+body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+h1 {
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+/* ========================================
+   Responsive Typography
+   ======================================== */
+/* Mobile (< 768px) */
+@media (max-width: 767px) {
+    body {
+        font-size: 16px; /* Base size for readability */
+    }
+
+    h1 {
+        font-size: 1.75rem;
+        margin-bottom: var(--spacing-md);
+    }
+
+    h2 {
+        font-size: 1.375rem;
+    }
+
+    h3 {
+        font-size: 1.125rem;
+    }
+}
+
+/* Tablet (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+    h1 {
+        font-size: 2rem;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+}
+
+/* Desktop (>= 1024px) */
+@media (min-width: 1024px) {
+    h1 {
+        font-size: 2.25rem;
+    }
+}
+
+/* ========================================
+   Layout & Container
+   ======================================== */
+.app-container {
+    min-height: 100vh;
+}
+
+/* Mobile: Add bottom padding for fixed navigation */
+@media (max-width: 767px) {
+    .app-container {
+        padding-bottom: var(--mobile-nav-height);
+    }
+
+    .container-fluid {
+        padding: var(--spacing-md) !important;
+    }
+}
+
+/* Desktop */
+@media (min-width: 768px) {
+    .container-fluid {
+        padding: var(--spacing-lg) var(--spacing-xl) !important;
+    }
+}
+
+/* ========================================
+   Page Visibility (Mobile Navigation)
+   ======================================== */
+/* On mobile, hide all pages except the active one */
+@media (max-width: 767px) {
+    .page-section {
+        display: none;
+    }
+
+    .page-section.active {
+        display: block;
+    }
+}
+
+/* On desktop, show all pages */
+@media (min-width: 768px) {
+    .page-section {
+        display: block;
+    }
+}
+
+/* ========================================
+   Touch Target Utilities
+   ======================================== */
+.touch-target {
+    min-height: var(--touch-target-min);
+    min-width: var(--touch-target-min);
+}
+
+.touch-target-comfortable {
+    min-height: var(--touch-target-comfortable);
+    min-width: var(--touch-target-comfortable);
+}
+
+/* Mobile: Ensure all interactive elements meet touch target guidelines */
+@media (max-width: 767px) {
+    button:not(.btn-sm),
+    .btn:not(.btn-sm) {
+        min-height: var(--touch-target-min);
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    /* Make clickable rows have comfortable touch targets */
+    .clickable-row {
+        min-height: var(--touch-target-comfortable);
+        cursor: pointer;
+        user-select: none;
+    }
+}
+
+/* ========================================
+   Experiment Tree Styling
+   ======================================== */
+.experiment-folder {
+    cursor: pointer;
+    user-select: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    min-height: var(--touch-target-min);
+    display: flex;
+    align-items: center;
+}
+
+.experiment-folder:hover {
+    background-color: var(--color-hover);
+}
+
+.experiment-item {
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    min-height: var(--touch-target-min);
+    display: flex;
+    align-items: center;
+}
+
+.experiment-item.active {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+.experiment-item.active .text-muted {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.hover-bg-light:hover {
+    background-color: var(--color-hover);
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.folder-icon {
+    margin-right: var(--spacing-sm);
+    width: 1.2em;
+    display: inline-block;
+    text-align: center;
+}
+
+/* Mobile: Increase spacing in experiment tree */
+@media (max-width: 767px) {
+    .experiment-folder,
+    .experiment-item {
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-xs);
+    }
+}
+
+/* ========================================
+   NDScan Parameter Styling
+   ======================================== */
+.ndscan-param-row {
+    transition: background-color 0.2s, transform 0.1s;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: 4px;
+}
+
+.ndscan-param-row:hover {
+    background-color: var(--color-hover);
+}
+
+/* Mobile: Make entire parameter row clickable with visual feedback */
+@media (max-width: 767px) {
+    .ndscan-param-row {
+        cursor: pointer;
+        user-select: none;
+        min-height: var(--touch-target-comfortable);
+        display: flex;
+        align-items: center;
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .ndscan-param-row:active {
+        transform: scale(0.98);
+        background-color: #e9ecef;
+    }
+
+    .ndscan-param-row.selected {
+        background-color: #3e4f5f;
+        border-left: 4px solid var(--color-primary);
+    }
+}
+
+.parameter-adder {
+    border: 1px dashed #ced4da;
+    border-radius: 4px;
+    padding: var(--spacing-md);
+    background-color: var(--color-bg);
+}
+
+/* Mobile: Optimize parameter adder */
+@media (max-width: 767px) {
+    .parameter-adder {
+        padding: var(--spacing-lg);
+    }
+}
+
+/* ========================================
+   Mobile Navigation Bar
+   ======================================== */
+.mobile-nav {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .mobile-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: var(--mobile-nav-height);
+        background-color: #1a242f;
+        border-top: 1px solid var(--color-border);
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        justify-content: space-around;
+        align-items: stretch;
+    }
+
+    .mobile-nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: var(--color-text-muted);
+        transition: all 0.2s;
+        border: none;
+        background: none;
+        cursor: pointer;
+        padding: var(--spacing-xs);
+        gap: 2px;
+    }
+
+    .mobile-nav-item:active {
+        background-color: var(--color-hover);
+    }
+
+    .mobile-nav-item.active {
+        color: var(--color-primary);
+    }
+
+    .mobile-nav-icon {
+        font-size: 24px;
+        line-height: 1;
+    }
+
+    .mobile-nav-label {
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1;
+    }
+}
+
+/* ========================================
+   Collapsible Section Responsive Behavior
+   ======================================== */
+/* Mobile: Sections are always expanded, hide collapse controls */
+@media (max-width: 767px) {
+    .collapsible-section .section-toggle {
+        display: none;
+    }
+
+    .collapsible-section h2,
+    .collapsible-section h4 {
+        font-size: 1.25rem;
+        margin-bottom: var(--spacing-md);
+    }
+}
+
+/* Desktop: Keep collapsible behavior */
+@media (min-width: 768px) {
+    .collapsible-section .section-header {
+        cursor: pointer;
+        user-select: none;
+    }
+}
+
+/* ========================================
+   Form & Input Optimization
+   ======================================== */
+/* Mobile: Stack form elements and optimize inputs */
+@media (max-width: 767px) {
+    .form-control,
+    .form-select {
+        font-size: 16px; /* Prevents zoom on iOS */
+        min-height: var(--touch-target-min);
+    }
+
+    /* Keep input group horizontal by default as it's meant for addons/buttons */
+    .input-group {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+    }
+
+    .input-group > .form-control,
+    .input-group > .form-select {
+        flex: 1 1 auto !important;
+        width: 1% !important; /* Force flexbox to handle width */
+        margin-bottom: 0 !important;
+    }
+
+    .input-group > .input-group-text,
+    .input-group > .btn {
+        width: auto !important;
+        margin-bottom: 0 !important;
+    }
+
+    /* Helper for actual stacking if needed */
+    .input-group-stack {
+        flex-direction: column !important;
+    }
+
+    .input-group-stack > * {
+        width: 100% !important;
+        margin-bottom: var(--spacing-sm) !important;
+        border-radius: 4px !important;
+    }
+
+    /* Adjust row-based form layouts for mobile */
+    .row.align-items-center {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+
+    .row.align-items-center > [class*="col-"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-bottom: var(--spacing-xs);
+    }
+}
+
+/* ========================================
+   Utility Classes
+   ======================================== */
+.mobile-only {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .mobile-only {
+        display: block;
+    }
+
+    .desktop-only {
+        display: none;
+    }
+}
+
+@media (min-width: 768px) {
+    .mobile-only {
+        display: none;
+    }
+
+    .desktop-only {
+        display: block;
+    }
+}
+
+/* Dataset tree styling */
+.dataset-tree-node {
+    transition: background-color 0.2s;
+    user-select: none;
+}
+
+.dataset-tree-node:hover {
+    background-color: var(--color-hover);
+}
+
+.dataset-tree-node.selected {
+    background-color: #3e4f5f;
+    border-left: 3px solid var(--color-primary);
+}
+
+.dataset-tree-node.leaf {
+    font-weight: 500;
+}
+
+.dataset-tree-node.branch {
+    color: #495057;
+}

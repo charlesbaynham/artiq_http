@@ -1,8 +1,5 @@
 import logging
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -20,8 +17,8 @@ class ScheduleItem(BaseModel):
     priority: int
     due_date: Optional[float]
     flush: bool
-    status: str
-    repo_msg: str
+    status: Optional[str]
+    repo_msg: Optional[str]
     expid: ExpID
 
 

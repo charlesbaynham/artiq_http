@@ -6,9 +6,9 @@ node_modules
 .mypy_cache
 
 # Compiles docs for gitlab pages
-public
-latex
-html_out
+/public
+/latex
+/html_out
 
 # Visual studio / pycharm folders
 .idea

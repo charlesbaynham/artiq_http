@@ -3,6 +3,7 @@ image: python:3.11
 
 stages:
   - Static Analysis
+  - Prepare
   - Test
   - Build
   - Compile Documentation
@@ -46,14 +47,56 @@ pre-commit:
 
 ### Tests ###
 
+# Build the test master image
+build-test-master:
+  stage: Prepare
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - |
+      docker build \
+        --cache-from $CI_REGISTRY_IMAGE/test-master:latest \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        -t $CI_REGISTRY_IMAGE/test-master:$CI_COMMIT_REF_SLUG \
+        -f test-artiq/Dockerfile \
+        test-artiq/
+    - docker push $CI_REGISTRY_IMAGE/test-master:$CI_COMMIT_REF_SLUG
+  needs: []
+
 pytest:
   extends: .poetry-setup
   stage: "Test"
+  services:
+    - name: $CI_REGISTRY_IMAGE/test-master:$CI_COMMIT_REF_SLUG
+      alias: test-master
+  variables:
+    ARTIQ_HTTP_HOST: "test-master"
+  before_script:
+    - !reference [.poetry-setup, before_script]
+    # Wait for ARTIQ master to be ready
+    - |
+      echo "Waiting for ARTIQ master to be ready..."
+      for i in {1..30}; do
+        if timeout 1 bash -c "cat < /dev/null > /dev/tcp/test-master/3251" 2>/dev/null; then
+          echo "ARTIQ master is ready!"
+          exit 0
+        fi
+        echo "Still waiting..."
+        sleep 1
+      done
+      echo "ARTIQ master failed to start"
+      exit 1
   script:
-    - poetry run coverage run --omit "tests/*,*/_version.py" -m pytest --junitxml=report.xml
+    - poetry run coverage run --omit "tests/*,*/_version.py" -m pytest --realserver --junitxml=report.xml
     - poetry run coverage report
   coverage: '/^TOTAL.+?(\d+\%)$/'
-  needs: []
+  needs: ["build-test-master"]
   artifacts:
     when: always
     reports:
@@ -154,9 +197,6 @@ docker-backend:
       when: always
     - if: $CI_COMMIT_TAG
       when: always
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-      when: manual
-      allow_failure: true
 
 docker-frontend:
   stage: Docker
@@ -184,10 +224,3 @@ docker-frontend:
         docker tag $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_REF_SLUG $CI_REGISTRY_IMAGE/frontend:latest
         docker push $CI_REGISTRY_IMAGE/frontend:latest
       fi
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "master"'
-      when: always
-    - if: $CI_COMMIT_TAG
-      when: always
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-      when: manual

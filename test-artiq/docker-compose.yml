@@ -1,0 +1,22 @@
+services:
+  artiq-master:
+    build: .
+    container_name: artiq-test-master
+    ports:
+      - "3250:3250"
+      - "3251:3251"
+      - "1066:1066"
+      - "1067:1067"
+    restart: "no"
+    develop:
+      watch:
+        # Watch repository directory for experiment changes
+        - action: sync+restart
+          path: ./repository
+          target: /artiq/repository
+          ignore:
+            - __pycache__/
+        # Watch device_db.py for configuration changes
+        - action: sync+restart
+          path: ./device_db.py
+          target: /artiq/device_db.py

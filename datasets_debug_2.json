@@ -1,0 +1,127 @@
+{
+  "ndscan.rid_19.ndscan_schema_revision": [
+    false,
+    2,
+    {}
+  ],
+  "ndscan.rid_19.source_id": [
+    false,
+    "rid_19",
+    {}
+  ],
+  "ndscan.rid_19.completed": [
+    false,
+    true,
+    {}
+  ],
+  "ndscan.rid_19.fragment_fqn": [
+    false,
+    "ndscan_exp.NDScanExampleFrag",
+    {}
+  ],
+  "ndscan.rid_19.axes": [
+    false,
+    "[]",
+    {}
+  ],
+  "ndscan.rid_19.seed": [
+    false,
+    3934758512,
+    {}
+  ],
+  "ndscan.rid_19.channels": [
+    false,
+    "{\"signal\": {\"path\": \"signal\", \"description\": \"Signal measured by the experiment\", \"type\": \"float\", \"scale\": 1.0, \"unit\": \"\"}}",
+    {}
+  ],
+  "ndscan.rid_19.annotations": [
+    false,
+    "[]",
+    {}
+  ],
+  "ndscan.rid_19.online_analyses": [
+    false,
+    "{}",
+    {}
+  ],
+  "ndscan.rid_19.analysis_results": [
+    false,
+    "{}",
+    {}
+  ],
+  "ndscan.rid_19.point.signal": [
+    false,
+    0.03164058553724708,
+    {}
+  ],
+  "ndscan.rid_19.point_phase": [
+    false,
+    true,
+    {}
+  ],
+  "results": [
+    false,
+    15,
+    {}
+  ],
+  "ndscan.rid_22.ndscan_schema_revision": [
+    false,
+    2,
+    {}
+  ],
+  "ndscan.rid_22.source_id": [
+    false,
+    "rid_22",
+    {}
+  ],
+  "ndscan.rid_22.completed": [
+    false,
+    true,
+    {}
+  ],
+  "ndscan.rid_22.fragment_fqn": [
+    false,
+    "ndscan_exp.NDScanExampleFrag",
+    {}
+  ],
+  "ndscan.rid_22.axes": [
+    false,
+    "[]",
+    {}
+  ],
+  "ndscan.rid_22.seed": [
+    false,
+    1736953442,
+    {}
+  ],
+  "ndscan.rid_22.channels": [
+    false,
+    "{\"signal\": {\"path\": \"signal\", \"description\": \"Signal measured by the experiment\", \"type\": \"float\", \"scale\": 1.0, \"unit\": \"\"}}",
+    {}
+  ],
+  "ndscan.rid_22.annotations": [
+    false,
+    "[]",
+    {}
+  ],
+  "ndscan.rid_22.online_analyses": [
+    false,
+    "{}",
+    {}
+  ],
+  "ndscan.rid_22.analysis_results": [
+    false,
+    "{}",
+    {}
+  ],
+  "ndscan.rid_22.point.signal": [
+    false,
+    -0.134695483346519,
+    {}
+  ],
+  "ndscan.rid_22.point_phase": [
+    false,
+    true,
+    {}
+  ]
+}

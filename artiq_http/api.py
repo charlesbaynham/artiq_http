@@ -1,10 +1,9 @@
+import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
-from typing import Dict
+from typing import Any, Dict
 
-from fastapi import APIRouter
-from fastapi import FastAPI
-from fastapi import HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.encoders import ENCODERS_BY_TYPE
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -12,6 +11,8 @@ from fastapi.staticfiles import StaticFiles
 
 from . import artiq_api as api
 from .config import config
+
+logger = logging.getLogger(__name__)
 
 
 # Register numpy encoders with FastAPI's jsonable_encoder
@@ -48,6 +49,7 @@ class NumpyJSONResponse(JSONResponse):
     def render(self, content: Any) -> bytes:
         import json
         import math
+
         import numpy as np
 
         def sanitize_value(obj):
@@ -101,7 +103,34 @@ class NumpyJSONResponse(JSONResponse):
         ).encode("utf-8")
 
 
-app = FastAPI(default_response_class=NumpyJSONResponse)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan - startup and shutdown"""
+    # Startup
+    from . import artiq_api
+
+    logger.info("Starting persistent subscribers...")
+    await artiq_api.persistent_subscriber.subscriber_manager.start()
+
+    # Wait for subscribers to initialize (with timeout)
+    logger.info("Waiting for subscribers to initialize...")
+    initialized = await artiq_api.persistent_subscriber.subscriber_manager.wait_for_init(timeout=10.0)
+    if initialized:
+        logger.info("Persistent subscribers started and initialized successfully")
+    else:
+        logger.warning(
+            "Persistent subscribers started but initialization timed out - API will return 503 until connected"
+        )
+
+    yield
+
+    # Shutdown
+    logger.info("Stopping persistent subscribers...")
+    await artiq_api.persistent_subscriber.subscriber_manager.stop()
+    logger.info("Persistent subscribers stopped successfully")
+
+
+app = FastAPI(default_response_class=NumpyJSONResponse, lifespan=lifespan)
 
 router = APIRouter()
 
@@ -151,6 +180,83 @@ async def get_datasets():
         dict: All broadcasted ARTIQ datasets
     """
     return await api.notifiers.get_datasets()
+
+
+@router.get("/datasets/names")
+async def get_dataset_names():
+    """Get list of all dataset names (keys only)
+
+    Returns a lightweight list of dataset names without their values,
+    enabling efficient browsing and searching.
+
+    Returns:
+        dict: {"names": ["dataset1", "dataset2", ...]}
+    """
+    datasets = await api.notifiers.get_datasets()
+    return {"names": list(datasets.keys())}
+
+
+@router.get("/datasets/values", response_model=None)
+async def get_dataset_values(names: str):
+    """Get values for specific datasets
+
+    Args:
+        names: Comma-separated list of dataset names to fetch
+
+    Returns:
+        dict: Requested datasets with their values
+    """
+    # Parse comma-separated names
+    requested_names = [name.strip() for name in names.split(",") if name.strip()]
+
+    # Get all datasets from persistent subscriber
+    all_datasets = await api.notifiers.get_datasets()
+
+    # Filter to only requested datasets
+    result = {}
+    for name in requested_names:
+        if name in all_datasets:
+            result[name] = all_datasets[name]
+
+    return result
+
+
+@router.get("/health")
+async def get_health():
+    """Get backend health and ARTIQ connection status
+
+    Returns:
+        dict: Health status including ARTIQ connection state
+    """
+    # Check connection status of all subscribers
+    subscribers = api.persistent_subscriber.subscriber_manager._subscribers
+    details = {}
+    connected_count = 0
+
+    for name, subscriber in subscribers.items():
+        is_connected = subscriber.is_connected()
+        details[name] = is_connected
+        if is_connected:
+            connected_count += 1
+
+    total_count = len(subscribers)
+
+    # Determine overall status
+    if connected_count == total_count:
+        status = "healthy"
+        artiq_connected = True
+    elif connected_count > 0:
+        status = "degraded"
+        artiq_connected = True
+    else:
+        status = "unhealthy"
+        artiq_connected = False
+
+    return {
+        "status": status,
+        "artiq_connected": artiq_connected,
+        "details": details,
+    }
 
 
 @router.post("/cancel")
