@@ -22,7 +22,11 @@ RUN conda config --set repodata_use_zst false && \
     conda create -n artiq -y \
     -c conda-forge \
     -c https://conda.m-labs.hk/artiq \
-    artiq pyqt python=3.10 pip
+    pyqt=6 python=3.10 pip && \
+    conda install -n artiq -y \
+    -c https://conda.m-labs.hk/artiq \
+    -c conda-forge \
+    artiq
 
 # Install oitg and ndscan
 RUN conda run -n artiq pip install git+https://github.com/OxfordIonTrapGroup/oitg
