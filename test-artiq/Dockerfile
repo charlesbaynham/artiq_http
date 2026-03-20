@@ -9,8 +9,9 @@ RUN apt-get update && apt-get install -y \
     iproute2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install micromamba
-RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj bin/micromamba
+# Install micromamba from GitHub releases (more reliable than micro.mamba.pm)
+RUN curl -Ls https://github.com/mamba-org/micromamba-releases/releases/latest/download/micromamba-linux-64 -o /bin/micromamba && \
+    chmod +x /bin/micromamba
 ENV PATH="/bin:$PATH"
 ENV MAMBA_ROOT_PREFIX="/opt/conda"
 
