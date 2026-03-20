@@ -22,9 +22,8 @@ RUN conda config --set repodata_use_zst false && \
     --channel-priority flexible \
     -c conda-forge \
     -c https://conda.m-labs.hk/artiq \
-    artiq \
-    python=3.10 \
-    pip
+    --override-channels \
+    artiq python=3.10 pip
 
 # Install oitg and ndscan
 RUN conda run -n artiq pip install git+https://github.com/OxfordIonTrapGroup/oitg
