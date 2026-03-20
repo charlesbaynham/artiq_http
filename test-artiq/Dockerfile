@@ -20,7 +20,6 @@ ENV PATH="/opt/conda/bin:$PATH"
 RUN conda config --set repodata_use_zst false && \
     conda create -n artiq -y \
     --override-channels \
-    --channel-priority=flexible \
     -c https://conda.m-labs.hk/artiq \
     -c conda-forge \
     artiq python=3.10 pip
