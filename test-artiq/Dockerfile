@@ -15,11 +15,14 @@ RUN curl -Ls https://github.com/mamba-org/micromamba-releases/releases/latest/do
 ENV PATH="/bin:$PATH"
 ENV MAMBA_ROOT_PREFIX="/opt/conda"
 
-# Create ARTIQ environment
+# Create ARTIQ environment with proper channel priority
+# Note: conda-forge first for dependencies, then ARTIQ channel
 RUN micromamba create -n artiq -y \
-    -c https://conda.m-labs.hk/artiq \
+    --channel-priority flexible \
     -c conda-forge \
+    -c https://conda.m-labs.hk/artiq \
     artiq \
+    pyqt=6 \
     python=3.10 \
     pip
 
