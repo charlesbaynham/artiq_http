@@ -19,8 +19,9 @@ ENV PATH="/opt/conda/bin:$PATH"
 # Use conda instead of mamba to avoid zstd repodata issues with the ARTIQ channel
 RUN conda config --set repodata_use_zst false && \
     conda create -n artiq -y \
+    -c https://conda.m-labs.hk/artiq \
     -c conda-forge \
-    python=3.10 pip && \
+    artiq python=3.10 pip && \
     conda run -n artiq pip install pyqt6
 
 # Install oitg and ndscan
