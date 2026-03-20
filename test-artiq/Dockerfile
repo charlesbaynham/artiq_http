@@ -20,8 +20,8 @@ ENV PATH="/opt/conda/bin:$PATH"
 # Note: install pyqt from conda-forge first since ARTIQ depends on it
 RUN conda config --set repodata_use_zst false && \
     conda create -n artiq -y \
-    -c https://conda.m-labs.hk/artiq \
     -c conda-forge \
+    -c https://conda.m-labs.hk/artiq \
     artiq pyqt python=3.10 pip
 
 # Install oitg and ndscan
