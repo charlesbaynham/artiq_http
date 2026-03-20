@@ -10,12 +10,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install micromamba from GitHub releases (more reliable than micro.mamba.pm)
-RUN curl -Ls https://github.com/mamba-org/micromamba-releases/releases/latest/download/micromamba-linux-64 -o /bin/micromamba && \
+# Pin to v1.5.10 which doesn't default to zstd repodata
+RUN curl -Ls https://github.com/mamba-org/micromamba-releases/releases/download/v1.5.10/micromamba-linux-64 -o /bin/micromamba && \
     chmod +x /bin/micromamba
 ENV PATH="/bin:$PATH"
 ENV MAMBA_ROOT_PREFIX="/opt/conda"
-# Disable zstd repodata to support older conda channels
-ENV MAMBA_NO_REPODATA_ZST=1
 
 # Create ARTIQ environment with proper channel priority
 # Note: conda-forge first for dependencies, then ARTIQ channel
