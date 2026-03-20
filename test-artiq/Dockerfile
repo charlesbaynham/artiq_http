@@ -14,6 +14,8 @@ RUN curl -Ls https://github.com/mamba-org/micromamba-releases/releases/latest/do
     chmod +x /bin/micromamba
 ENV PATH="/bin:$PATH"
 ENV MAMBA_ROOT_PREFIX="/opt/conda"
+# Disable zstd repodata to support older conda channels
+ENV MAMBA_NO_REPODATA_ZST=1
 
 # Create ARTIQ environment with proper channel priority
 # Note: conda-forge first for dependencies, then ARTIQ channel
@@ -22,7 +24,6 @@ RUN micromamba create -n artiq -y \
     -c conda-forge \
     -c https://conda.m-labs.hk/artiq \
     artiq \
-    pyqt=6 \
     python=3.10 \
     pip
 
