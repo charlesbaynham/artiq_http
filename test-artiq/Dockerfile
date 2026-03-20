@@ -1,4 +1,7 @@
-FROM debian:bookworm-slim
+FROM mambaorg/micromamba:1.5.10
+
+# Switch to root to install system dependencies
+USER root
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
@@ -9,39 +12,43 @@ RUN apt-get update && apt-get install -y \
     iproute2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install mamba from conda-forge (reliable source)
-RUN curl -Ls https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -o /tmp/miniforge.sh && \
-    bash /tmp/miniforge.sh -b -p /opt/conda && \
-    rm /tmp/miniforge.sh
-ENV PATH="/opt/conda/bin:$PATH"
+# Switch back to micromamba user
+USER $MAMBA_USER
 
-# Create ARTIQ environment - install everything via pip since conda has issues
-RUN conda config --set repodata_use_zst false && \
-    conda create -n artiq -y \
+# Create ARTIQ environment using the ARTIQ channel
+# Use micromamba with explicit channel order
+RUN micromamba create -n artiq -y \
+    -c https://conda.m-labs.hk/artiq \
     -c conda-forge \
-    python=3.10 pip pyqt6 && \
-    conda run -n artiq pip install artiq
+    artiq python=3.10 pip \
+    && micromamba clean -afy
 
-# Install oitg and ndscan
-RUN conda run -n artiq pip install git+https://github.com/OxfordIonTrapGroup/oitg
-RUN conda run -n artiq pip install git+https://github.com/OxfordIonTrapGroup/ndscan
+# Set up environment activation
+ENV PATH="/opt/conda/envs/artiq/bin:$PATH"
+
+# Install oitg and ndscan via pip since they may not be in conda channels
+RUN /opt/conda/envs/artiq/bin/pip install git+https://github.com/OxfordIonTrapGroup/oitg
+RUN /opt/conda/envs/artiq/bin/pip install git+https://github.com/OxfordIonTrapGroup/ndscan
 
 # Pin sipyco to the version we use currently
 # TODO: be more robust / general
-RUN conda run -n artiq pip install git+https://github.com/m-labs/sipyco.git@96fcefbea490a9b42c862393860d2e586b05d744
+RUN /opt/conda/envs/artiq/bin/pip install git+https://github.com/m-labs/sipyco.git@96fcefbea490a9b42c862393860d2e586b05d744
 
 # Force llvmlite back to 0.39 to avoid worker crashes
 # This is necessary because pip might upgrade it during the git installs
-RUN conda install -n artiq -y -c conda-forge llvmlite=0.39
+RUN micromamba install -n artiq -y -c conda-forge llvmlite=0.39 && micromamba clean -afy
+
+# Switch back to root for copying files
+USER root
 
 # Set up working directory
 WORKDIR /artiq
-COPY repository ./repository
-COPY device_db.py .
+COPY --chown=$MAMBA_USER:$MAMBA_USER repository ./repository
+COPY --chown=$MAMBA_USER:$MAMBA_USER device_db.py .
 
 # ARTIQ Master ports
 EXPOSE 1066 1067 3250 3251
 
-# Start the master
 # Start the master with verbose logging and bind to all interfaces
-ENTRYPOINT ["conda", "run", "-n", "artiq", "artiq_master", "-r", "repository", "--bind", "*", "-vv"]
+# Must use exec form with micromamba run for proper signal handling
+ENTRYPOINT ["micromamba", "run", "-n", "artiq", "artiq_master", "-r", "repository", "--bind", "*", "-vv"]
