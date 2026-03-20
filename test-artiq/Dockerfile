@@ -18,7 +18,7 @@ USER $MAMBA_USER
 # Create ARTIQ environment using the ARTIQ channel
 # Use micromamba with explicit channel order
 RUN micromamba create -n artiq -y \
-    -c https://conda.m-labs.hk/artiq \
+    -c https://conda.m-labs.hk \
     -c conda-forge \
     artiq python=3.10 pip \
     && micromamba clean -afy
