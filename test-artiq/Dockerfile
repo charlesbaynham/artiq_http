@@ -15,18 +15,12 @@ RUN curl -Ls https://github.com/conda-forge/miniforge/releases/latest/download/M
     rm /tmp/miniforge.sh
 ENV PATH="/opt/conda/bin:$PATH"
 
-# Create ARTIQ environment with proper channel priority
-# Use conda instead of mamba to avoid zstd repodata issues with the ARTIQ channel
-# Use classic solver since libmamba has issues with --no-deps
+# Create ARTIQ environment - install everything via pip since conda has issues
 RUN conda config --set repodata_use_zst false && \
-    conda config --set solver classic && \
     conda create -n artiq -y \
     -c conda-forge \
     python=3.10 pip pyqt6 && \
-    conda install -n artiq -y \
-    -c https://conda.m-labs.hk/artiq \
-    -c conda-forge \
-    --no-deps artiq
+    conda run -n artiq pip install artiq
 
 # Install oitg and ndscan
 RUN conda run -n artiq pip install git+https://github.com/OxfordIonTrapGroup/oitg
