@@ -17,11 +17,15 @@ ENV PATH="/opt/conda/bin:$PATH"
 
 # Create ARTIQ environment with proper channel priority
 # Use conda instead of mamba to avoid zstd repodata issues with the ARTIQ channel
-# Note: ARTIQ channel has its own pyqt package
+# First install pyqt from conda-forge, then ARTIQ from m-labs
 RUN conda config --set repodata_use_zst false && \
     conda create -n artiq -y \
+    -c conda-forge \
+    pyqt python=3.10 pip && \
+    conda install -n artiq -y \
     -c https://conda.m-labs.hk/artiq \
-    artiq python=3.10 pip
+    -c conda-forge \
+    artiq
 
 # Install oitg and ndscan
 RUN conda run -n artiq pip install git+https://github.com/OxfordIonTrapGroup/oitg
