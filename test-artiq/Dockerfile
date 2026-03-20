@@ -17,9 +17,9 @@ ENV PATH="/opt/conda/bin:$PATH"
 
 # Create ARTIQ environment with proper channel priority
 # Use conda instead of mamba to avoid zstd repodata issues with the ARTIQ channel
-# First install pyqt6 from conda-forge (provides pyqt >=6), then ARTIQ
-# Note: pyqt6 on conda-forge provides the pyqt >=6 dependency
+# Use classic solver since libmamba has issues with --no-deps
 RUN conda config --set repodata_use_zst false && \
+    conda config --set solver classic && \
     conda create -n artiq -y \
     -c conda-forge \
     python=3.10 pip pyqt6 && \
