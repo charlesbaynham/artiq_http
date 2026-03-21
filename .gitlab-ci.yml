@@ -10,12 +10,10 @@ stages:
   - Build Documentation
   - Docker
 
-# Global variables
-variables:
-  UV_CACHE_DIR: ${CI_PROJECT_DIR}/.uv-cache
-
 # UV setup shared across jobs
 .uv-setup:
+  variables:
+    UV_CACHE_DIR: ${CI_PROJECT_DIR}/.cache/uv
   before_script:
     # Store the CI_JOB_TOKEN so that jobs can access other repositories with the access rights of the triggering user
     - echo -e "machine ${CI_SERVER_HOST}\nlogin gitlab-ci-token\npassword ${CI_JOB_TOKEN}" > ~/.netrc
@@ -29,12 +27,11 @@ variables:
     # Install dependencies (including dev)
     - uv sync --extra dev
 
-# Cache UV package cache (not the venv - venv is rebuilt quickly from cache)
+# Cache .cache directory (includes UV package cache and pre-commit)
 cache:
   key: ${CI_JOB_NAME}
   paths:
-    - .uv-cache/
-    - .cache/pre-commit/
+    - .cache/
 
 ### Linting ###
 
