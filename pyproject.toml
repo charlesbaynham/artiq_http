@@ -1,42 +1,50 @@
-[tool.poetry]
+[project]
 name = "artiq_http"
 version = "0.2.0"
 description = "A controller for ARTIQ which exposes ARTIQ's functionality as a RESTful API"
-authors = ["Charles Baynham <charles.baynham@gmail.com>"]
+authors = [
+    { name = "Charles Baynham", email = "charles.baynham@gmail.com" }
+]
 readme = "README.rst"
-packages = [{ include = "artiq_http" }]
-include = ["artiq_http/static/**/*", "artiq_http/_version.py", "VERSION.json"]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi[standard]",
+    "starlette",
+    "uvicorn",
+    "pydantic",
+    "sipyco @ git+https://github.com/m-labs/sipyco.git@96fcefbea490a9b42c862393860d2e586b05d744",
+    "pybase64",
+    "numpy",
+]
 
-[tool.poetry.scripts]
+[project.optional-dependencies]
+dev = [
+    "pre-commit",
+    "ruff",
+    "pytest",
+    "coverage",
+    "sphinx",
+    "sphinx-autobuild",
+    "sphinx-rtd-theme",
+    "sphinxcontrib-svg2pdfconverter",
+    "ipython",
+    "notebook",
+    "jupytext",
+    "check-manifest",
+]
+
+[project.scripts]
 aqctl_artiq_http = "artiq_http.main:main"
 
-[tool.poetry.dependencies]
-python = "^3.11"
-fastapi = { extras = ["standard"], version = "*" }
-starlette = "*"
-uvicorn = "*"
-pydantic = "*"
-sipyco = { git = "https://github.com/m-labs/sipyco.git", rev = "96fcefbea490a9b42c862393860d2e586b05d744" }
-pybase64 = "*"
-numpy = "*"
-
-[tool.poetry.group.dev.dependencies]
-pre-commit = "*"
-ruff = "*"
-pytest = "*"
-coverage = "*"
-sphinx = "*"
-sphinx-autobuild = "*"
-sphinx-rtd-theme = "*"
-sphinxcontrib-svg2pdfconverter = "*"
-ipython = "*"
-notebook = "*"
-jupytext = "*"
-check-manifest = "*"
-
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+include = [
+    "artiq_http/**/*",
+    "VERSION.json",
+]
 
 [tool.ruff]
 line-length = 120

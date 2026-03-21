@@ -1,27 +1,24 @@
-# Stage 1: Build with Poetry
+# Stage 1: Build with UV
 FROM python:3.11 AS builder
 
 WORKDIR /app
 
-# Install Poetry
-RUN pip install --no-cache-dir poetry
+# Install UV
+RUN pip install --no-cache-dir uv
 
-# Copy all files needed for version detection
-COPY pyproject.toml poetry.lock* ./
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
 COPY VERSION.json ./
 COPY README.rst ./
 
-# Configure Poetry to create virtualenv in project
-RUN poetry config virtualenvs.in-project true
-
-# Install dependencies (without dev dependencies)
-RUN poetry install --without dev --no-root
+# Install dependencies (without dev extras) into project venv
+RUN uv sync --no-dev --no-install-project
 
 # Copy application code
 COPY artiq_http/ ./artiq_http/
 
 # Install the application itself
-RUN poetry install --only-root
+RUN uv sync --no-dev
 
 # Stage 2: Runtime
 FROM python:3.11-slim

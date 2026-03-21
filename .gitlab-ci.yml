@@ -10,8 +10,8 @@ stages:
   - Build Documentation
   - Docker
 
-# Poetry setup shared across jobs
-.poetry-setup:
+# UV setup shared across jobs
+.uv-setup:
   before_script:
     # Store the CI_JOB_TOKEN so that jobs can access other repositories with the access rights of the triggering user
     - echo -e "machine ${CI_SERVER_HOST}\nlogin gitlab-ci-token\npassword ${CI_JOB_TOKEN}" > ~/.netrc
@@ -19,13 +19,11 @@ stages:
     - echo [user] > ~/.gitconfig
     - echo name = Gitlabs CI Testing >> ~/.gitconfig
     - echo email = test@example.com >> ~/.gitconfig
-    # Install Poetry
-    - pip install poetry poetry-dynamic-versioning
-    - poetry --version
-    # Configure Poetry to create venv in project directory for easier caching
-    - poetry config virtualenvs.in-project true
-    # Install dependencies
-    - poetry install --with dev
+    # Install UV
+    - pip install uv
+    - uv --version
+    # Install dependencies (including dev)
+    - uv sync --extra dev
 
 cache:
   key: ${CI_JOB_NAME}
@@ -36,41 +34,40 @@ cache:
 ### Linting ###
 
 pre-commit:
-  extends: .poetry-setup
+  extends: .uv-setup
   stage: Static Analysis
   variables:
     PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
   script:
-    - poetry run pre-commit run --all
+    - uv run pre-commit run --all
   allow_failure: true
   needs: []
 
 ### Tests ###
 
-# Build the test master image
+# Build the test master image using Nix
 build-test-master:
   stage: Prepare
-  image: docker:latest
-  services:
-    - docker:dind
+  image: nixos/nix:latest
   variables:
-    DOCKER_DRIVER: overlay2
-    DOCKER_TLS_CERTDIR: "/certs"
+    NIX_CONFIG: |
+      experimental-features = nix-command flakes
+      accept-flake-config = true
   before_script:
+    - nix-env -iA nixpkgs.docker
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - |
-      docker build \
-        --cache-from $CI_REGISTRY_IMAGE/test-master:latest \
-        --build-arg BUILDKIT_INLINE_CACHE=1 \
-        -t $CI_REGISTRY_IMAGE/test-master:$CI_COMMIT_REF_SLUG \
-        -f test-artiq/Dockerfile \
-        test-artiq/
+    - cd test-artiq
+    - nix build .#docker --accept-flake-config
+    - docker load < result
+    - docker tag artiq-test-master:latest $CI_REGISTRY_IMAGE/test-master:$CI_COMMIT_REF_SLUG
     - docker push $CI_REGISTRY_IMAGE/test-master:$CI_COMMIT_REF_SLUG
+  tags:
+    - docker
   needs: []
 
 pytest:
-  extends: .poetry-setup
+  extends: .uv-setup
   stage: "Test"
   services:
     - name: $CI_REGISTRY_IMAGE/test-master:$CI_COMMIT_REF_SLUG
@@ -78,7 +75,7 @@ pytest:
   variables:
     ARTIQ_HTTP_HOST: "test-master"
   before_script:
-    - !reference [.poetry-setup, before_script]
+    - !reference [.uv-setup, before_script]
     # Wait for ARTIQ master to be ready
     - |
       echo "Waiting for ARTIQ master to be ready..."
@@ -93,8 +90,8 @@ pytest:
       echo "ARTIQ master failed to start"
       exit 1
   script:
-    - poetry run coverage run --omit "tests/*,*/_version.py" -m pytest --realserver --junitxml=report.xml
-    - poetry run coverage report
+    - uv run coverage run --omit "tests/*,*/_version.py" -m pytest --realserver --junitxml=report.xml
+    - uv run coverage report
   coverage: '/^TOTAL.+?(\d+\%)$/'
   needs: ["build-test-master"]
   artifacts:
@@ -105,11 +102,11 @@ pytest:
 ### Build ###
 
 build-package:
-  extends: .poetry-setup
+  extends: .uv-setup
   stage: Build
   needs: []
   script:
-    - poetry build
+    - uv build
   artifacts:
     paths:
       - dist/
@@ -119,17 +116,17 @@ build-package:
 
 # Build the documentation
 make_docs:
-  extends: .poetry-setup
+  extends: .uv-setup
   stage: Compile Documentation
   needs: []
   before_script:
-    - !reference [.poetry-setup, before_script]
+    - !reference [.uv-setup, before_script]
     # Additional system dependencies for docs
     - apt-get update && apt-get install -y librsvg2-bin
   script:
-    - poetry run sphinx-apidoc -o docs/autogen "artiq_http"
-    - poetry run sphinx-build docs html_out -b html
-    - poetry run sphinx-build docs latex -b latex
+    - uv run sphinx-apidoc -o docs/autogen "artiq_http"
+    - uv run sphinx-build docs html_out -b html
+    - uv run sphinx-build docs latex -b latex
   artifacts:
     paths:
       - latex
