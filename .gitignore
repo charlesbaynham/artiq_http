@@ -122,3 +122,6 @@ ENV/
 
 # Agent state files (don't commit these)
 .agent-state/
+
+# Git worktrees
+.worktrees/
