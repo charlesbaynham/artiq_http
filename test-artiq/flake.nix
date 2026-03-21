@@ -14,6 +14,17 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         artiq = artiq-extrapkg.packages.${system}.artiq;
+
+        # Create a derivation for the ARTIQ repository files
+        artiq-repo = pkgs.stdenv.mkDerivation {
+          name = "artiq-repo";
+          src = ./.;
+          installPhase = ''
+            mkdir -p $out/artiq
+            cp -r repository $out/artiq/
+            cp device_db.py $out/artiq/
+          '';
+        };
       in {
         packages.docker = pkgs.dockerTools.buildImage {
           name = "artiq-test-master";
@@ -21,7 +32,7 @@
 
           copyToRoot = pkgs.buildEnv {
             name = "image-root";
-            paths = [ artiq ];
+            paths = [ artiq artiq-repo ];
           };
 
           config = {
