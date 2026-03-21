@@ -226,3 +226,8 @@ docker-frontend:
         docker tag $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_REF_SLUG $CI_REGISTRY_IMAGE/frontend:latest
         docker push $CI_REGISTRY_IMAGE/frontend:latest
       fi
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+      when: always
+    - if: $CI_COMMIT_TAG
+      when: always
