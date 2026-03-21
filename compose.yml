@@ -5,6 +5,12 @@ services:
       dockerfile: Dockerfile.backend
     expose:
       - "8000"
+    environment:
+      - ARTIQ_HTTP_HOST=${ARTIQ_HTTP_HOST:-127.0.0.1}
+      - ARTIQ_HTTP_PORT_NOTIFIERS=${ARTIQ_HTTP_PORT_NOTIFIERS:-3250}
+      - ARTIQ_HTTP_PORT_CLIENTS=${ARTIQ_HTTP_PORT_CLIENTS:-3251}
+      - ARTIQ_HTTP_LOG_LEVEL=${ARTIQ_HTTP_LOG_LEVEL:-INFO}
+      - ARTIQ_HTTP_OLD_ARTIQ_SUPPORT=${ARTIQ_HTTP_OLD_ARTIQ_SUPPORT:-false}
     restart: unless-stopped
 
   frontend:
