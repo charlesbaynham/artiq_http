@@ -288,6 +288,7 @@ async def get_schedule_item(rid: int) -> api.models.ScheduleItem:
     return schedule[rid]
 
 
+# NOTE: must be registered before /{file:path} routes to avoid {file:path} consuming "search"
 @router.get("/explist/search")
 async def search_explist(q: str = "") -> api.models.ExperimentList:
     explist = await api.notifiers.get_explist()
