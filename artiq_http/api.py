@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -320,6 +321,51 @@ async def get_explist_defaults(file: str, class_name: str) -> api.models.Experim
                 arguments=api.notifiers.extract_arginfo_defaults(exp.arginfo),
             )
     raise HTTPException(404, f"Experiment {file}/{class_name} not found")
+
+
+@router.post("/schedule/submit-and-wait")
+async def submit_and_wait(
+    expid: api.models.ExpID,
+    pipeline: str = "main",
+    priority: int = 0,
+    flush: bool = False,
+    due_date: float = None,
+    timeout: float = 60.0,
+) -> api.models.SubmitAndWaitResult:
+    """Submit an experiment and wait for it to complete.
+
+    Args:
+        expid: Experiment ID specification
+        pipeline: Pipeline name (default: "main")
+        priority: Scheduling priority (default: 0)
+        flush: Whether to flush the pipeline (default: False)
+        due_date: Optional due date as Unix timestamp
+        timeout: Max seconds to wait (default: 60, max: 300)
+
+    Returns:
+        SubmitAndWaitResult with rid, status, and timed_out fields
+    """
+    timeout = min(timeout, 300.0)
+    try:
+        rid = await api.control_schedule.submit_experiment(
+            expid,
+            pipeline,
+            priority,
+            flush,
+            due_date,
+        )
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+    elapsed = 0.0
+    while elapsed < timeout:
+        schedule = await api.notifiers.get_schedule()
+        if rid not in schedule:
+            return api.models.SubmitAndWaitResult(rid=rid, status="completed", timed_out=False)
+        await asyncio.sleep(1)
+        elapsed += 1.0
+
+    return api.models.SubmitAndWaitResult(rid=rid, status="timeout", timed_out=True)
 
 
 @router.post("/schedule")
