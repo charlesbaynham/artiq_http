@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Any, Dict
 
 from ._get_dict import get_dict
 from .models import ExperimentEntry, ExperimentList, ScheduleItem
@@ -59,6 +59,20 @@ async def get_datasets() -> dict:
         return subscriber_manager.get_datasets()
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=f"ARTIQ master not available: {str(e)}")
+
+
+def extract_arginfo_defaults(arginfo: dict) -> Dict[str, Any]:
+    defaults = {}
+    for arg_name, arg_data in arginfo.items():
+        if not isinstance(arg_data, (list, tuple)) or len(arg_data) < 2:
+            continue
+        type_str = arg_data[0]
+        spec_dict = arg_data[1]
+        if not isinstance(spec_dict, dict):
+            continue
+        if type_str in ("NumberValue", "StringValue", "BooleanValue", "EnumerationValue", "Scannable"):
+            defaults[arg_name] = spec_dict.get("default")
+    return defaults
 
 
 async def get_explist() -> ExperimentList:

@@ -280,6 +280,47 @@ async def get_explist() -> api.models.ExperimentList:
     return await api.notifiers.get_explist()
 
 
+@router.get("/schedule/{rid}")
+async def get_schedule_item(rid: int) -> api.models.ScheduleItem:
+    schedule = await api.notifiers.get_schedule()
+    if rid not in schedule:
+        raise HTTPException(404, f"RID {rid} not found in schedule")
+    return schedule[rid]
+
+
+@router.get("/explist/search")
+async def search_explist(q: str = "") -> api.models.ExperimentList:
+    explist = await api.notifiers.get_explist()
+    if not q:
+        return explist
+    q_lower = q.lower()
+    filtered = [
+        exp
+        for exp in explist.experiments
+        if q_lower in exp.name.lower()
+        or q_lower in exp.file.lower()
+        or q_lower in exp.class_name.lower()
+    ]
+    return api.models.ExperimentList(
+        current_rev=explist.current_rev,
+        scanning=explist.scanning,
+        experiments=filtered,
+    )
+
+
+@router.get("/explist/{file:path}/{class_name}/defaults")
+async def get_explist_defaults(file: str, class_name: str) -> api.models.ExperimentDefaults:
+    explist = await api.notifiers.get_explist()
+    for exp in explist.experiments:
+        if exp.file == file and exp.class_name == class_name:
+            return api.models.ExperimentDefaults(
+                file=exp.file,
+                class_name=exp.class_name,
+                arguments=api.notifiers.extract_arginfo_defaults(exp.arginfo),
+            )
+    raise HTTPException(404, f"Experiment {file}/{class_name} not found")
+
+
 @router.post("/schedule")
 async def submit_experiment(
     expid: api.models.ExpID,
