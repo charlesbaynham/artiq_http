@@ -1,9 +1,10 @@
 """Mock-based unit tests for the agent interface endpoints:
-  - GET  /api/schedule/{rid}
-  - GET  /api/explist/search
-  - GET  /api/explist/{file:path}/{class_name}/defaults
-  - POST /api/schedule/submit-and-wait
+- GET  /api/schedule/{rid}
+- GET  /api/explist/search
+- GET  /api/explist/{file:path}/{class_name}/defaults
+- POST /api/schedule/submit-and-wait
 """
+
 from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
@@ -33,7 +34,12 @@ SCHEDULE_ITEM = {
 }
 
 ARGINFO = {
-    "count": ["NumberValue", {"default": 10, "unit": "", "scale": 1, "step": 1, "min": None, "max": None, "ndecimals": 0}, None, None],
+    "count": [
+        "NumberValue",
+        {"default": 10, "unit": "", "scale": 1, "step": 1, "min": None, "max": None, "ndecimals": 0},
+        None,
+        None,
+    ],
     "name": ["StringValue", {"default": "hello"}, None, None],
     "flag": ["BooleanValue", {"default": True}, None, None],
 }
@@ -86,7 +92,7 @@ def test_get_schedule_by_rid_not_found(mock_get_schedule):
 @patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
 def test_explist_search_found(mock_get_explist):
     """GET /api/explist/search?q=simple returns the matching experiment."""
-    from artiq_http.artiq_api.models import ExperimentList, ExperimentEntry
+    from artiq_http.artiq_api.models import ExperimentEntry, ExperimentList
 
     explist = ExperimentList(
         current_rev="abc123",
@@ -104,7 +110,7 @@ def test_explist_search_found(mock_get_explist):
 @patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
 def test_explist_search_no_match(mock_get_explist):
     """GET /api/explist/search?q=zzznomatch returns an empty experiments list."""
-    from artiq_http.artiq_api.models import ExperimentList, ExperimentEntry
+    from artiq_http.artiq_api.models import ExperimentEntry, ExperimentList
 
     explist = ExperimentList(
         current_rev="abc123",
@@ -121,7 +127,7 @@ def test_explist_search_no_match(mock_get_explist):
 @patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
 def test_explist_search_case_insensitive(mock_get_explist):
     """GET /api/explist/search?q=SIMPLE matches despite different case."""
-    from artiq_http.artiq_api.models import ExperimentList, ExperimentEntry
+    from artiq_http.artiq_api.models import ExperimentEntry, ExperimentList
 
     explist = ExperimentList(
         current_rev="abc123",
@@ -143,7 +149,7 @@ def test_explist_search_case_insensitive(mock_get_explist):
 @patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
 def test_explist_defaults_found(mock_get_explist):
     """GET /api/explist/simple_exp.py/SimpleExp/defaults returns argument defaults."""
-    from artiq_http.artiq_api.models import ExperimentList, ExperimentEntry
+    from artiq_http.artiq_api.models import ExperimentEntry, ExperimentList
 
     explist = ExperimentList(
         current_rev="abc123",
