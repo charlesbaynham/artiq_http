@@ -90,3 +90,18 @@ def test_devices_list(client):
 
     assert "core" in devices
     assert "core_log" in devices
+
+
+def test_get_schedule_by_rid_missing(client):
+    """GET /api/schedule/99999 returns 404 for an unknown RID."""
+    response = client.get("/api/schedule/99999")
+    assert response.status_code == 404
+
+
+def test_explist_search(client):
+    """GET /api/explist/search?q=exp returns 200 with a list of experiments."""
+    response = client.get("/api/explist/search?q=exp")
+    assert response.status_code == 200
+    data = response.json()
+    assert "experiments" in data
+    assert isinstance(data["experiments"], list)
