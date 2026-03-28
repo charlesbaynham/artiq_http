@@ -1,6 +1,6 @@
 [project]
 name = "artiq_http"
-version = "0.2.0"
+version = "0.3.0"
 description = "A controller for ARTIQ which exposes ARTIQ's functionality as a RESTful API"
 authors = [
     { name = "Charles Baynham", email = "charles.baynham@gmail.com" }
@@ -55,3 +55,9 @@ exclude = ["docs", "artiq_http/_version.py"]
 
 [tool.ruff.lint]
 extend-ignore = ["W291"]
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.0.2,<10.0.0)",
+    "ruff (>=0.15.7,<0.16.0)"
+]

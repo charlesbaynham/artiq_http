@@ -35,3 +35,15 @@ class ExperimentList(BaseModel):
     current_rev: Optional[str]
     scanning: bool
     experiments: List[ExperimentEntry] = []
+
+
+class ExperimentDefaults(BaseModel):
+    file: str
+    class_name: str
+    arguments: Dict[str, Any]
+
+
+class SubmitAndWaitResult(BaseModel):
+    rid: int
+    status: str
+    timed_out: bool

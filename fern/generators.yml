@@ -1,0 +1,15 @@
+api:
+  specs:
+    - openapi: ./openapi/openapi.json
+
+groups:
+  python-sdk:
+    generators:
+      - name: fernapi/fern-python-sdk
+        version: 4.0.0
+        output:
+          location: local-file-system
+          path: ../sdk
+        config:
+          client_class_name: ArtiqClient
+          package_name: artiq_http_client
