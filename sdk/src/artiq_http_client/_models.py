@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Optional
 
 
@@ -87,9 +87,7 @@ class ExperimentList:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ExperimentList":
-        experiments = [
-            ExperimentEntry.from_dict(e) for e in data.get("experiments", [])
-        ]
+        experiments = [ExperimentEntry.from_dict(e) for e in data.get("experiments", [])]
         return cls(
             current_rev=data.get("current_rev"),
             scanning=data.get("scanning", False),
