@@ -1,11 +1,25 @@
 ---
 name: artiq-sdk
-description: Use the bundled artiq_http_client SDK for ARTIQ HTTP experiment discovery, submission, scheduling, and dataset access.
+description: Use the bundled artiq_http_client SDK and bundled markdown docs for ARTIQ HTTP experiment discovery, submission, scheduling, and dataset access.
 ---
 
 # ARTIQ SDK Skill
 
 Use the Python `artiq_http_client` SDK for ARTIQ HTTP interactions instead of raw HTTP requests.
+
+Read the bundled markdown docs before writing or executing SDK code.
+
+## Read bundled docs first
+
+Skill resources include markdown docs at:
+
+- `${CLAUDE_PLUGIN_ROOT}/skills/artiq-http-sdk/resources/artiq-http-docs/README.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/artiq-http-sdk/resources/artiq-http-docs/llms.txt`
+- `${CLAUDE_PLUGIN_ROOT}/skills/artiq-http-sdk/resources/artiq-http-docs/llms_full.txt`
+
+These LLM files are copied from Fern-generated artifacts by the build pipeline.
+Use `llms.txt` as the entrypoint and `llms_full.txt` for complete SDK and API context.
+If needed, drill down to `overview.md` and `api-reference.md`.
 
 ## Prefer bundled SDK artifact
 
@@ -34,6 +48,13 @@ with ArtiqClient("http://localhost:8000") as client:
 - Submitting and waiting on experiments (`client.schedule`)
 - Reading datasets (`client.datasets`)
 - Health checks (`client.health`)
+
+## Agent behavior expectations
+
+- Prefer the bundled SDK and docs over hand-written HTTP requests.
+- Read `llms_full.txt` before coding to gather full endpoint and model context.
+- Verify method names and payload shape in `api-reference.md` before coding.
+- If ambiguity remains, rely on the bundled wheel and `llms_full.txt` as the source of truth.
 
 ## Error handling
 
