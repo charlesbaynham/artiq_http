@@ -20,6 +20,13 @@ See README.rst for instructions
   - `config.py` - Configuration
   - `artiq_api/` - ARTIQ API wrapper modules
 - `frontend/` - React frontend
+- `docker/` - Container and compose configuration for backend/frontend deployment
+  - `compose.yml` - Main backend/frontend compose stack
+  - `compose.localtesting.yml` - Local ARTIQ test stack override
+  - `compose.watchtower.yml` - Watchtower auto-update override
+  - `Dockerfile.backend` - Backend image definition
+  - `Dockerfile.frontend` - Frontend image definition
+  - `Caddyfile` - Frontend reverse-proxy/static serving config
 - `test-artiq/` - Local ARTIQ test environment (Docker). This directory mimics the structure of an external ARTIQ experiment repository for testing purposes, but is a subdirectory of this project.
   - `repository/` - Minimal experiments for testing. This folder represents the root of the "mock" ARTIQ repository. Note that it is not a git repository, despite the name.
   - `Dockerfile` - ARTIQ + ndscan image
