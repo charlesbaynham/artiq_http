@@ -23,7 +23,7 @@ See README.rst for instructions
 - `.claude-plugin/` - Claude Code plugin manifest (`plugin.json`)
 - `skills/` - Claude Code plugin skills
 - `resources/` - Claude Code plugin bundled resources (including SDK artifacts)
-- `scripts/update_claude_plugin_sdk_resources.sh` - Rebuild and sync SDK artifacts into `resources/artiq-sdk/`
+- `scripts/update_claude_plugin_sdk_resources.sh` - Script invoked by npm workflow to rebuild/sync SDK artifacts into `resources/artiq-sdk/`
 - `test-artiq/` - Local ARTIQ test environment (Docker). This directory mimics the structure of an external ARTIQ experiment repository for testing purposes, but is a subdirectory of this project.
   - `repository/` - Minimal experiments for testing. This folder represents the root of the "mock" ARTIQ repository. Note that it is not a git repository, despite the name.
   - `Dockerfile` - ARTIQ + ndscan image
@@ -93,7 +93,11 @@ This project uses manual semantic versioning with hard-coded version strings. Th
 2. Update `artiq_http/__init__.py` (`__version__`)
 3. Update the `version` field in `pyproject.toml` to match
 
-For this repository, also keep `package.json` version aligned because `tests/test_version_consistency.py` validates all three versions.
+For this repository, also keep `package.json` and `.claude-plugin/plugin.json` versions aligned because `tests/test_version_consistency.py` validates all four versions.
+
+For plugin maintenance workflows, use npm entrypoints:
+- `npm run plugin:version:sync` - sync `.claude-plugin/plugin.json` version to `package.json`
+- `npm run plugin:sdk:sync` - sync plugin version, then rebuild/copy latest SDK artifacts to `resources/artiq-sdk/`
 
 ## Agent documentation
 
