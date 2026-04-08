@@ -7,7 +7,7 @@ This directory contains the Fern configuration for generating the ARTIQ HTTP Pyt
 1. Update the API in `artiq_http/api.py`
 2. Export the updated OpenAPI spec:
    ```bash
-   poetry run python -c "import json; from artiq_http.api import app; print(json.dumps(app.openapi()))" 2>/dev/null | grep -v '^Production mode' > fern/openapi/openapi.json
+   uv run python -c "import json; from artiq_http.api import app; print(json.dumps(app.openapi()))" 2>/dev/null | grep -v '^Production mode' > fern/openapi/openapi.json
    ```
 3. Generate the SDK:
    ```bash

@@ -6,7 +6,7 @@ A controller for ARTIQ which exposes ARTIQ's functionality as a RESTful API
 
 - **Tech Stack:** Python/FastAPI
 - **Database:** None
-- **Dev Environment:** Local (Poetry)
+- **Dev Environment:** Local (uv)
 
 ## Quick Start
 
@@ -43,7 +43,7 @@ See README.rst for instructions
 - Follow PEP 8 style guidelines
 - Use type hints for all functions
 - Write tests for new functionality
-- Use Poetry for dependency management
+- Use uv for dependency management
 - Run `ruff check` before committing
 - Always run unit tests after making changes and fix issues before finishing
 - If on the master branch, be sparing with commits - one per feature
@@ -55,7 +55,7 @@ See README.rst for instructions
 After any major change to the backend or experiment discovery logic, you **must** verify the changes against the local ARTIQ test environment:
 
 1. Start the local master: `cd test-artiq && docker compose up -d`
-2. Verify connectivity: `poetry run sipyco_rpctool 127.0.0.1 3251 list-targets`
+2. Verify connectivity: `uv run sipyco_rpctool 127.0.0.1 3251 list-targets`
 3. Check logs for experiment discovery errors: `docker compose logs artiq-master`
 
 See `test-artiq/README.md` (or the walkthrough) for more details.
@@ -66,14 +66,14 @@ To run the unit tests, use the following commands:
 
 ```bash
 # Run basic tests
-poetry run pytest
+uv run pytest
 
 # Run all tests, including those requiring a real ARTIQ stack (Docker)
-poetry run pytest --realserver
+uv run pytest --realserver
 
 # Run with coverage
-poetry run coverage run -m pytest --realserver
-poetry run coverage report
+uv run coverage run -m pytest --realserver
+uv run coverage report
 ```
 
 ## Agent Configuration

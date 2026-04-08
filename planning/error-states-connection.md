@@ -87,7 +87,7 @@ Test the health endpoint:
 
 ```bash
 # Run from project root
-poetry run pytest tests/test_health_endpoint.py -v --realserver
+uv run pytest tests/test_health_endpoint.py -v --realserver
 ```
 
 Tests to implement:
@@ -102,7 +102,7 @@ Tests to implement:
 3. Stop the backend: `Ctrl+C` in backend terminal
 4. Wait a few seconds
 5. **Expected:** Modal appears saying "Cannot connect to backend server"
-6. Restart backend: `poetry run aqctl_artiq_http`
+6. Restart backend: `uv run aqctl_artiq_http`
 7. **Expected:** Modal disappears automatically
 
 **Test 2: ARTIQ Master Unreachable**
