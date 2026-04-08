@@ -108,6 +108,23 @@ Versioning is intentionally simple and uses hard-coded strings in three files th
 
 When bumping versions, update all three values together.
 
+Claude Code Plugin
+------------------
+
+This repository now includes a Claude Code plugin rooted at this project directory.
+
+- Plugin manifest: ``.claude-plugin/plugin.json``
+- Plugin skill: ``skills/artiq-sdk/SKILL.md``
+- Bundled SDK artifacts: ``resources/artiq-sdk/``
+
+To rebuild and refresh the bundled SDK artifacts:
+
+.. code-block:: bash
+
+    ./scripts/update_claude_plugin_sdk_resources.sh
+
+This script builds the SDK from ``sdk/`` and copies the latest wheel and sdist into ``resources/artiq-sdk/``.
+
 Authors
 -------
 

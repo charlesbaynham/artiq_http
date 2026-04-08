@@ -1,6 +1,6 @@
 {
   "name": "artiq-http",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "scripts": {
     "install": "cd frontend && npm install",
     "frontend": "cd frontend && npm start",
@@ -8,6 +8,7 @@
     "openapi:export": "poetry run python -c \"import json; from artiq_http.api import app; print(json.dumps(app.openapi()))\" 2>/dev/null | grep -v '^Production mode' > fern/openapi/openapi.json",
     "sdk:generate": "fern generate --group python-sdk",
     "sdk:update": "npm run openapi:export && npm run sdk:generate",
+    "plugin:sdk:sync": "./scripts/update_claude_plugin_sdk_resources.sh",
     "static:update": "(rm -r artiq_http/static || true) && cd frontend && npm run build && mv dist ../artiq_http/static",
     "build": "npm run static:update",
     "clean": "git clean -xdf --exclude venv --exclude node_modules --exclude .env"
