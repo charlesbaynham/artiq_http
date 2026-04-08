@@ -57,6 +57,7 @@ extend-ignore = ["W291"]
 
 [dependency-groups]
 dev = [
+    "fern>=0.2",
     "pytest (>=9.0.2,<10.0.0)",
-    "ruff (>=0.15.7,<0.16.0)"
+    "ruff (>=0.15.7,<0.16.0)",
 ]

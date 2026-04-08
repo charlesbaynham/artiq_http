@@ -115,7 +115,7 @@ wheels = [
 
 [[package]]
 name = "artiq-http"
-version = "0.3.1"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi", extra = ["standard"] },
@@ -147,6 +147,7 @@ dev = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "fern" },
     { name = "pytest" },
     { name = "ruff" },
 ]
@@ -177,6 +178,7 @@ provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "fern", specifier = ">=0.2" },
     { name = "pytest", specifier = ">=9.0.2,<10.0.0" },
     { name = "ruff", specifier = ">=0.15.7,<0.16.0" },
 ]
@@ -848,6 +850,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/20/b5/23b216d9d985a9566
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/a8/20d0723294217e47de6d9e2e40fd4a9d2f7c4b6ef974babd482a59743694/fastjsonschema-2.21.2-py3-none-any.whl", hash = "sha256:1c797122d0a86c5cace2e54bf4e819c36223b552017172f32c5c024a6b77e463", size = 24024, upload-time = "2025-08-14T18:49:34.776Z" },
 ]
+
+[[package]]
+name = "fern"
+version = "0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/51/46/11d9dbf6a9b9de8ff1d8820ac02c75b2da8c85ff277b093943523f3bc30d/fern-0.2.tar.gz", hash = "sha256:77fd12acfc51e00eb85ad4dad185e6ebd44ed8873974fb2a4238524edf02c9ed", size = 5778, upload-time = "2017-01-08T21:19:32.503Z" }
 
 [[package]]
 name = "filelock"

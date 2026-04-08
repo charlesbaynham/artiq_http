@@ -5,14 +5,12 @@
     "install": "cd frontend && npm install",
     "frontend": "cd frontend && npm start",
     "backend": "poetry run uvicorn artiq_http.main:fastapi_app --reload",
-    "openapi:export": "poetry run python -c \"import json; from artiq_http.api import app; print(json.dumps(app.openapi()))\" 2>/dev/null | grep -v '^Production mode' > fern/openapi/openapi.json",
-    "sdk:generate": "fern generate --group python-sdk",
-    "sdk:update": "npm run openapi:export && npm run sdk:generate",
-    "plugin:version:sync": "node -e \"const fs=require('fs'); const packageJson=JSON.parse(fs.readFileSync('package.json','utf8')); const pluginPath='.claude-plugin/plugin.json'; const pluginJson=JSON.parse(fs.readFileSync(pluginPath,'utf8')); pluginJson.version=packageJson.version; fs.writeFileSync(pluginPath, JSON.stringify(pluginJson, null, 2) + '\\\\n'); console.log('Synced plugin version to', packageJson.version);\"",
-    "plugin:sdk:sync": "npm run plugin:version:sync && ./scripts/update_claude_plugin_sdk_resources.sh",
-    "plugin:refresh": "npm run plugin:sdk:sync",
-    "static:update": "(rm -r artiq_http/static || true) && cd frontend && npm run build && mv dist ../artiq_http/static",
-    "build": "npm run static:update",
+    "build:openapi": "poetry run python -c \"import json; from artiq_http.api import app; print(json.dumps(app.openapi()))\" 2>/dev/null | grep -v '^Production mode' > fern/openapi/openapi.json",
+    "build:docs": "python -m fern generate --group python-sdk",
+    "build:sdk": "npm run build:openapi && npm run build:docs",
+    "build:plugin": "npm run plugin:version:sync && ./scripts/update_claude_plugin_sdk_resources.sh",
+    "build:html": "(rm -r artiq_http/static || true) && cd frontend && npm run build && mv dist ../artiq_http/static",
+    "build": "npm run build:html && npm run build:sdk && npm run build:plugin",
     "clean": "git clean -xdf --exclude venv --exclude node_modules --exclude .env"
   }
 }
