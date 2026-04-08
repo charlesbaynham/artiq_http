@@ -46,7 +46,7 @@ Add REST API endpoints, a Fern-generated Python SDK, and a Copilot skill to enab
 **Step 7 — Fern configuration**
 - Create `fern/fern.config.json` (org name, Fern version)
 - Create `fern/generators.yml` (python-sdk group, package name `artiq_http_client`, class `ArtiqClient`)
-- Export OpenAPI spec: `poetry run python -c "import json; from artiq_http.api import app; print(json.dumps(app.openapi()))" > fern/openapi/openapi.json`
+- Export OpenAPI spec: `uv run python -c "import json; from artiq_http.api import app; print(json.dumps(app.openapi()))" > fern/openapi/openapi.json`
 - Document re-generation workflow in `fern/README.md`
 
 **Step 8 — Generate and verify SDK**
@@ -87,12 +87,12 @@ Add REST API endpoints, a Fern-generated Python SDK, and a Copilot skill to enab
 
 ## Verification Checklist
 
-1. `poetry run pytest` — existing tests pass (no regressions)
-2. `poetry run pytest tests/test_agent_endpoints.py` — new mock tests pass
-3. `poetry run ruff check` — no lint errors
+1. `uv run pytest` — existing tests pass (no regressions)
+2. `uv run pytest tests/test_agent_endpoints.py` — new mock tests pass
+3. `uv run ruff check` — no lint errors
 4. Manual: `curl localhost:8000/api/schedule/1` → 404 JSON
 5. Manual: `curl localhost:8000/api/explist/search?q=idle` → filtered list
-6. `poetry run pytest --realserver` — integration tests pass against Docker ARTIQ
+6. `uv run pytest --realserver` — integration tests pass against Docker ARTIQ
 7. `fern check` — validates OpenAPI spec
 8. `fern generate --group python-sdk` — SDK generates without errors
 9. SDK smoke test passes against test server

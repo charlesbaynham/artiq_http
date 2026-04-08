@@ -134,7 +134,7 @@ groups:
 
 The OpenAPI spec is exported once at build time (or on demand) via:
 ```bash
-poetry run python -c "
+uv run python -c "
 import json
 from artiq_http.api import app
 print(json.dumps(app.openapi()))
@@ -180,7 +180,7 @@ All errors surface as typed `ApiError` exceptions with `.status_code` and `.body
 ### Re-generating after API changes
 
 Whenever a new endpoint or model is added:
-1. Re-export the OpenAPI spec (`poetry run python -c ... > fern/openapi/openapi.json`)
+1. Re-export the OpenAPI spec (`uv run python -c ... > fern/openapi/openapi.json`)
 2. Run `fern generate --group python-sdk`
 3. Commit both the updated spec and the regenerated `sdk/` directory
 
@@ -214,6 +214,6 @@ Agents in this repo will load this skill automatically when the task involves AR
 - [ ] `GET /api/explist/{file}/{class_name}/defaults` returns valid argument defaults
 - [ ] `POST /api/schedule/submit-and-wait` returns after RID completes (within timeout)
 - [ ] Fern config (`fern/`) is committed and `fern generate` produces a working `sdk/` package
-- [ ] `sdk/` is installable as a local Poetry dependency (`artiq-http-client`)
+- [ ] `sdk/` is installable as a local path dependency (`artiq-http-client`)
 - [ ] `.agent/skills/artiq-sdk/SKILL.md` is present and describes the worked example
 - [ ] All existing tests still pass

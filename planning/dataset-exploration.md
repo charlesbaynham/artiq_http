@@ -116,7 +116,7 @@ Use the `/frontend-testing` workflow:
 1. **Start the application:**
    ```bash
    # Terminal 1: Start backend
-   poetry run aqctl_artiq_http
+   uv run aqctl_artiq_http
 
    # Terminal 2: Start frontend dev server
    cd frontend && npm run dev
