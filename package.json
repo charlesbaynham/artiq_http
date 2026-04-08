@@ -2,15 +2,17 @@
   "name": "artiq-http",
   "version": "0.4.0",
   "scripts": {
-    "install": "cd frontend && npm install",
+    "install": "uv sync && cd frontend && npm install",
     "frontend": "cd frontend && npm start",
-    "backend": "poetry run uvicorn artiq_http.main:fastapi_app --reload",
-    "build:openapi": "poetry run python -c \"import json; from artiq_http.api import app; print(json.dumps(app.openapi()))\" 2>/dev/null | grep -v '^Production mode' > fern/openapi/openapi.json",
-    "build:docs": "python -m fern generate --group python-sdk",
-    "build:sdk": "npm run build:openapi && npm run build:docs",
-    "build:plugin": "npm run plugin:version:sync && ./scripts/update_claude_plugin_sdk_resources.sh",
+    "backend": "uv run uvicorn artiq_http.main:fastapi_app --reload",
+    "build:openapi": "uv run python -c \"import json; from artiq_http.api import app; print(json.dumps(app.openapi()))\" 2>/dev/null | grep -v '^Production mode' > fern/openapi/openapi.json",
+    "build:fern_sdks": "fern generate --group py-sdk && fern generate --group ts-sdk",
+    "build:plugin": "./scripts/update_claude_plugin_sdk_resources.sh",
     "build:html": "(rm -r artiq_http/static || true) && cd frontend && npm run build && mv dist ../artiq_http/static",
-    "build": "npm run build:html && npm run build:sdk && npm run build:plugin",
-    "clean": "git clean -xdf --exclude venv --exclude node_modules --exclude .env"
+    "build": "npm run build:openapi && npm run build:fern_sdks && npm run build:plugin && npm run build:html",
+    "clean": "git clean -xdf --exclude .env"
+  },
+  "dependencies": {
+    "fern-api": "^4.63.0"
   }
 }
