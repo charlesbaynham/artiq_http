@@ -1,0 +1,9 @@
+{
+  "name": "artiq-http-sdk",
+  "version": "0.4.3",
+  "description": "Claude Code plugin that provides ARTIQ HTTP SDK usage guidance and bundles the Python SDK artifacts.",
+  "author": {
+    "name": "Charles Baynham"
+  },
+  "skills": "./skills/"
+}

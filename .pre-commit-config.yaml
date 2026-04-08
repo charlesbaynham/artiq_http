@@ -1,3 +1,5 @@
+exclude: ^sdks/|skills/artiq-http-sdk/resources/artiq-http-sdk/
+
 repos:
   # Several generic fixes
   - repo: https://github.com/pre-commit/pre-commit-hooks

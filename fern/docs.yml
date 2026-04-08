@@ -1,0 +1,7 @@
+instances:
+  - url: artiq-http.docs.buildwithfern.com
+
+navigation:
+  - page: Overview
+    path: docs/pages/overview.mdx
+  - api: API Reference

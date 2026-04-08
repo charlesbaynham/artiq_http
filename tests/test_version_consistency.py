@@ -8,13 +8,16 @@ import artiq_http
 
 
 def test_runtime_and_package_versions_match():
-    """Ensure runtime, pyproject, and package.json versions stay in sync."""
+    """Ensure runtime, package metadata, frontend, and plugin versions stay in sync."""
     root = Path(__file__).resolve().parent.parent
     pyproject_path = root / "pyproject.toml"
     package_json_path = root / "package.json"
+    plugin_manifest_path = root / ".claude-plugin" / "plugin.json"
 
     pyproject_data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
     package_json_data = json.loads(package_json_path.read_text(encoding="utf-8"))
+    plugin_manifest_data = json.loads(plugin_manifest_path.read_text(encoding="utf-8"))
 
     assert artiq_http.__version__ == pyproject_data["project"]["version"]
     assert artiq_http.__version__ == package_json_data["version"]
+    assert artiq_http.__version__ == plugin_manifest_data["version"]

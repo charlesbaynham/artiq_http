@@ -100,13 +100,39 @@ A local ARTIQ master can be run using Docker for testing without a real physical
 Versioning
 ----------
 
-Versioning is intentionally simple and uses hard-coded strings in three files that must match:
+Versioning is intentionally simple and uses hard-coded strings in four files that must match:
 
 - ``artiq_http/__init__.py`` (``__version__``)
 - ``pyproject.toml`` (``[project].version``)
 - ``package.json`` (``version``)
+- ``.claude-plugin/plugin.json`` (``version``)
 
-When bumping versions, update all three values together.
+The plugin manifest version should always match the overall package version.
+
+Developer workflow entrypoint is npm scripts. To sync plugin version and refresh bundled SDK artifacts:
+
+.. code-block:: bash
+
+    npm run plugin:sdk:sync
+
+This runs ``npm run plugin:version:sync`` first, then rebuilds/copies SDK artifacts.
+
+Claude Code Plugin
+------------------
+
+This repository now includes a Claude Code plugin rooted at this project directory.
+
+- Plugin manifest: ``.claude-plugin/plugin.json``
+- Plugin skill: ``skills/artiq-sdk/SKILL.md``
+- Bundled SDK artifacts: ``resources/artiq-sdk/``
+
+To rebuild and refresh the bundled SDK artifacts:
+
+.. code-block:: bash
+
+    npm run plugin:sdk:sync
+
+This workflow builds the SDK from ``sdk/`` and copies the latest wheel and sdist into ``resources/artiq-sdk/``.
 
 Authors
 -------
