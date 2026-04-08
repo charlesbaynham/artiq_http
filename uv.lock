@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -115,7 +115,7 @@ wheels = [
 
 [[package]]
 name = "artiq-http"
-version = "0.2.0"
+version = "0.3.1"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi", extra = ["standard"] },
@@ -145,6 +145,12 @@ dev = [
     { name = "sphinxcontrib-svg2pdfconverter" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "check-manifest", marker = "extra == 'dev'" },
@@ -168,6 +174,12 @@ requires-dist = [
     { name = "uvicorn" },
 ]
 provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=9.0.2,<10.0.0" },
+    { name = "ruff", specifier = ">=0.15.7,<0.16.0" },
+]
 
 [[package]]
 name = "asttokens"

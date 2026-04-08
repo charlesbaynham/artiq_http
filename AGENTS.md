@@ -75,9 +75,9 @@ This project includes agent configuration in the `.agent/` directory:
 
 ## Versioning
 
-This project uses manual semantic versioning. The version is stored in both:
-- `VERSION.json` - Primary source of truth
-- `pyproject.toml` - Poetry configuration (must match VERSION.json)
+This project uses manual semantic versioning with hard-coded version strings. The version is stored in both:
+- `artiq_http/__init__.py` - Runtime package version (`__version__`)
+- `pyproject.toml` - Packaging metadata version
 
 **When making changes, update the version according to Semantic Versioning (semver) principles:**
 - **MAJOR** (X.0.0): Breaking changes to the API
@@ -86,7 +86,7 @@ This project uses manual semantic versioning. The version is stored in both:
 
 **Update both files whenever you make changes:**
 1. Determine the appropriate version increment based on the changes
-2. Update `VERSION.json`
+2. Update `artiq_http/__init__.py` (`__version__`)
 3. Update the `version` field in `pyproject.toml` to match
 
 ## Agent documentation

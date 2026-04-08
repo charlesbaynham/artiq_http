@@ -37,7 +37,7 @@ Add REST API endpoints, a Fern-generated Python SDK, and a Copilot skill to enab
 - Add `@realserver` integration tests in `tests/test_artiq_stack.py` for the new endpoints
 
 **Step 6 — Version bump**
-- `0.2.0` → `0.3.0` (MINOR: new features, backward-compatible) in both `VERSION.json` and `pyproject.toml`
+- `0.2.0` → `0.3.0` (MINOR: new features, backward-compatible) in both `artiq_http/__init__.py` and `pyproject.toml`
 
 ---
 
@@ -76,7 +76,7 @@ Add REST API endpoints, a Fern-generated Python SDK, and a Copilot skill to enab
 | `artiq_http/artiq_api/notifiers.py` | Possible arginfo default-extraction helper |
 | `tests/test_agent_endpoints.py` | New mock-based tests (new file) |
 | `tests/test_artiq_stack.py` | Add `@realserver` integration tests |
-| `VERSION.json` | Bump to 0.3.0 |
+| `artiq_http/__init__.py` | Bump to 0.3.0 |
 | `pyproject.toml` | Bump to 0.3.0; later add SDK dependency |
 | `fern/fern.config.json` | Fern org config (new) |
 | `fern/generators.yml` | SDK generator config (new) |

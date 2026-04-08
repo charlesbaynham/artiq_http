@@ -97,6 +97,17 @@ A local ARTIQ master can be run using Docker for testing without a real physical
     # Build with auto-reload
     poetry run sphinx-autobuild docs html_out
 
+Versioning
+----------
+
+Versioning is intentionally simple and uses hard-coded strings in three files that must match:
+
+- ``artiq_http/__init__.py`` (``__version__``)
+- ``pyproject.toml`` (``[project].version``)
+- ``package.json`` (``version``)
+
+When bumping versions, update all three values together.
+
 Authors
 -------
 

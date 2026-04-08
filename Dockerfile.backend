@@ -8,7 +8,6 @@ RUN pip install --no-cache-dir uv
 
 # Copy dependency files
 COPY pyproject.toml uv.lock ./
-COPY VERSION.json ./
 COPY README.rst ./
 
 # Install dependencies (without dev extras) into project venv
@@ -28,7 +27,6 @@ WORKDIR /app
 # Copy virtualenv and application from builder
 COPY --from=builder /app/.venv .venv
 COPY --from=builder /app/artiq_http artiq_http
-COPY --from=builder /app/VERSION.json VERSION.json
 
 # Set PATH to use virtualenv
 ENV PATH="/app/.venv/bin:$PATH"

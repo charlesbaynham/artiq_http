@@ -95,7 +95,7 @@ pytest:
       echo "ARTIQ master failed to start"
       exit 1
   script:
-    - uv run coverage run --omit "tests/*,*/_version.py" -m pytest --realserver --junitxml=report.xml
+    - uv run coverage run --omit "tests/*" -m pytest --realserver --junitxml=report.xml
     - uv run coverage report
   coverage: '/^TOTAL.+?(\d+\%)$/'
   needs: ["build-test-master"]
