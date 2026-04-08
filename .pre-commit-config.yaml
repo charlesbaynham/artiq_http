@@ -1,4 +1,4 @@
-exclude: ^sdks/
+exclude: ^sdks/|skills/artiq-http-sdk/resources/artiq-http-sdk/
 
 repos:
   # Several generic fixes
