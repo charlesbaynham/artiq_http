@@ -299,9 +299,7 @@ async def search_explist(q: str = "") -> api.models.ExperimentList:
     filtered = [
         exp
         for exp in explist.experiments
-        if q_lower in exp.name.lower()
-        or q_lower in exp.file.lower()
-        or q_lower in exp.class_name.lower()
+        if q_lower in exp.name.lower() or q_lower in exp.file.lower() or q_lower in exp.class_name.lower()
     ]
     return api.models.ExperimentList(
         current_rev=explist.current_rev,

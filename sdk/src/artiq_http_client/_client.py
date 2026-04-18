@@ -108,9 +108,7 @@ class ExplistClient:
         """Return default arguments for an experiment. Raises 404 if not found."""
         encoded_file = quote(file, safe="")
         encoded_class = quote(class_name, safe="")
-        response = self._http.get(
-            f"/api/explist/{encoded_file}/{encoded_class}/defaults"
-        )
+        response = self._http.get(f"/api/explist/{encoded_file}/{encoded_class}/defaults")
         response.raise_for_status()
         return ExperimentDefaults.from_dict(response.json())
 
