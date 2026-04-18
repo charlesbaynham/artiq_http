@@ -4,6 +4,8 @@
   "description": "MCP server and skill for controlling an ARTIQ quantum physics experiment system via its HTTP API. Provides tools for experiment discovery, submission, scheduling, and dataset access.",
   "userConfig": {
     "artiq_http_url": {
+      "title": "ARTIQ HTTP Server URL",
+      "type": "string",
       "description": "URL of your running ARTIQ HTTP server (e.g. http://mylab.example.com:8000)",
       "sensitive": false
     }
@@ -11,7 +13,10 @@
   "mcpServers": {
     "artiq": {
       "command": "uv",
-      "args": ["run", "${CLAUDE_PLUGIN_ROOT}/mcp_server/server.py"],
+      "args": [
+        "run",
+        "${CLAUDE_PLUGIN_ROOT}/mcp_server/server.py"
+      ],
       "env": {
         "ARTIQ_HTTP_URL": "${user_config.artiq_http_url}"
       }
