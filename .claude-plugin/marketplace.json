@@ -1,0 +1,11 @@
+{
+  "name": "artiq-http",
+  "description": "ARTIQ HTTP controller and Python client SDK for quantum physics experiment control",
+  "version": "0.3.0",
+  "plugins": [
+    {
+      "name": "artiq-http",
+      "path": "."
+    }
+  ]
+}

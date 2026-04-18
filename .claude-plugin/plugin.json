@@ -1,0 +1,14 @@
+{
+  "name": "artiq-http",
+  "version": "0.3.0",
+  "description": "Python client SDK for the ARTIQ HTTP server. Provides typed HTTP client for experiment discovery, scheduling, dataset access, and health checks.",
+  "skills": [
+    "skills/artiq-http"
+  ],
+  "install": {
+    "python": {
+      "package_path": "sdk",
+      "dependencies": ["httpx>=0.24.0"]
+    }
+  }
+}
