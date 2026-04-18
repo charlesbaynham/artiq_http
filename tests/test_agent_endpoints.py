@@ -44,6 +44,27 @@ ARGINFO = {
     "flag": ["BooleanValue", {"default": True}, None, None],
 }
 
+# NDScan experiment arginfo - parameters are in ndscan_params, not in regular arginfo
+NDSCAN_ARGINFO = {
+    "ndscan_params": [
+        {
+            "ty": "PYONValue",
+            "default": '{"instances":{"":["test.frequency","test.amplitude"]},"schemata":{"test.frequency":{"fqn":"test.frequency","description":"Frequency","type":"float","default":"100.0","spec":{"is_scannable":true,"unit":"MHz"}},"test.amplitude":{"fqn":"test.amplitude","description":"Amplitude","type":"float","default":"0.5","spec":{"is_scannable":true,"unit":"V"}}},"always_shown":[],"overrides":{},"scan":{"axes":[],"num_repeats":1}}',
+        },
+        None,
+        None,
+    ]
+}
+
+NDSCAN_EXPERIMENT_ENTRY = {
+    "name": "NDScan Experiment",
+    "file": "ndscan_exp.py",
+    "class_name": "NDScanExp",
+    "arginfo": NDSCAN_ARGINFO,
+    "argument_ui": None,
+    "scheduler_defaults": {},
+}
+
 EXPERIMENT_ENTRY = {
     "name": "Simple Experiment",
     "file": "simple_exp.py",
@@ -176,6 +197,33 @@ def test_explist_defaults_not_found(mock_get_explist):
     mock_get_explist.return_value = explist
     response = client.get("/api/explist/missing.py/Missing/defaults")
     assert response.status_code == 404
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+def test_explist_defaults_ndscan_experiment(mock_get_explist):
+    """GET /api/explist/ndscan_exp.py/NDScanExp/defaults returns ndscan parameter defaults from schemata.
+
+    This test verifies that ndscan experiments (which store params in ndscan_params JSON)
+    correctly extract default values from the schemata section.
+    """
+    from artiq_http.artiq_api.models import ExperimentEntry, ExperimentList
+
+    explist = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    mock_get_explist.return_value = explist
+    response = client.get("/api/explist/ndscan_exp.py/NDScanExp/defaults")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["file"] == "ndscan_exp.py"
+    assert data["class_name"] == "NDScanExp"
+    # NDScan parameters should be extracted from schemata in ndscan_params
+    assert "frequency" in data["arguments"], "frequency param should be extracted from ndscan schemata"
+    assert "amplitude" in data["arguments"], "amplitude param should be extracted from ndscan schemata"
+    assert data["arguments"]["frequency"] == 100.0
+    assert data["arguments"]["amplitude"] == 0.5
 
 
 # ---------------------------------------------------------------------------

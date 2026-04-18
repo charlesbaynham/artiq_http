@@ -95,7 +95,7 @@ pytest:
       echo "ARTIQ master failed to start"
       exit 1
   script:
-    - uv run coverage run --omit "tests/*,*/_version.py" -m pytest --realserver --junitxml=report.xml
+    - uv run coverage run --omit "tests/*" -m pytest --realserver --junitxml=report.xml
     - uv run coverage report
   coverage: '/^TOTAL.+?(\d+\%)$/'
   needs: ["build-test-master"]
@@ -186,7 +186,7 @@ pages:
         --cache-from $CI_REGISTRY_IMAGE/${IMAGE_NAME}:latest \
         --build-arg BUILDKIT_INLINE_CACHE=1 \
         -t $CI_REGISTRY_IMAGE/${IMAGE_NAME}:$CI_COMMIT_REF_SLUG \
-        -f Dockerfile.${IMAGE_NAME} \
+        -f docker/Dockerfile.${IMAGE_NAME} \
         .
     - docker push $CI_REGISTRY_IMAGE/${IMAGE_NAME}:$CI_COMMIT_REF_SLUG
     - |

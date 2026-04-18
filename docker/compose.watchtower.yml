@@ -1,5 +1,5 @@
 # Docker Compose override file for Watchtower auto-updates
-# Usage: docker compose -f docker-compose.yml -f compose.watchtower.yml up -d
+# Usage: docker compose -f docker/compose.yml -f docker/compose.watchtower.yml up -d
 #
 # This configuration pulls images from GitLab Container Registry and uses
 # Watchtower to automatically update containers when new images are pushed.

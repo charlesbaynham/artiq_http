@@ -22,7 +22,7 @@ To verify changes against a local ARTIQ master:
 3. **Verify connectivity and discovery**:
    // turbo
    ```bash
-   poetry run sipyco_rpctool 127.0.0.1 3251 list-targets
+   uv run sipyco_rpctool 127.0.0.1 3251 list-targets
    ```
 
 4. **Check master logs for experiment discovery errors**:

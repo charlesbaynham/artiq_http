@@ -10,17 +10,17 @@ A work in progress...
 Installation
 ------------
 
-Install Poetry if not already installed:
+Install uv if not already installed:
 
 .. code-block:: bash
 
-    curl -sSL https://install.python-poetry.org | python3 -
+    curl -LsSf https://astral.sh/uv/install.sh | sh
 
 Install dependencies:
 
 .. code-block:: bash
 
-    poetry install
+    uv sync
     cd frontend && npm install
 
 Usage
@@ -34,7 +34,7 @@ Usage
     cd frontend && npm run start
 
     # Run the backend in another shell
-    poetry run aqctl_artiq_http
+    uv run aqctl_artiq_http
 
 **Local Test Environment:**
 
@@ -54,21 +54,21 @@ A local ARTIQ master can be run using Docker for testing without a real physical
 .. code-block:: bash
 
     # Run Python tests
-    poetry run pytest
+    uv run pytest
 
     # Run all tests including those requiring a real ARTIQ master (starts stack automatically)
-    poetry run pytest --realserver
+    uv run pytest --realserver
 
     # Run with coverage
-    poetry run coverage run -m pytest --realserver
-    poetry run coverage report
+    uv run coverage run -m pytest --realserver
+    uv run coverage report
 
     # Linting and formatting
-    poetry run ruff check .
-    poetry run ruff format .
+    uv run ruff check .
+    uv run ruff format .
 
     # Pre-commit hooks
-    poetry run pre-commit run --all
+    uv run pre-commit run --all
 
 **Production:**
 
@@ -78,24 +78,35 @@ A local ARTIQ master can be run using Docker for testing without a real physical
     cd frontend && npm run build
 
     # Install production dependencies only
-    poetry install --without dev
+    uv sync --no-dev
 
     # Run the server (default port 8000)
-    poetry run aqctl_artiq_http
+    uv run aqctl_artiq_http
 
     # Run on a custom port
-    poetry run aqctl_artiq_http --port 8080
+    uv run aqctl_artiq_http --port 8080
 
 **Documentation:**
 
 .. code-block:: bash
 
     # Build HTML docs
-    poetry run sphinx-apidoc -o docs/autogen artiq_http
-    poetry run sphinx-build docs html_out -b html
+    uv run sphinx-apidoc -o docs/autogen artiq_http
+    uv run sphinx-build docs html_out -b html
 
     # Build with auto-reload
-    poetry run sphinx-autobuild docs html_out
+    uv run sphinx-autobuild docs html_out
+
+Versioning
+----------
+
+Versioning is intentionally simple and uses hard-coded strings in three files that must match:
+
+- ``artiq_http/__init__.py`` (``__version__``)
+- ``pyproject.toml`` (``[project].version``)
+- ``package.json`` (``version``)
+
+When bumping versions, update all three values together.
 
 Authors
 -------
