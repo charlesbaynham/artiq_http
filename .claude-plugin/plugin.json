@@ -1,13 +1,20 @@
 {
   "name": "artiq-http",
-  "version": "0.4.0",
-  "description": "Python client SDK for the ARTIQ HTTP server. Provides typed HTTP client for experiment discovery, scheduling, dataset access, and health checks.",
-  "install": {
-    "python": {
-      "package_path": "sdk",
-      "dependencies": [
-        "httpx>=0.24.0"
-      ]
+  "version": "0.5.0",
+  "description": "MCP server and skill for controlling an ARTIQ quantum physics experiment system via its HTTP API. Provides tools for experiment discovery, submission, scheduling, and dataset access.",
+  "userConfig": {
+    "artiq_http_url": {
+      "description": "URL of your running ARTIQ HTTP server (e.g. http://mylab.example.com:8000)",
+      "sensitive": false
+    }
+  },
+  "mcpServers": {
+    "artiq": {
+      "command": "uv",
+      "args": ["run", "${CLAUDE_PLUGIN_ROOT}/mcp_server/server.py"],
+      "env": {
+        "ARTIQ_HTTP_URL": "${user_config.artiq_http_url}"
+      }
     }
   }
 }
