@@ -12,14 +12,8 @@
   },
   "mcpServers": {
     "artiq": {
-      "command": "uv",
-      "args": [
-        "run",
-        "${CLAUDE_PLUGIN_ROOT}/mcp_server/server.py"
-      ],
-      "env": {
-        "ARTIQ_HTTP_URL": "${user_config.artiq_http_url}"
-      }
+      "type": "http",
+      "url": "http://localhost:8001/mcp/"
     }
   }
 }
