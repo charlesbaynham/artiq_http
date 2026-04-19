@@ -19,8 +19,8 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.mcp
     command: ["python", "-m", "mcp_server.server"]
-    ports:
-      - "8001:8001"
+    expose:
+      - "8001"
     environment:
       - ARTIQ_HTTP_URL=http://backend:8000
       - MCP_PORT=8001
@@ -34,9 +34,11 @@ services:
       dockerfile: docker/Dockerfile.frontend
     environment:
       - API_URL=http://backend:8000
+      - MCP_URL=http://mcp:8001
     ports:
       - "8000:80"
       - "4443:443"
     depends_on:
       - backend
+      - mcp
     restart: unless-stopped
