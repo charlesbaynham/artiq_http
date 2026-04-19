@@ -10,6 +10,10 @@ stages:
   - Build Documentation
   - Docker
 
+# Include the GitLab CI Nix template for caching support
+include:
+  - "https://gitlab.com/Cynerd/gitlab-ci-nix/-/raw/master/template.yml"
+
 # UV setup shared across jobs
 .uv-setup:
   variables:
@@ -45,10 +49,10 @@ pre-commit:
 
 ### Tests ###
 
-# Build the test master image using Nix
+# Build the test master image using Nix with caching
 build-test-master:
   stage: Prepare
-  image: nixos/nix:latest
+  extends: .nix
   services:
     - docker:dind
   variables:
@@ -59,8 +63,13 @@ build-test-master:
     DOCKER_TLS_CERTDIR: ""
     DOCKER_HOST: tcp://docker:2375
   before_script:
+    - !reference [.nix, before_script]
+    - nix-channel --add https://nixos.org/channels/nixos-24.11 nixpkgs
+    - nix-channel --update
     - nix-env -iA nixpkgs.docker
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  cache:
+    - !reference [.nix, cache]
   script:
     - cd test-artiq
     - nix build .#docker --accept-flake-config
