@@ -8,6 +8,7 @@ from urllib.parse import quote
 import httpx
 import uvicorn
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Mount
@@ -17,7 +18,12 @@ log = logging.getLogger(__name__)
 
 ARTIQ_HTTP_URL = os.getenv("ARTIQ_HTTP_URL", "http://localhost:8000").rstrip("/")
 
-mcp = FastMCP("artiq-http")
+# Disable DNS rebinding protection since the MCP server is accessed remotely
+# (e.g. Claude Code connecting to the Docker host IP), not just from localhost.
+mcp = FastMCP(
+    "artiq-http",
+    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
+)
 
 
 def _client(timeout: float = 30.0) -> httpx.AsyncClient:
