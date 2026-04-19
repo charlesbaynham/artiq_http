@@ -12,16 +12,16 @@ Use the Nix derivation hash as the Docker image tag. Nix computes this from all 
 
 ### `build-test-master` job
 
-1. `nix build .#docker --accept-flake-config`  
+1. `nix build .#docker --accept-flake-config`
    Builds the image. If the derivation has been built before, it loads from cache instantly.
 
-2. Extract the hash from `outPath`  
+2. Extract the hash from `outPath`
    `outPath` has the form `/nix/store/<hash>-docker-image`. Extract `<hash>`.
 
-3. Check registry  
+3. Check registry
    `docker manifest inspect $CI_REGISTRY_IMAGE/test-master:$hash`
 
-4. Push only if missing  
+4. Push only if missing
    If the manifest check fails, `docker load < result`, tag, and push.
 
 ### `pytest` job
