@@ -73,12 +73,24 @@ build-test-master:
   script:
     - cd test-artiq
     - nix build .#docker --accept-flake-config
-    - docker load < result
-    - docker tag artiq-test-master:latest $CI_REGISTRY_IMAGE/test-master:$CI_COMMIT_REF_SLUG
-    - docker push $CI_REGISTRY_IMAGE/test-master:$CI_COMMIT_REF_SLUG
+    - |
+      HASH=$(nix eval --json .#docker.outPath | tr '/' '\n' | tail -1 | cut -d'-' -f1)
+      echo "ARTIQ_TEST_MASTER_HASH=$HASH" >> build.env
+      echo "Image hash: $HASH"
+    - |
+      if docker manifest inspect $CI_REGISTRY_IMAGE/test-master:$ARTIQ_TEST_MASTER_HASH > /dev/null 2>&1; then
+        echo "Image already in registry, skipping push"
+      else
+        docker load < result
+        docker tag artiq-test-master:latest $CI_REGISTRY_IMAGE/test-master:$ARTIQ_TEST_MASTER_HASH
+        docker push $CI_REGISTRY_IMAGE/test-master:$ARTIQ_TEST_MASTER_HASH
+      fi
   tags:
     - docker
   needs: []
+  artifacts:
+    reports:
+      dotenv: test-artiq/build.env
 
 pytest:
   extends: .uv-setup
