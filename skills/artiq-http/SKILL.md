@@ -9,9 +9,11 @@ MCP tools for controlling an ARTIQ quantum physics experiment system via its HTT
 
 ## Overview
 
-When this connector is enabled, 10 MCP tools are available directly — no code or SDK required. Use them to discover experiments, submit runs, wait for results, read datasets, and check server health.
+When this connector is enabled, 10 MCP tools, 3 prompts, and 3 resources are available directly — no code or SDK required. Use them to discover experiments, submit runs, wait for results, read datasets, and check server health.
 
-The MCP server runs as a remote HTTP service (streamable HTTP transport) and connects to an `artiq_http` backend instance. In the Docker Compose stack it runs as the `mcp` service and connects to the backend over the internal network at `http://backend:8000`. For local development you can also run it directly with `python -m mcp_server.server` and point it at `http://localhost:8000`.
+The MCP server runs remotely (e.g. in a Docker Compose stack alongside the ARTIQ master and `artiq_http` backend) and exposes an HTTP interface. During plugin setup you provide the URL of your MCP server instance (e.g. `http://mylab.example.com:8001`). The MCP server connects to the `artiq_http` backend over the internal Docker network at `http://backend:8000`.
+
+For local development you can also run the MCP server directly with `python -m mcp_server.server` and point it at `http://localhost:8000`.
 
 ## When to Use
 
@@ -22,6 +24,48 @@ Use these tools whenever you need to:
 - Wait for an experiment to finish and inspect its outcome
 - Read dataset values produced by an experiment
 - Check whether the ARTIQ HTTP server is reachable
+
+## Prompts
+
+Prompts are guided workflows that help the model use the ARTIQ tools safely and effectively.
+
+### `run_experiment_workflow(experiment_name?)`
+
+Guides the model through safely submitting an experiment: check health → find experiment → get defaults → confirm arguments → submit → monitor.
+
+**When to use**: Whenever the user wants to run an experiment.
+
+### `analyze_datasets(experiment_rid?)`
+
+Guides the model through listing datasets, fetching values, and interpreting ARTIQ/ndscan data patterns.
+
+**When to use**: When the user wants to see results or analyze experimental data.
+
+### `manage_schedule()`
+
+Guides the model through checking schedule state, interpreting priorities and pipelines, and safe cancellation practices.
+
+**When to use**: When the user asks about queued/running experiments or wants to cancel something.
+
+---
+
+## Resources
+
+Resources are read-only snapshots of system state that the model can access without making a tool call.
+
+### `artiq://health`
+
+Current ARTIQ system health and connection status. Returns a formatted string with master connectivity and subscriber health.
+
+### `artiq://experiments`
+
+Catalog of all experiments in the repository, grouped by directory. Shows name, class name, and file path for each experiment.
+
+### `artiq://schedule`
+
+Current experiment queue with running and queued items separated, sorted by priority. Shows RID, class name, file, pipeline, and status.
+
+---
 
 ## Tools Reference
 
@@ -184,7 +228,14 @@ Environment variables:
 
 ### Connecting
 
-In Claude Code, use `.mcp.json`:
+Install the plugin and provide your ARTIQ MCP server URL when prompted (e.g. `http://mylab.example.com:8001`). Claude Code connects to the remote MCP server over HTTP.
+
+For local development, run the server directly:
+```bash
+python -m mcp_server.server
+```
+
+Then connect via `.mcp.json`:
 ```json
 {
   "artiq": {
@@ -192,8 +243,6 @@ In Claude Code, use `.mcp.json`:
   }
 }
 ```
-
-In Claude desktop: Settings → Connectors → Add custom connector → `http://your-server:8001`
 
 ## Key Response Shapes
 
