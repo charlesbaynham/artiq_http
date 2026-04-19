@@ -6,7 +6,7 @@
     "mcp_server_url": {
       "title": "ARTIQ MCP Server URL",
       "type": "string",
-      "description": "URL of your ARTIQ MCP server (e.g. http://mylab.example.com:8001)",
+      "description": "URL of your ARTIQ MCP server (e.g. http://mylab.example.com/mcp)",
       "sensitive": false
     }
   },
