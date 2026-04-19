@@ -15,6 +15,8 @@ dependencies = [
     "sipyco @ git+https://github.com/m-labs/sipyco.git@96fcefbea490a9b42c862393860d2e586b05d744",
     "pybase64",
     "numpy",
+    "mcp[cli]>=1.2.0",
+    "httpx>=0.24.0",
 ]
 
 [project.optional-dependencies]

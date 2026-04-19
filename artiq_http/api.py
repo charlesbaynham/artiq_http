@@ -373,7 +373,7 @@ async def submit_experiment(
     priority: int = 0,
     flush: bool = False,
     due_date: float = None,
-) -> None:
+) -> int:
     try:
         return await api.control_schedule.submit_experiment(
             expid,

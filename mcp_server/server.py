@@ -1,11 +1,4 @@
-# /// script
-# requires-python = ">=3.11"
-# dependencies = [
-#   "mcp[cli]>=1.2.0",
-#   "httpx>=0.24.0",
-# ]
-# ///
-
+import contextlib
 import logging
 import os
 import sys
@@ -13,9 +6,13 @@ from typing import Any
 from urllib.parse import quote
 
 import httpx
+import uvicorn
 from mcp.server.fastmcp import FastMCP
+from starlette.applications import Starlette
+from starlette.middleware.cors import CORSMiddleware
+from starlette.routing import Mount
 
-# All logging must go to stderr — stdout is reserved for MCP stdio transport.
+# All logging must go to stderr — stdout is reserved for HTTP responses.
 logging.basicConfig(level=logging.WARNING, stream=sys.stderr)
 log = logging.getLogger(__name__)
 
@@ -235,8 +232,30 @@ async def get_dataset_values(names: list[str]) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# Entry point
+# HTTP server entry point
 # ---------------------------------------------------------------------------
 
+
+@contextlib.asynccontextmanager
+async def lifespan(app: Starlette):
+    async with mcp.session_manager.run():
+        yield
+
+
+starlette_app = Starlette(
+    routes=[
+        Mount("/", app=mcp.streamable_http_app()),
+    ],
+    lifespan=lifespan,
+)
+
+starlette_app = CORSMiddleware(
+    starlette_app,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST", "DELETE"],
+    expose_headers=["Mcp-Session-Id"],
+)
+
 if __name__ == "__main__":
-    mcp.run(transport="stdio")
+    port = int(os.getenv("MCP_PORT", "8001"))
+    uvicorn.run(starlette_app, host="0.0.0.0", port=port)
