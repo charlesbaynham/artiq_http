@@ -64,6 +64,8 @@ build-test-master:
     DOCKER_HOST: tcp://docker:2375
   before_script:
     - !reference [.nix, before_script]
+    - nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
+    - nix-channel --update
     - nix-env -iA nixpkgs.docker
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   cache:
