@@ -74,6 +74,8 @@ uv run coverage report
 
 ## Agent Configuration
 
+> **TODO:** `userConfig` in the `.claude-plugin/plugin.json` is temporarily hard-coded to `http://10.137.1.252:8000/mcp` because `userConfig` support is broken pending https://github.com/anthropics/claude-code/issues/39827. Future agent runs should check whether that issue is resolved before reintroducing `userConfig`.
+
 This project includes agent configuration in the `.agent/` directory:
 - `.agent/settings.local.json` - Permissions and auto-approval settings
 - `.agent/workflows/` - Reusable workflow definitions
