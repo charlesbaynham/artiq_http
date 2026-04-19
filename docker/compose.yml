@@ -17,7 +17,7 @@ services:
   mcp:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.backend
+      dockerfile: docker/Dockerfile.mcp
     command: ["python", "-m", "mcp_server.server"]
     expose:
       - "8001"
