@@ -11,7 +11,7 @@ MCP tools for controlling an ARTIQ quantum physics experiment system via its HTT
 
 When this connector is enabled, 10 MCP tools, 3 prompts, and 3 resources are available directly — no code or SDK required. Use them to discover experiments, submit runs, wait for results, read datasets, and check server health.
 
-The MCP server runs remotely (e.g. in a Docker Compose stack alongside the ARTIQ master and `artiq_http` backend) and exposes an HTTP interface. During plugin setup you provide the URL of your MCP server instance (e.g. `http://mylab.example.com:8001`). The MCP server connects to the `artiq_http` backend over the internal Docker network at `http://backend:8000`.
+The MCP server runs remotely (e.g. in a Docker Compose stack alongside the ARTIQ master and `artiq_http` backend) and exposes an HTTP interface. During plugin setup you provide the URL of your MCP server instance (e.g. `http://mylab.example.com/mcp`). The MCP server connects to the `artiq_http` backend over the internal Docker network at `http://backend:8000`.
 
 For local development you can also run the MCP server directly with `python -m mcp_server.server` and point it at `http://localhost:8000`.
 
@@ -228,7 +228,7 @@ Environment variables:
 
 ### Connecting
 
-Install the plugin and provide your ARTIQ MCP server URL when prompted (e.g. `http://mylab.example.com:8001`). Claude Code connects to the remote MCP server over HTTP.
+Install the plugin and provide your ARTIQ MCP server URL when prompted (e.g. `http://mylab.example.com/mcp`). Claude Code connects to the remote MCP server over HTTP.
 
 For local development, run the server directly:
 ```bash
@@ -239,7 +239,7 @@ Then connect via `.mcp.json`:
 ```json
 {
   "artiq": {
-    "url": "http://localhost:8001"
+    "url": "http://localhost/mcp"
   }
 }
 ```
