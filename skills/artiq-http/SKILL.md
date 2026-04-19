@@ -3,205 +3,252 @@ name: artiq-http
 description: Use when interacting with an ARTIQ quantum physics control system via its HTTP API. Use when submitting experiments, checking schedules, reading datasets, or querying the experiment list from an ARTIQ master.
 ---
 
-# ARTIQ HTTP Client SDK
+# ARTIQ HTTP MCP Tools
 
-Python client SDK for the ARTIQ HTTP server.
+MCP tools for controlling an ARTIQ quantum physics experiment system via its HTTP API.
 
 ## Overview
 
-This skill provides the `artiq_http_client` SDK — a typed Python client for ARTIQ's REST API. It wraps HTTP calls, handles deserialization, and exposes a clean API for experiment management, scheduling, and dataset access.
+When this connector is enabled, 10 MCP tools, 3 prompts, and 3 resources are available directly — no code or SDK required. Use them to discover experiments, submit runs, wait for results, read datasets, and check server health.
+
+The MCP server runs remotely (e.g. in a Docker Compose stack alongside the ARTIQ master and `artiq_http` backend) and exposes an HTTP interface. During plugin setup you provide the URL of your MCP server instance (e.g. `http://mylab.example.com:8001`). The MCP server connects to the `artiq_http` backend over the internal Docker network at `http://backend:8000`.
+
+For local development you can also run the MCP server directly with `python -m mcp_server.server` and point it at `http://localhost:8000`.
 
 ## When to Use
 
-Use this SDK whenever an agent needs to:
+Use these tools whenever you need to:
 
-- Discover available experiments on an ARTIQ master
-- Submit experiments for execution
+- Discover what experiments are available on an ARTIQ master
+- Submit an experiment for execution
 - Wait for an experiment to finish and inspect its outcome
 - Read dataset values produced by an experiment
 - Check whether the ARTIQ HTTP server is reachable
 
-Use this SDK instead of raw HTTP calls. It handles URL encoding, deserialises responses into typed dataclasses, and propagates errors via `httpx`.
+## Prompts
 
-## Installation
+Prompts are guided workflows that help the model use the ARTIQ tools safely and effectively.
 
-From the project root:
+### `run_experiment_workflow(experiment_name?)`
 
-```bash
-pip install -e sdk/
-```
+Guides the model through safely submitting an experiment: check health → find experiment → get defaults → confirm arguments → submit → monitor.
 
-## Import and Instantiation
+**When to use**: Whenever the user wants to run an experiment.
 
-```python
-from artiq_http_client import ArtiqClient
-from artiq_http_client._models import ExpID
+### `analyze_datasets(experiment_rid?)`
 
-# Use as a context manager so the underlying HTTP connection is closed cleanly.
-with ArtiqClient("http://localhost:8000") as client:
-    ...
+Guides the model through listing datasets, fetching values, and interpreting ARTIQ/ndscan data patterns.
 
-# Or manage the lifecycle manually:
-client = ArtiqClient("http://localhost:8000")
-# ... use client ...
-client.close()
-```
+**When to use**: When the user wants to see results or analyze experimental data.
 
-`ArtiqClient(base_url, timeout)` — `base_url` defaults to `"http://localhost:8000"`, `timeout` (seconds) defaults to `30.0`.
+### `manage_schedule()`
 
-## Client Resource Layout
+Guides the model through checking schedule state, interpreting priorities and pipelines, and safe cancellation practices.
 
-| Attribute | Type | Purpose |
+**When to use**: When the user asks about queued/running experiments or wants to cancel something.
+
+---
+
+## Resources
+
+Resources are read-only snapshots of system state that the model can access without making a tool call.
+
+### `artiq://health`
+
+Current ARTIQ system health and connection status. Returns a formatted string with master connectivity and subscriber health.
+
+### `artiq://experiments`
+
+Catalog of all experiments in the repository, grouped by directory. Shows name, class name, and file path for each experiment.
+
+### `artiq://schedule`
+
+Current experiment queue with running and queued items separated, sorted by priority. Shows RID, class name, file, pipeline, and status.
+
+---
+
+## Tools Reference
+
+### `check_health()`
+
+Check whether the ARTIQ HTTP server is reachable and connected to the ARTIQ master.
+
+Returns a dict with `status` (str), `artiq_connected` (bool), and `details`.
+
+---
+
+### `list_experiments()`
+
+List all experiments in the ARTIQ repository.
+
+Returns a dict with:
+- `experiments`: list of experiment entries (see below)
+- `scanning`: `true` while the repo scan is still in progress
+- `current_rev`: git revision string or null
+
+Each experiment entry has: `name`, `file`, `class_name`, `arginfo`, `scheduler_defaults`.
+
+---
+
+### `search_experiments(query)`
+
+Search experiments by name, file path, or class name (case-insensitive substring).
+
+| Arg | Type | Description |
 |---|---|---|
-| `client.explist` | `ExplistClient` | Browse and search the experiment repository |
-| `client.schedule` | `ScheduleClient` | Submit experiments and inspect the run queue |
-| `client.datasets` | `DatasetsClient` | Read dataset values written by experiments |
-| `client.health` | `HealthClient` | Check server liveness |
+| `query` | str | Substring to search for |
 
-## API Reference
+Returns a filtered experiment list in the same format as `list_experiments()`.
 
-### `client.explist`
+---
 
-```python
-# List all experiments
-result: ExperimentList = client.explist.list()
+### `get_experiment_defaults(file, class_name)`
 
-# Search by name/file (case-insensitive substring match)
-result: ExperimentList = client.explist.search(q="idle")
-# result.experiments  -> list[ExperimentEntry]
-# result.scanning     -> bool (True while the repo scan is in progress)
-# result.current_rev  -> Optional[str] git revision
+Get the default argument values for a specific experiment.
 
-# Each ExperimentEntry has:
-#   .name, .file, .class_name, .arginfo, .argument_ui, .scheduler_defaults
+| Arg | Type | Example |
+|---|---|---|
+| `file` | str | `"idle.py"`, `"scans/rabi.py"` |
+| `class_name` | str | `"Idle"`, `"RabiFlop"` |
 
-# Fetch default argument values for a specific experiment
-defaults: ExperimentDefaults = client.explist.get_defaults(
-    file="idle.py", class_name="Idle"
-)
-# defaults.arguments -> dict of argument name -> default value
+Returns a dict with `file`, `class_name`, and `arguments` (dict of name → default value).
+
+---
+
+### `get_schedule()`
+
+Get the current experiment schedule — all queued and running experiments.
+
+Returns a dict mapping RID (str) → schedule item. Each item has `pipeline`, `priority`, `status`, `expid`, `due_date`, `flush`.
+
+---
+
+### `submit_experiment(file, class_name, arguments?, pipeline?, priority?, flush?)`
+
+Submit an experiment and return its RID immediately without waiting.
+
+Use `submit_and_wait()` if you need confirmation that the experiment finished.
+
+| Arg | Type | Default | Description |
+|---|---|---|---|
+| `file` | str | required | Experiment file path |
+| `class_name` | str | required | Experiment class name |
+| `arguments` | dict\|null | null | Argument overrides; null = use server defaults |
+| `pipeline` | str | `"main"` | Scheduling pipeline |
+| `priority` | int | `0` | Higher = runs sooner |
+| `flush` | bool | `false` | Flush pipeline before submitting |
+
+Returns the integer RID.
+
+---
+
+### `submit_and_wait(file, class_name, arguments?, pipeline?, priority?, flush?, timeout_seconds?)`
+
+Submit an experiment and block until it completes (or the timeout expires).
+
+Same args as `submit_experiment()`, plus:
+
+| Arg | Type | Default | Description |
+|---|---|---|---|
+| `timeout_seconds` | float | `60.0` | Max seconds to wait (server caps at 300) |
+
+Returns a dict with `rid` (int), `status` (str, e.g. `"completed"` or `"timeout"`), `timed_out` (bool).
+
+---
+
+### `cancel_experiment(rid, force?)`
+
+Cancel a queued or running experiment.
+
+| Arg | Type | Default | Description |
+|---|---|---|---|
+| `rid` | int | required | Run ID to cancel |
+| `force` | bool | `false` | If true, forcibly delete; if false, request graceful termination |
+
+---
+
+### `list_dataset_names()`
+
+List the names of all datasets currently held on the ARTIQ master. Returns a list of strings.
+
+---
+
+### `get_dataset_values(names)`
+
+Get the current values of one or more ARTIQ datasets.
+
+| Arg | Type | Description |
+|---|---|---|
+| `names` | list[str] | Dataset key names to retrieve |
+
+Returns a dict mapping each name to its current value. Names that do not exist are silently omitted.
+
+---
+
+## Common Workflows
+
+### Discover and run an experiment
+
+```
+1. search_experiments("idle")          → find the experiment entry
+2. get_experiment_defaults(file, cls)  → fetch default arguments
+3. submit_and_wait(file, cls, args)    → run it and wait for completion
+4. get_dataset_values(["results"])     → read back datasets
 ```
 
-### `client.schedule`
+### Fire-and-forget with RID tracking
 
-```python
-from artiq_http_client._models import ExpID
-
-expid = ExpID(
-    file="idle.py",
-    class_name="Idle",
-    arguments={"duration": 100},   # optional; omit to use server defaults
-)
-
-# Submit only — returns the Run ID (RID) immediately
-rid: int = client.schedule.submit(expid, pipeline="main", priority=0, flush=False)
-
-# Submit and block until the experiment finishes (or timeout expires)
-result: SubmitAndWaitResult = client.schedule.submit_and_wait(expid, timeout=60)
-# result.rid        -> int
-# result.status     -> str  e.g. "completed", "cancelled", "failed"
-# result.timed_out  -> bool
-
-# Inspect the queue
-queue: dict[int, ScheduleItem] = client.schedule.list()
-item: ScheduleItem = client.schedule.get(rid)
-# item.status  -> str  e.g. "preparing", "running", "deleting"
-
-# Cancel a run
-client.schedule.cancel(rid, force=False)
+```
+1. submit_experiment(file, cls, args)  → get RID immediately
+2. get_schedule()                      → poll until RID disappears from queue
 ```
 
-### `client.datasets`
+### Check system status before running
 
-```python
-# All datasets
-all_datasets: dict[str, Any] = client.datasets.list()
-
-# Dataset names only
-names: list[str] = client.datasets.names()
-
-# Values for specific keys
-values: dict[str, Any] = client.datasets.values(["results", "counts"])
 ```
-
-### `client.health`
-
-```python
-status: dict[str, Any] = client.health.get()
-```
-
-## End-to-End Example
-
-```python
-import httpx
-from artiq_http_client import ArtiqClient
-from artiq_http_client._models import ExpID
-
-with ArtiqClient("http://localhost:8000") as client:
-
-    # 1. Find experiments whose name contains "idle"
-    results = client.explist.search(q="idle")
-    if not results.experiments:
-        raise RuntimeError("No idle experiment found")
-
-    entry = results.experiments[0]
-    print(f"Found: {entry.name}  ({entry.file} :: {entry.class_name})")
-
-    # 2. Fetch default arguments
-    defaults = client.explist.get_defaults(
-        file=entry.file, class_name=entry.class_name
-    )
-    print("Default arguments:", defaults.arguments)
-
-    # 3. Build an ExpID — pass custom arguments or omit to use defaults
-    expid = ExpID(
-        file=entry.file,
-        class_name=entry.class_name,
-        arguments=defaults.arguments,
-    )
-
-    # 4. Submit and wait for completion (60 s timeout)
-    result = client.schedule.submit_and_wait(expid, timeout=60)
-    print(f"RID {result.rid} finished with status '{result.status}'")
-
-    if result.timed_out:
-        print("Warning: experiment did not finish within the timeout")
-
-    # 5. Read back datasets written by the experiment
-    data = client.datasets.values(["results"])
-    print("results dataset:", data.get("results"))
+1. check_health()  → confirm artiq_connected is true before submitting
 ```
 
 ## Error Handling
 
-Every method calls `response.raise_for_status()` internally. Any non-2xx HTTP response raises `httpx.HTTPStatusError`.
-
-```python
-import httpx
-from artiq_http_client import ArtiqClient
-
-with ArtiqClient("http://localhost:8000") as client:
-    try:
-        defaults = client.explist.get_defaults(file="missing.py", class_name="Gone")
-    except httpx.HTTPStatusError as exc:
-        print(f"HTTP {exc.response.status_code}: {exc.response.text}")
-    except httpx.RequestError as exc:
-        # Network-level failure (connection refused, timeout, etc.)
-        print(f"Request failed: {exc}")
-```
+Tools raise `httpx.HTTPStatusError` for non-2xx responses.
 
 Common status codes:
 - `404` — experiment file/class not found, or RID not in queue
-- `408` / `504` — server-side timeout (distinct from `result.timed_out`)
+- `503` — ARTIQ master not connected (try `check_health()` to diagnose)
 - `500` — ARTIQ master error
 
-## Key Model Types
+## Deployment
 
-| Model | Fields |
+The MCP server is included in the Docker Compose stack as the `mcp` service. It reuses the backend image and runs `python -m mcp_server.server`.
+
+Environment variables:
+- `ARTIQ_HTTP_URL` — URL of the artiq_http backend (default: `http://localhost:8000`)
+- `MCP_PORT` — Port to serve on (default: `8001`)
+
+### Connecting
+
+Install the plugin and provide your ARTIQ MCP server URL when prompted (e.g. `http://mylab.example.com:8001`). Claude Code connects to the remote MCP server over HTTP.
+
+For local development, run the server directly:
+```bash
+python -m mcp_server.server
+```
+
+Then connect via `.mcp.json`:
+```json
+{
+  "artiq": {
+    "url": "http://localhost:8001"
+  }
+}
+```
+
+## Key Response Shapes
+
+| Response | Fields |
 |---|---|
-| `ExpID` | `file`, `class_name`, `log_level` (default 30), `arguments`, `repo_rev` |
-| `ExperimentList` | `experiments: list[ExperimentEntry]`, `scanning: bool`, `current_rev` |
-| `ExperimentEntry` | `name`, `file`, `class_name`, `arginfo`, `argument_ui`, `scheduler_defaults` |
-| `ExperimentDefaults` | `file`, `class_name`, `arguments: dict` |
-| `ScheduleItem` | `pipeline`, `priority`, `due_date`, `flush`, `status`, `repo_msg`, `expid` |
-| `SubmitAndWaitResult` | `rid: int`, `status: str`, `timed_out: bool` |
+| experiment entry | `name`, `file`, `class_name`, `arginfo`, `argument_ui`, `scheduler_defaults` |
+| experiment defaults | `file`, `class_name`, `arguments: dict` |
+| schedule item | `pipeline`, `priority`, `due_date`, `flush`, `status`, `repo_msg`, `expid` |
+| submit_and_wait result | `rid: int`, `status: str`, `timed_out: bool` |

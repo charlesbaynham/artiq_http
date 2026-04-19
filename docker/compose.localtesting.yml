@@ -32,3 +32,7 @@ services:
       - ARTIQ_HTTP_PORT_CLIENTS=3251
     depends_on:
       - artiq-test-master
+
+  mcp:
+    ports:
+      - "8001:8001"
