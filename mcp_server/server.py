@@ -98,6 +98,27 @@ async def get_experiment_defaults(file: str, class_name: str) -> dict[str, Any]:
         return r.json()
 
 
+@mcp.tool()
+async def get_experiment_arginfo(file: str, class_name: str) -> dict[str, Any]:
+    """Get the full parameter schema (arginfo) for a specific experiment.
+
+    This includes the complete ndscan_params schemata, which is omitted from the
+    lightweight list_experiments / search_experiments responses.
+
+    Args:
+        file: Relative path to the experiment file, e.g. "idle.py".
+        class_name: Python class name of the experiment, e.g. "Idle".
+
+    Returns a dict with 'file', 'class_name', and 'arginfo'.
+    """
+    encoded_file = quote(file, safe="/")
+    encoded_class = quote(class_name, safe="")
+    async with _client() as c:
+        r = await c.get(f"/api/explist/{encoded_file}/{encoded_class}/arginfo")
+        r.raise_for_status()
+        return r.json()
+
+
 # ---------------------------------------------------------------------------
 # Schedule
 # ---------------------------------------------------------------------------
@@ -233,7 +254,16 @@ async def get_dataset_values(names: list[str]) -> dict[str, Any]:
     async with _client() as c:
         r = await c.get("/api/datasets/values", params={"names": ",".join(names)})
         r.raise_for_status()
-        return r.json()
+        raw = r.json()
+
+    # ARTIQ datasets are returned as [persist, value, metadata] tuples.
+    # Unwrap them so clients get the raw value.
+    return {
+        name: value[1]
+        if isinstance(value, list) and len(value) == 3 and isinstance(value[0], bool) and isinstance(value[2], dict)
+        else value
+        for name, value in raw.items()
+    }
 
 
 # ---------------------------------------------------------------------------
