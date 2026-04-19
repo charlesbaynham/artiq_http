@@ -21,6 +21,12 @@ services:
     labels:
       com.centurylinklabs.watchtower.scope: artiq_http
 
+  mcp:
+    build: !reset []
+    image: ${MCP_IMAGE:-registry.gitlab.com/aion-physics/code/artiq/drivers/artiq_http/mcp:latest}
+    labels:
+      com.centurylinklabs.watchtower.scope: artiq_http
+
   watchtower:
     image: nickfedor/watchtower
     restart: always

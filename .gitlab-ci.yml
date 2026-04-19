@@ -210,3 +210,8 @@ docker-frontend:
   extends: .docker-build
   variables:
     IMAGE_NAME: frontend
+
+docker-mcp:
+  extends: .docker-build
+  variables:
+    IMAGE_NAME: mcp
