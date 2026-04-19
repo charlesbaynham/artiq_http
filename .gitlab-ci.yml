@@ -67,24 +67,36 @@ build-test-master:
     - nix-channel --add https://nixos.org/channels/nixos-24.11 nixpkgs
     - nix-channel --update
     - nix-env -iA nixpkgs.docker
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
   cache:
     - !reference [.nix, cache]
   script:
     - cd test-artiq
-    - nix build .#docker --accept-flake-config
-    - docker load < result
-    - docker tag artiq-test-master:latest $CI_REGISTRY_IMAGE/test-master:$CI_COMMIT_REF_SLUG
-    - docker push $CI_REGISTRY_IMAGE/test-master:$CI_COMMIT_REF_SLUG
+    - nix build .#docker
+    - |
+      set -euo pipefail
+      HASH=$(nix eval --json .#docker.outPath | tr '/' '\n' | tail -1 | cut -d'-' -f1)
+      echo "ARTIQ_TEST_MASTER_HASH=$HASH" >> build.env
+      echo "Image hash: $HASH"
+      if docker manifest inspect "$CI_REGISTRY_IMAGE/test-master:$HASH" > /dev/null 2>&1; then
+        echo "Image already in registry, skipping push"
+      else
+        docker load < result
+        docker tag artiq-test-master:latest "$CI_REGISTRY_IMAGE/test-master:$HASH"
+        docker push "$CI_REGISTRY_IMAGE/test-master:$HASH"
+      fi
   tags:
     - docker
   needs: []
+  artifacts:
+    reports:
+      dotenv: test-artiq/build.env
 
 pytest:
   extends: .uv-setup
   stage: "Test"
   services:
-    - name: $CI_REGISTRY_IMAGE/test-master:$CI_COMMIT_REF_SLUG
+    - name: $CI_REGISTRY_IMAGE/test-master:$ARTIQ_TEST_MASTER_HASH
       alias: test-master
   variables:
     ARTIQ_HTTP_HOST: "test-master"
