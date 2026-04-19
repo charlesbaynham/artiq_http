@@ -9,9 +9,9 @@ MCP tools for controlling an ARTIQ quantum physics experiment system via its HTT
 
 ## Overview
 
-When this plugin is enabled, 10 MCP tools are available directly — no code or SDK required. Use them to discover experiments, submit runs, wait for results, read datasets, and check server health.
+When this connector is enabled, 10 MCP tools are available directly — no code or SDK required. Use them to discover experiments, submit runs, wait for results, read datasets, and check server health.
 
-The MCP server connects to an `artiq_http` instance at the URL configured when the plugin was installed. For local development this defaults to `http://localhost:8000`.
+The MCP server runs as a remote HTTP service (streamable HTTP transport) and connects to an `artiq_http` backend instance. In the Docker Compose stack it runs as the `mcp` service and connects to the backend over the internal network at `http://backend:8000`. For local development you can also run it directly with `python -m mcp_server.server` and point it at `http://localhost:8000`.
 
 ## When to Use
 
@@ -173,6 +173,27 @@ Common status codes:
 - `404` — experiment file/class not found, or RID not in queue
 - `503` — ARTIQ master not connected (try `check_health()` to diagnose)
 - `500` — ARTIQ master error
+
+## Deployment
+
+The MCP server is included in the Docker Compose stack as the `mcp` service. It reuses the backend image and runs `python -m mcp_server.server`.
+
+Environment variables:
+- `ARTIQ_HTTP_URL` — URL of the artiq_http backend (default: `http://localhost:8000`)
+- `MCP_PORT` — Port to serve on (default: `8001`)
+
+### Connecting
+
+In Claude Code, use `.mcp.json`:
+```json
+{
+  "artiq": {
+    "url": "http://localhost:8001"
+  }
+}
+```
+
+In Claude desktop: Settings → Connectors → Add custom connector → `http://your-server:8001`
 
 ## Key Response Shapes
 
