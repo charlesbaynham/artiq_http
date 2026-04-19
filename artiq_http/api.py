@@ -276,9 +276,35 @@ async def cancel_experiment(rid: int, force: bool = False) -> None:
     return await api.control_schedule.cancel_experiment(rid, force)
 
 
+def _filter_experiment_fields(
+    exp: api.models.ExperimentEntry,
+    fields: set[str],
+    full: bool,
+) -> api.models.ExperimentEntry:
+    """Return a new ExperimentEntry containing only *fields*.
+
+    When ``arginfo`` is in *fields* and ``full`` is False, the ndscan_params
+    inside arginfo are filtered to only the ``always_shown`` parameters.
+    """
+    data = exp.model_dump()
+    filtered: dict[str, Any] = {k: v for k, v in data.items() if k in fields}
+    if "arginfo" in filtered and not full:
+        filtered["arginfo"] = api.notifiers._filter_ndscan_always_shown(filtered["arginfo"])
+    return api.models.ExperimentEntry.model_validate(filtered)
+
+
 @router.get("/explist")
-async def get_explist() -> api.models.ExperimentList:
-    return await api.notifiers.get_explist()
+async def get_explist(
+    fields: str = "name,file,class_name,docstring",
+    full: bool = False,
+) -> api.models.ExperimentList:
+    requested = {f.strip() for f in fields.split(",") if f.strip()}
+    explist = await api.notifiers.get_explist()
+    return api.models.ExperimentList(
+        current_rev=explist.current_rev,
+        scanning=explist.scanning,
+        experiments=[_filter_experiment_fields(exp, requested, full) for exp in explist.experiments],
+    )
 
 
 @router.get("/schedule/{rid}")
@@ -291,20 +317,26 @@ async def get_schedule_item(rid: int) -> api.models.ScheduleItem:
 
 # NOTE: must be registered before /{file:path} routes to avoid {file:path} consuming "search"
 @router.get("/explist/search")
-async def search_explist(q: str = "") -> api.models.ExperimentList:
+async def search_explist(
+    q: str = "",
+    fields: str = "name,file,class_name,docstring",
+    full: bool = False,
+) -> api.models.ExperimentList:
+    requested = {f.strip() for f in fields.split(",") if f.strip()}
     explist = await api.notifiers.get_explist()
     if not q:
-        return explist
-    q_lower = q.lower()
-    filtered = [
-        exp
-        for exp in explist.experiments
-        if q_lower in exp.name.lower() or q_lower in exp.file.lower() or q_lower in exp.class_name.lower()
-    ]
+        filtered_exps = explist.experiments
+    else:
+        q_lower = q.lower()
+        filtered_exps = [
+            exp
+            for exp in explist.experiments
+            if q_lower in exp.name.lower() or q_lower in exp.file.lower() or q_lower in exp.class_name.lower()
+        ]
     return api.models.ExperimentList(
         current_rev=explist.current_rev,
         scanning=explist.scanning,
-        experiments=filtered,
+        experiments=[_filter_experiment_fields(exp, requested, full) for exp in filtered_exps],
     )
 
 
@@ -317,6 +349,20 @@ async def get_explist_defaults(file: str, class_name: str) -> api.models.Experim
                 file=exp.file,
                 class_name=exp.class_name,
                 arguments=api.notifiers.extract_arginfo_defaults(exp.arginfo),
+            )
+    raise HTTPException(404, f"Experiment {file}/{class_name} not found")
+
+
+@router.get("/explist/{file:path}/{class_name}/arginfo")
+async def get_explist_arginfo(file: str, class_name: str) -> api.models.ExperimentArginfo:
+    """Return the full arginfo (including complete ndscan_params) for a single experiment."""
+    explist = await api.notifiers.get_explist()
+    for exp in explist.experiments:
+        if exp.file == file and exp.class_name == class_name:
+            return api.models.ExperimentArginfo(
+                file=exp.file,
+                class_name=exp.class_name,
+                arginfo=exp.arginfo,
             )
     raise HTTPException(404, f"Experiment {file}/{class_name} not found")
 
