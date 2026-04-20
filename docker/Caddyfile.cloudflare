@@ -1,0 +1,25 @@
+# Caddyfile with Cloudflare DNS-01 challenge support
+# Set the DOMAIN environment variable to your domain (e.g., example.com)
+# For wildcard certificates, use *.{$DOMAIN} as the site address
+
+{$DOMAIN:localhost} {
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    handle /api/* {
+        reverse_proxy {$API_URL:http://backend:8000}
+    }
+    handle /docs* {
+        reverse_proxy {$API_URL:http://backend:8000}
+    }
+    handle /openapi.json {
+        reverse_proxy {$API_URL:http://backend:8000}
+    }
+    handle {
+        root * /srv/result
+        encode gzip zstd
+        try_files {path} /index.html
+        file_server
+    }
+}
