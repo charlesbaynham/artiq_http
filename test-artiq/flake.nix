@@ -46,6 +46,23 @@
             WorkingDir = "/artiq";
           };
         };
+
+        devShells.default = pkgs.mkShell {
+          packages = [ artiq pkgs.git pkgs.python313Packages.pip ];
+          shellHook = ''
+            VENV_DIR="$PWD/.artiq-venv"
+            if [ ! -d "$VENV_DIR" ]; then
+              echo "Creating Python venv..."
+              python3 -m venv "$VENV_DIR"
+              "$VENV_DIR/bin/pip" install --quiet git+https://github.com/OxfordIonTrapGroup/oitg.git
+              "$VENV_DIR/bin/pip" install --quiet git+https://github.com/OxfordIonTrapGroup/ndscan.git
+            fi
+            export PATH="$VENV_DIR/bin:$PATH"
+            export PYTHONPATH="$VENV_DIR/lib/python3.13/site-packages:$PYTHONPATH"
+            echo "ARTIQ test environment ready."
+            echo "Run: artiq_master -r repository --bind '*' -vv"
+          '';
+        };
       });
 
   nixConfig = {
