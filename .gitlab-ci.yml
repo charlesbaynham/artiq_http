@@ -85,8 +85,6 @@ build-test-master:
         docker tag artiq-test-master:latest "$CI_REGISTRY_IMAGE/test-master:$HASH"
         docker push "$CI_REGISTRY_IMAGE/test-master:$HASH"
       fi
-  tags:
-    - docker
   needs: []
   artifacts:
     reports:
