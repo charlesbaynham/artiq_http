@@ -38,7 +38,8 @@ function NDScanPlotCollection() {
 
       // Fetch fragment_fqn metadata for each prefix
       const metaQueries = discovered.map((p) => `${p}.fragment_fqn`);
-      const metaValues = metaQueries.length > 0 ? await get_dataset_values(metaQueries) : {};
+      const metaValues =
+        metaQueries.length > 0 ? await get_dataset_values(metaQueries) : {};
       const meta = {};
       discovered.forEach((p) => {
         const fqnData = metaValues[`${p}.fragment_fqn`];
@@ -124,7 +125,10 @@ function NDScanPlotCollection() {
                   <div className="d-flex flex-column">
                     <span>{prefix.replace("ndscan.", "")}</span>
                     {prefixMeta[prefix] && (
-                      <span className="text-muted" style={{ fontSize: "0.75em" }}>
+                      <span
+                        className="text-muted"
+                        style={{ fontSize: "0.75em" }}
+                      >
                         {prefixMeta[prefix]}
                       </span>
                     )}

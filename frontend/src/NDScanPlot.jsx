@@ -119,7 +119,10 @@ function NDScanPlot({ prefix }) {
 
     return (
       <div className="ndscan-plot-0d p-3 border rounded">
-        <h6 className="mb-3">0D Scan: {prefix}{titleSuffix}</h6>
+        <h6 className="mb-3">
+          0D Scan: {prefix}
+          {titleSuffix}
+        </h6>
         <div className="d-flex flex-wrap gap-3">
           {channelNames.map((ch) => (
             <div
