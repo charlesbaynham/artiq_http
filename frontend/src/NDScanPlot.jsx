@@ -22,6 +22,7 @@ function NDScanPlot({ prefix }) {
           `${prefix}.axes`,
           `${prefix}.channels`,
           `${prefix}.completed`,
+          `${prefix}.fragment_fqn`,
         ]);
 
         if (
@@ -34,6 +35,7 @@ function NDScanPlot({ prefix }) {
         const axes = JSON.parse(baseDatasets[`${prefix}.axes`][1]);
         const channels = JSON.parse(baseDatasets[`${prefix}.channels`][1]);
         const completed = baseDatasets[`${prefix}.completed`][1];
+        const fragmentFqn = baseDatasets[`${prefix}.fragment_fqn`]?.[1] || null;
 
         // Fetch data for each channel
         const channelNames = Object.keys(channels);
@@ -63,6 +65,7 @@ function NDScanPlot({ prefix }) {
           channelData,
           completed,
           prefix,
+          fragmentFqn,
         });
         setError(null);
       } catch (err) {
@@ -96,8 +99,9 @@ function NDScanPlot({ prefix }) {
 
   if (!data) return null;
 
-  const { axes, channels, channelData } = data;
+  const { axes, channels, channelData, fragmentFqn } = data;
   const channelNames = Object.keys(channels);
+  const titleSuffix = fragmentFqn ? ` (${fragmentFqn})` : "";
 
   // Render different plots based on dimensionality
   if (axes.length === 0) {
@@ -115,7 +119,7 @@ function NDScanPlot({ prefix }) {
 
     return (
       <div className="ndscan-plot-0d p-3 border rounded">
-        <h6 className="mb-3">0D Scan: {prefix}</h6>
+        <h6 className="mb-3">0D Scan: {prefix}{titleSuffix}</h6>
         <div className="d-flex flex-wrap gap-3">
           {channelNames.map((ch) => (
             <div
@@ -170,7 +174,7 @@ function NDScanPlot({ prefix }) {
       <Plot
         data={traces}
         layout={{
-          title: `1D Scan: ${prefix}`,
+          title: `1D Scan: ${prefix}${titleSuffix}`,
           xaxis: { title: xLabel },
           yaxis: { title: "Value" },
           autosize: true,
@@ -220,7 +224,7 @@ function NDScanPlot({ prefix }) {
       <Plot
         data={traces}
         layout={{
-          title: `2D Scan: ${prefix}`,
+          title: `2D Scan: ${prefix}${titleSuffix}`,
           xaxis: { title: xAxis.param.description || "Axis 0" },
           yaxis: { title: yAxis.param.description || "Axis 1" },
           autosize: true,
