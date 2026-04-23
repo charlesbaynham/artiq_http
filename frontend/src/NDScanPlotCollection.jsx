@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { get_dataset_names } from "./api/client";
+import { get_dataset_names, get_dataset_values } from "./api/client";
 import NDScanPlot from "./NDScanPlot";
 import ListGroup from "react-bootstrap/ListGroup";
 import Row from "react-bootstrap/Row";
@@ -13,6 +13,7 @@ import Alert from "react-bootstrap/Alert";
  */
 function NDScanPlotCollection() {
   const [prefixes, setPrefixes] = useState([]);
+  const [prefixMeta, setPrefixMeta] = useState({});
   const [selectedPrefix, setSelectedPrefix] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -35,10 +36,21 @@ function NDScanPlotCollection() {
           return b.localeCompare(a);
         });
 
+      // Fetch fragment_fqn metadata for each prefix
+      const metaQueries = discovered.map((p) => `${p}.fragment_fqn`);
+      const metaValues =
+        metaQueries.length > 0 ? await get_dataset_values(metaQueries) : {};
+      const meta = {};
+      discovered.forEach((p) => {
+        const fqnData = metaValues[`${p}.fragment_fqn`];
+        meta[p] = fqnData ? fqnData[1] : null;
+      });
+
       // Only update state if the list has changed
       if (JSON.stringify(discovered) !== JSON.stringify(prefixes)) {
         setPrefixes(discovered);
       }
+      setPrefixMeta(meta);
       setError(null);
     } catch (err) {
       setError(`Failed to discover scans: ${err.message}`);
@@ -110,7 +122,17 @@ function NDScanPlotCollection() {
                   className="py-2 px-3 small border-0 mb-1 rounded"
                   style={{ cursor: "pointer" }}
                 >
-                  {prefix.replace("ndscan.", "")}
+                  <div className="d-flex flex-column">
+                    <span>{prefix.replace("ndscan.", "")}</span>
+                    {prefixMeta[prefix] && (
+                      <span
+                        className="text-muted"
+                        style={{ fontSize: "0.75em" }}
+                      >
+                        {prefixMeta[prefix]}
+                      </span>
+                    )}
+                  </div>
                 </ListGroup.Item>
               ))}
             </ListGroup>
