@@ -1,128 +1,145 @@
-import React, { useState, useEffect } from "react";
+import React, { useMemo } from "react";
 import PropTypes from "prop-types";
 import Plot from "react-plotly.js";
 import Spinner from "react-bootstrap/Spinner";
 import Alert from "react-bootstrap/Alert";
-import { get_dataset_values } from "./api/client";
+import Badge from "react-bootstrap/Badge";
+import { useSSEDataset, SSEState } from "./hooks/useSSEDataset";
 
 /**
  * Component to render NDScan visualizations (0D, 1D, 2D)
+ * Uses SSE for real-time updates
  * @param {string} prefix - The NDScan prefix, e.g., "ndscan.rid_1"
  */
 function NDScanPlot({ prefix }) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const {
+    data: rawData,
+    connectionState,
+    error,
+    isConnecting,
+  } = useSSEDataset(prefix);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch axes and channels first to know what to fetch next
-        const baseDatasets = await get_dataset_values([
-          `${prefix}.axes`,
-          `${prefix}.channels`,
-          `${prefix}.completed`,
-          `${prefix}.fragment_fqn`,
-        ]);
+  // Parse the raw SSE data into structured plot data
+  const plotData = useMemo(() => {
+    if (!rawData) return null;
 
-        if (
-          !baseDatasets[`${prefix}.axes`] ||
-          !baseDatasets[`${prefix}.channels`]
-        ) {
-          throw new Error("Missing NDScan metadata (axes or channels)");
-        }
+    try {
+      // Extract axes and channels metadata
+      const axesKey = `${prefix}.axes`;
+      const channelsKey = `${prefix}.channels`;
+      const completedKey = `${prefix}.completed`;
+      const fragmentFqnKey = `${prefix}.fragment_fqn`;
 
-        const axes = JSON.parse(baseDatasets[`${prefix}.axes`][1]);
-        const channels = JSON.parse(baseDatasets[`${prefix}.channels`][1]);
-        const completed = baseDatasets[`${prefix}.completed`][1];
-        const fragmentFqn = baseDatasets[`${prefix}.fragment_fqn`]?.[1] || null;
-
-        // Fetch data for each channel
-        const channelNames = Object.keys(channels);
-        const dataQueries = [];
-
-        if (axes.length === 0) {
-          // 0D scan: fetch point.channel_name
-          channelNames.forEach((ch) =>
-            dataQueries.push(`${prefix}.point.${ch}`),
-          );
-        } else {
-          // 1D or 2D: fetch points.channel_chname AND points.axis_i
-          channelNames.forEach((ch) =>
-            dataQueries.push(`${prefix}.points.channel_${ch}`),
-          );
-          // Fetch axis points for each dimension
-          axes.forEach((_, i) =>
-            dataQueries.push(`${prefix}.points.axis_${i}`),
-          );
-        }
-
-        const channelData = await get_dataset_values(dataQueries);
-
-        setData({
-          axes,
-          channels,
-          channelData,
-          completed,
-          prefix,
-          fragmentFqn,
-        });
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching NDScan plot data:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
+      if (!rawData[axesKey] || !rawData[channelsKey]) {
+        return null;
       }
-    };
 
-    fetchData();
-    // In a real app, we might poll if !completed
-  }, [prefix]);
+      const axes = JSON.parse(rawData[axesKey][1]);
+      const channels = JSON.parse(rawData[channelsKey][1]);
+      const completed = rawData[completedKey]?.[1] ?? false;
+      const fragmentFqn = rawData[fragmentFqnKey]?.[1] || null;
 
-  if (loading) {
+      // Build channelData from raw data
+      const channelData = {};
+      Object.keys(rawData).forEach((key) => {
+        if (
+          key.startsWith(`${prefix}.point.`) ||
+          key.startsWith(`${prefix}.points.`)
+        ) {
+          channelData[key] = rawData[key];
+        }
+      });
+
+      return {
+        axes,
+        channels,
+        channelData,
+        completed,
+        fragmentFqn,
+        prefix,
+      };
+    } catch (err) {
+      console.error("Error parsing NDScan data:", err);
+      return null;
+    }
+  }, [rawData, prefix]);
+
+  // Connection status indicator
+  const ConnectionIndicator = () => {
+    if (connectionState === SSEState.CONNECTED) {
+      return (
+        <Badge bg="success" className="me-2" title="Live updates active">
+          ● Live
+        </Badge>
+      );
+    }
+    if (
+      connectionState === SSEState.CONNECTING ||
+      connectionState === SSEState.RECONNECTING
+    ) {
+      return (
+        <Badge bg="warning" className="me-2" title="Connecting...">
+          ○ Connecting
+        </Badge>
+      );
+    }
+    if (connectionState === SSEState.ERROR) {
+      return (
+        <Badge bg="danger" className="me-2" title={error || "Connection error"}>
+          ✕ Error
+        </Badge>
+      );
+    }
+    return null;
+  };
+
+  // Loading state
+  if (isConnecting && !plotData) {
     return (
       <div className="text-center p-3">
         <Spinner animation="border" size="sm" />
-        <span className="ms-2">Loading plot...</span>
+        <span className="ms-2">Connecting to live data...</span>
       </div>
     );
   }
 
-  if (error) {
+  // Error state (only show if no data)
+  if (error && !plotData) {
     return (
       <Alert variant="warning" className="small p-2">
-        Plot error: {error}
+        Connection error: {error}
       </Alert>
     );
   }
 
-  if (!data) return null;
+  // No data yet
+  if (!plotData) {
+    return (
+      <div className="text-center p-3 text-muted">Waiting for data...</div>
+    );
+  }
 
-  const { axes, channels, channelData, fragmentFqn } = data;
+  const { axes, channels, channelData, completed, fragmentFqn } = plotData;
   const channelNames = Object.keys(channels);
   const titleSuffix = fragmentFqn ? ` (${fragmentFqn})` : "";
 
   // Render different plots based on dimensionality
   if (axes.length === 0) {
-    // 0D: Time series (multiple channels)
-    // For 0D, we usually have a history, but ARTIQ datasets might only show the current point
-    // unless it's explicitly recorded. In the example, rid_1 has "point.signal".
-    // If it's a "no-axis" scan, it might be sampled multiple times into a "points" dataset too?
-    // Let's check rid_1 again. It has "point.signal".
-
-    // Actually, if it's 0D, it might just be the last point.
-    // If the user wants a time-series, they might need a 1D scan over "time" or similar.
-    // However, the planning doc says "0D scans are visualized as time-series plots showing how sampled values vary over time".
-    // This implies we need to accumulate data if it's just the current point, or look for a "history" dataset.
-    // In the absence of a history dataset in the example, I'll render the single point or handle it gracefully.
-
+    // 0D: Value display (current point)
     return (
       <div className="ndscan-plot-0d p-3 border rounded">
-        <h6 className="mb-3">
-          0D Scan: {prefix}
-          {titleSuffix}
-        </h6>
+        <div className="d-flex align-items-center mb-3">
+          <ConnectionIndicator />
+          <h6 className="mb-0">
+            0D Scan: {prefix}
+            {titleSuffix}
+          </h6>
+          {completed && (
+            <Badge bg="secondary" className="ms-2">
+              Completed
+            </Badge>
+          )}
+        </div>
         <div className="d-flex flex-wrap gap-3">
           {channelNames.map((ch) => (
             <div
@@ -148,24 +165,15 @@ function NDScanPlot({ prefix }) {
   if (axes.length === 1) {
     // 1D Line Plot
     const axis = axes[0];
-    const xLabel = axis.param.description || axis.param.fqn;
+    const xLabel = axis.param?.description || axis.param?.fqn || "X";
 
     // Use explicit axis points if available
     const xValues = channelData[`${prefix}.points.axis_0`]?.[1] || [];
 
-    // Fallback if axis points are missing (shouldn't happen for standard NDScan)
-    if (xValues.length === 0) {
-      const pointsCount =
-        channelData[`${prefix}.points.channel_${channelNames[0]}`]?.[1]
-          ?.length || 0;
-      for (let i = 0; i < pointsCount; i++)
-        xValues.push(axis.min + i * axis.increment);
-    }
-
     const traces = channelNames.map((ch) => {
       const yValues = channelData[`${prefix}.points.channel_${ch}`]?.[1] || [];
       return {
-        x: xValues,
+        x: xValues.slice(0, yValues.length), // Ensure x and y have same length
         y: yValues,
         type: "scatter",
         mode: "lines+markers",
@@ -174,21 +182,29 @@ function NDScanPlot({ prefix }) {
     });
 
     return (
-      <Plot
-        data={traces}
-        layout={{
-          title: `1D Scan: ${prefix}${titleSuffix}`,
-          xaxis: { title: xLabel },
-          yaxis: { title: "Value" },
-          autosize: true,
-          margin: { l: 50, r: 30, t: 50, b: 50 },
-          template: "plotly_dark",
-          paper_bgcolor: "rgba(0,0,0,0)",
-          plot_bgcolor: "rgba(0,0,0,0)",
-        }}
-        useResizeHandler={true}
-        style={{ width: "100%", height: "400px" }}
-      />
+      <div>
+        <div className="d-flex align-items-center mb-2">
+          <ConnectionIndicator />
+          {completed && <Badge bg="secondary">Completed</Badge>}
+          <span className="ms-2 text-muted small">{xValues.length} points</span>
+        </div>
+        <Plot
+          data={traces}
+          layout={{
+            title: `1D Scan: ${prefix}${titleSuffix}`,
+            xaxis: { title: xLabel },
+            yaxis: { title: "Value" },
+            autosize: true,
+            margin: { l: 50, r: 30, t: 50, b: 50 },
+            template: "plotly_dark",
+            paper_bgcolor: "rgba(0,0,0,0)",
+            plot_bgcolor: "rgba(0,0,0,0)",
+          }}
+          useResizeHandler={true}
+          style={{ width: "100%", height: "400px" }}
+          config={{ displayModeBar: true, responsive: true }}
+        />
+      </div>
     );
   }
 
@@ -216,30 +232,35 @@ function NDScanPlot({ prefix }) {
         },
         type: "scatter",
         name: ch,
-        text: zValues.map(
-          (v) =>
-            `${ch}: ${typeof v === "number" ? v.toPrecision(4) : String(v)}`,
-        ),
+        text: zValues.map((v) => `${ch}: ${v?.toPrecision?.(4) || v}`),
       };
     });
 
     return (
-      <Plot
-        data={traces}
-        layout={{
-          title: `2D Scan: ${prefix}${titleSuffix}`,
-          xaxis: { title: xAxis.param.description || "Axis 0" },
-          yaxis: { title: yAxis.param.description || "Axis 1" },
-          autosize: true,
-          margin: { l: 50, r: 30, t: 50, b: 50 },
-          template: "plotly_dark",
-          paper_bgcolor: "rgba(0,0,0,0)",
-          plot_bgcolor: "rgba(0,0,0,0)",
-          hovermode: "closest",
-        }}
-        useResizeHandler={true}
-        style={{ width: "100%", height: "500px" }}
-      />
+      <div>
+        <div className="d-flex align-items-center mb-2">
+          <ConnectionIndicator />
+          {completed && <Badge bg="secondary">Completed</Badge>}
+          <span className="ms-2 text-muted small">{xValues.length} points</span>
+        </div>
+        <Plot
+          data={traces}
+          layout={{
+            title: `2D Scan: ${prefix}${titleSuffix}`,
+            xaxis: { title: xAxis.param?.description || "Axis 0" },
+            yaxis: { title: yAxis.param?.description || "Axis 1" },
+            autosize: true,
+            margin: { l: 50, r: 30, t: 50, b: 50 },
+            template: "plotly_dark",
+            paper_bgcolor: "rgba(0,0,0,0)",
+            plot_bgcolor: "rgba(0,0,0,0)",
+            hovermode: "closest",
+          }}
+          useResizeHandler={true}
+          style={{ width: "100%", height: "500px" }}
+          config={{ displayModeBar: true, responsive: true }}
+        />
+      </div>
     );
   }
 
