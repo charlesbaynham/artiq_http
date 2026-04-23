@@ -19,30 +19,85 @@ The current polling approach has significant drawbacks:
 
 ## Implementation Plan
 
-<!-- To be filled in during implementation planning phase -->
-1. Task breakdown pending
+### Backend Changes
+
+#### 1. PersistentSubscriber Callback System (`artiq_api/persistent_subscriber.py`)
+
+Added change callback registration to enable SSE streaming:
+- `register_change_callback(callback)` - Register a callback for data changes
+- `unregister_change_callback(callback)` - Remove a registered callback
+- `_notify_change_listeners(mod)` - Internal method to notify all callbacks
+- `get_datasets_subscriber()` - Method on SubscriberManager to expose datasets subscriber
+
+#### 2. SSE Streaming Module (`artiq_http/sse.py`)
+
+New FastAPI router with `/api/datasets/stream/{prefix:path}` endpoint:
+
+**Event Types:**
+- `init` - Full dataset state for the prefix on connection
+- `update` - Individual dataset value changes
+- `delete` - Dataset removed
+- `heartbeat` - Keep-alive signal (every 15 seconds)
+- `error` - Error occurred
+
+**Features:**
+- Prefix-based filtering (only streams datasets matching `{prefix}.*`)
+- Automatic heartbeat to keep connection alive
+- Proper cleanup on connection close
+- JSON sanitization for numpy types
+
+---
+
+### Frontend Changes
+
+#### 1. SSE Hook (`hooks/useSSEDataset.js`)
+
+Custom React hook for managing SSE connections:
+
+```javascript
+const { data, connectionState, error, isConnected, isConnecting } = useSSEDataset(prefix);
+```
+
+**Features:**
+- Connection state management (CONNECTING, CONNECTED, RECONNECTING, ERROR, CLOSED)
+- Automatic reconnection with configurable delay
+- Data merging for incremental updates
+- Proper cleanup on unmount
+
+#### 2. NDScanPlot Component Update
+
+Rewrote `NDScanPlot.jsx` to use SSE:
+- Uses `useSSEDataset` hook instead of one-time fetch
+- Displays connection status indicator (Live/Connecting/Error badges)
+- Shows point count and completion status
+- Handles all plot types (0D, 1D, 2D)
+
+---
 
 ## Technical Considerations
 
 ### Backend
--   Continue using **FastAPI** for the implementation.
--   Utilize the existing subscriber pattern (`PersistentSubscriber`) if applicable, or adapt it for streaming specific dataset updates.
+-   **FastAPI StreamingResponse** for SSE with proper headers
+-   Callback-based change detection for efficient updates
+-   Prefix filtering to minimize data transfer
 
 ### Frontend
--   Use a simple **React**-based approach.
--   No complicated third-party libraries; rely on standard `EventSource` or simple wrappers.
+-   Native **EventSource** API for SSE connections
+-   React hooks for clean state management
+-   Auto-reconnect on connection loss
 
 ## Acceptance Criteria
 
-- [ ] Plots load existing data immediately upon open.
-- [ ] Updates appear in real-time as the experiment runs.
-- [ ] Network tab shows a single persistent connection per plot instead of repeated polls.
-- [ ] Connection connects on mount and disconnects on unmount.
-- [ ] Large datasets do not choke the connection with redundant data transfers.
+- [x] Plots load existing data immediately upon open.
+- [x] Updates appear in real-time as the experiment runs.
+- [x] Network tab shows a single persistent connection per plot instead of repeated polls.
+- [x] Connection connects on mount and disconnects on unmount.
+- [x] Large datasets do not choke the connection with redundant data transfers.
 
 ## Dependencies & Prerequisites
--   Existing `PersistentSubscriber` infrastructure (may need refactoring or extension).
+-   Existing `PersistentSubscriber` infrastructure (extended with callback system).
 
 ## Notes
 Created: 2026-01-18
-Status: Planning
+Status: Complete
+Completed: 2026-01-18
