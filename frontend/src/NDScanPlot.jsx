@@ -143,8 +143,9 @@ function NDScanPlot({ prefix }) {
               <div className="card-body text-center">
                 <div className="text-muted small mb-1">{ch}</div>
                 <div className="h4 mb-0">
-                  {channelData[`${prefix}.point.${ch}`]?.[1]?.toPrecision(5) ||
-                    "—"}
+                  {typeof channelData[`${prefix}.point.${ch}`]?.[1] === "number"
+                    ? channelData[`${prefix}.point.${ch}`][1].toPrecision(5)
+                    : "—"}
                 </div>
               </div>
             </div>

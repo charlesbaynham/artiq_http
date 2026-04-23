@@ -5,7 +5,7 @@
   "mcpServers": {
     "artiq": {
       "type": "http",
-      "url": "http://10.137.1.252:8000/mcp"
+      "url": "https://artiq.baynham.me/mcp"
     }
   }
 }

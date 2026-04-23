@@ -12,6 +12,7 @@ import ExperimentSubmission from "./ExperimentSubmission";
 import DatasetExplorer from "./DatasetExplorer";
 import NDScanPlotCollection from "./NDScanPlotCollection";
 import ConnectionErrorModal from "./ConnectionErrorModal";
+import ErrorBoundary from "./ErrorBoundary";
 import { get_health, get_explist } from "./api/client";
 import MobileNavigation from "./MobileNavigation";
 
@@ -166,7 +167,9 @@ function App() {
         >
           <Col>
             <CollapsibleSection title="Running">
-              <Schedule />
+              <ErrorBoundary>
+                <Schedule />
+              </ErrorBoundary>
             </CollapsibleSection>
           </Col>
         </Row>
@@ -180,7 +183,9 @@ function App() {
         >
           <Col>
             <CollapsibleSection title="Datasets" defaultExpanded={false}>
-              <DatasetExplorer />
+              <ErrorBoundary>
+                <DatasetExplorer />
+              </ErrorBoundary>
             </CollapsibleSection>
           </Col>
         </Row>
@@ -194,7 +199,9 @@ function App() {
         >
           <Col>
             <CollapsibleSection title="Plots" defaultExpanded={false}>
-              <NDScanPlotCollection />
+              <ErrorBoundary>
+                <NDScanPlotCollection />
+              </ErrorBoundary>
             </CollapsibleSection>
           </Col>
         </Row>
@@ -208,11 +215,13 @@ function App() {
         >
           <Col>
             <CollapsibleSection title="Schedule new">
-              <NewExperiment
-                explist={explist}
-                onSelect={handleSelect}
-                selectedExperiment={selectedExperiment}
-              />
+              <ErrorBoundary>
+                <NewExperiment
+                  explist={explist}
+                  onSelect={handleSelect}
+                  selectedExperiment={selectedExperiment}
+                />
+              </ErrorBoundary>
             </CollapsibleSection>
           </Col>
         </Row>
@@ -226,11 +235,13 @@ function App() {
         >
           <Col>
             <CollapsibleSection title="Configure Submission">
-              <ExperimentSubmission
-                explist={explist}
-                experiment={selectedExperiment}
-                repo_rev={repoRev}
-              />
+              <ErrorBoundary>
+                <ExperimentSubmission
+                  explist={explist}
+                  experiment={selectedExperiment}
+                  repo_rev={repoRev}
+                />
+              </ErrorBoundary>
             </CollapsibleSection>
           </Col>
         </Row>
