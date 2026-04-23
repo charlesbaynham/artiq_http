@@ -36,6 +36,7 @@ function NDScanPlot({ prefix }) {
       const axes = JSON.parse(rawData[axesKey][1]);
       const channels = JSON.parse(rawData[channelsKey][1]);
       const completed = rawData[completedKey]?.[1] ?? false;
+      const fragmentFqn = rawData[`${prefix}.fragment_fqn`]?.[1] || null;
 
       // Build channelData from raw data
       const channelData = {};
@@ -54,6 +55,7 @@ function NDScanPlot({ prefix }) {
         channelData,
         completed,
         prefix,
+        fragmentFqn,
       };
     } catch (err) {
       console.error("Error parsing NDScan data:", err);
@@ -116,8 +118,9 @@ function NDScanPlot({ prefix }) {
     );
   }
 
-  const { axes, channels, channelData, completed } = plotData;
+  const { axes, channels, channelData, completed, fragmentFqn } = plotData;
   const channelNames = Object.keys(channels);
+  const titleSuffix = fragmentFqn ? ` (${fragmentFqn})` : "";
 
   // Render different plots based on dimensionality
   if (axes.length === 0) {
@@ -126,7 +129,10 @@ function NDScanPlot({ prefix }) {
       <div className="ndscan-plot-0d p-3 border rounded">
         <div className="d-flex align-items-center mb-3">
           <ConnectionIndicator />
-          <h6 className="mb-0">0D Scan: {prefix}</h6>
+          <h6 className="mb-0">
+            0D Scan: {prefix}
+            {titleSuffix}
+          </h6>
           {completed && (
             <Badge bg="secondary" className="ms-2">
               Completed
@@ -184,7 +190,7 @@ function NDScanPlot({ prefix }) {
         <Plot
           data={traces}
           layout={{
-            title: `1D Scan: ${prefix}`,
+            title: `1D Scan: ${prefix}${titleSuffix}`,
             xaxis: { title: xLabel },
             yaxis: { title: "Value" },
             autosize: true,
@@ -239,7 +245,7 @@ function NDScanPlot({ prefix }) {
         <Plot
           data={traces}
           layout={{
-            title: `2D Scan: ${prefix}`,
+            title: `2D Scan: ${prefix}${titleSuffix}`,
             xaxis: { title: xAxis.param?.description || "Axis 0" },
             yaxis: { title: yAxis.param?.description || "Axis 1" },
             autosize: true,
