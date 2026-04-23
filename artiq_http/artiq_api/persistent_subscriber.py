@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Dict, Optional
+from typing import Callable, Dict, List, Optional
 
 from sipyco.sync_struct import Subscriber
 
@@ -24,6 +24,7 @@ class PersistentSubscriber:
         self._connected = False
         self._initialized = False  # Track if we've received initial data
         self._init_event = asyncio.Event()  # Event to wait for initialization
+        self._change_callbacks: List[Callable[[Dict], None]] = []  # Callbacks for data changes
 
     async def start(self):
         """Start the persistent subscriber"""
@@ -121,8 +122,8 @@ class PersistentSubscriber:
             def notify_callback(mod):
                 """Called when subscriber receives updates"""
                 # Updates are applied automatically to the dict we returned
-                # from init_callback, so we don't need to do anything here
-                pass
+                # from init_callback, so we just need to notify listeners
+                self._notify_change_listeners(mod)
 
             def disconnect_callback():
                 """Called when subscriber disconnects"""
@@ -187,6 +188,53 @@ class PersistentSubscriber:
             raise RuntimeError(f"Subscriber {self._notifier_name} not connected")
         # Return a copy to prevent external modifications
         return dict(self._data)
+
+    def register_change_callback(self, callback: Callable[[Dict], None]) -> None:
+        """
+        Register a callback to be called when data changes
+
+        Args:
+            callback: Function that receives the modification dict
+        """
+        if callback not in self._change_callbacks:
+            self._change_callbacks.append(callback)
+            logger.debug(
+                "Registered change callback for %s, total: %d",
+                self._notifier_name,
+                len(self._change_callbacks),
+            )
+
+    def unregister_change_callback(self, callback: Callable[[Dict], None]) -> None:
+        """
+        Unregister a previously registered callback
+
+        Args:
+            callback: The callback function to remove
+        """
+        if callback in self._change_callbacks:
+            self._change_callbacks.remove(callback)
+            logger.debug(
+                "Unregistered change callback for %s, remaining: %d",
+                self._notifier_name,
+                len(self._change_callbacks),
+            )
+
+    def _notify_change_listeners(self, mod: Dict) -> None:
+        """
+        Notify all registered callbacks of a data change
+
+        Args:
+            mod: The modification dict from sipyco
+        """
+        for callback in self._change_callbacks:
+            try:
+                callback(mod)
+            except Exception as e:
+                logger.error(
+                    "Error in change callback for %s: %s",
+                    self._notifier_name,
+                    e,
+                )
 
 
 class SubscriberManager:
@@ -272,6 +320,19 @@ class SubscriberManager:
         if "datasets" not in self._subscribers:
             raise RuntimeError("datasets subscriber not initialized")
         return self._subscribers["datasets"].get_data()
+
+    def get_datasets_subscriber(self) -> PersistentSubscriber:
+        """Get the datasets subscriber for callback registration
+
+        Returns:
+            The PersistentSubscriber for datasets
+
+        Raises:
+            RuntimeError: If subscriber is not initialized
+        """
+        if "datasets" not in self._subscribers:
+            raise RuntimeError("datasets subscriber not initialized")
+        return self._subscribers["datasets"]
 
     async def wait_for_init(self, timeout: float = 5.0) -> bool:
         """Wait for all subscribers to initialize
