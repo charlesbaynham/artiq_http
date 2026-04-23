@@ -1,0 +1,31 @@
+{
+  "enabledPlugins": {
+    "claude-code-setup@claude-plugins-official": true,
+    "mcp-server-dev@claude-plugins-official": true
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'set -e; export PATH=\"$HOME/.local/bin:$PATH\"; if ! command -v uv >/dev/null 2>&1; then curl -LsSf https://astral.sh/uv/install.sh | sh; export PATH=\"$HOME/.local/bin:$PATH\"; fi; if [ ! -d .venv ]; then uv venv; fi; uv sync; if git config core.hooksPath >/dev/null 2>&1; then git config --unset-all core.hooksPath; fi; uv run pre-commit install'",
+            "timeout": 120,
+            "statusMessage": "Setting up UV venv and pre-commit..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq 'if .tool_input.command then { hookSpecificOutput: { hookEventName: \"PreToolUse\", updatedInput: (.tool_input | .command = \"export PATH=\\\".venv/bin:$PATH\\\" 2>/dev/null; \" + .command) } } else { hookSpecificOutput: { hookEventName: \"PreToolUse\" } } end'"
+          }
+        ]
+      }
+    ]
+  }
+}

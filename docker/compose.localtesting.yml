@@ -2,7 +2,7 @@ services:
   # Test ARTIQ Master Server
   artiq-test-master:
     build:
-      context: ./test-artiq
+      context: ../test-artiq
       dockerfile: Dockerfile
     container_name: artiq-test-master
     expose:
@@ -15,13 +15,13 @@ services:
       watch:
         # Watch repository directory for experiment changes
         - action: sync+restart
-          path: ./test-artiq/repository
+          path: ../test-artiq/repository
           target: /artiq/repository
           ignore:
             - __pycache__/
         # Watch device_db.py for configuration changes
         - action: sync+restart
-          path: ./test-artiq/device_db.py
+          path: ../test-artiq/device_db.py
           target: /artiq/device_db.py
 
   # Override backend to connect to test ARTIQ master

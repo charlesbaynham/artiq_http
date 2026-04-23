@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -276,9 +277,140 @@ async def cancel_experiment(rid: int, force: bool = False) -> None:
     return await api.control_schedule.cancel_experiment(rid, force)
 
 
+def _filter_experiment_fields(
+    exp: api.models.ExperimentEntry,
+    fields: set[str],
+    full: bool,
+) -> api.models.ExperimentEntry:
+    """Return a new ExperimentEntry containing only *fields*.
+
+    When ``arginfo`` is in *fields* and ``full`` is False, the ndscan_params
+    inside arginfo are filtered to only the ``always_shown`` parameters.
+    """
+    data = exp.model_dump()
+    filtered: dict[str, Any] = {k: v for k, v in data.items() if k in fields}
+    if "arginfo" in filtered and not full:
+        filtered["arginfo"] = api.notifiers._filter_ndscan_always_shown(filtered["arginfo"])
+    return api.models.ExperimentEntry.model_validate(filtered)
+
+
 @router.get("/explist")
-async def get_explist() -> api.models.ExperimentList:
-    return await api.notifiers.get_explist()
+async def get_explist(
+    fields: str = "name,file,class_name,docstring",
+    full: bool = False,
+) -> api.models.ExperimentList:
+    requested = {f.strip() for f in fields.split(",") if f.strip()}
+    explist = await api.notifiers.get_explist()
+    return api.models.ExperimentList(
+        current_rev=explist.current_rev,
+        scanning=explist.scanning,
+        experiments=[_filter_experiment_fields(exp, requested, full) for exp in explist.experiments],
+    )
+
+
+@router.get("/schedule/{rid}")
+async def get_schedule_item(rid: int) -> api.models.ScheduleItem:
+    schedule = await api.notifiers.get_schedule()
+    if rid not in schedule:
+        raise HTTPException(404, f"RID {rid} not found in schedule")
+    return schedule[rid]
+
+
+# NOTE: must be registered before /{file:path} routes to avoid {file:path} consuming "search"
+@router.get("/explist/search")
+async def search_explist(
+    q: str = "",
+    fields: str = "name,file,class_name,docstring",
+    full: bool = False,
+) -> api.models.ExperimentList:
+    requested = {f.strip() for f in fields.split(",") if f.strip()}
+    explist = await api.notifiers.get_explist()
+    if not q:
+        filtered_exps = explist.experiments
+    else:
+        q_lower = q.lower()
+        filtered_exps = [
+            exp
+            for exp in explist.experiments
+            if q_lower in exp.name.lower() or q_lower in exp.file.lower() or q_lower in exp.class_name.lower()
+        ]
+    return api.models.ExperimentList(
+        current_rev=explist.current_rev,
+        scanning=explist.scanning,
+        experiments=[_filter_experiment_fields(exp, requested, full) for exp in filtered_exps],
+    )
+
+
+@router.get("/explist/{file:path}/{class_name}/defaults")
+async def get_explist_defaults(file: str, class_name: str) -> api.models.ExperimentDefaults:
+    explist = await api.notifiers.get_explist()
+    for exp in explist.experiments:
+        if exp.file == file and exp.class_name == class_name:
+            return api.models.ExperimentDefaults(
+                file=exp.file,
+                class_name=exp.class_name,
+                arguments=api.notifiers.extract_arginfo_defaults(exp.arginfo),
+            )
+    raise HTTPException(404, f"Experiment {file}/{class_name} not found")
+
+
+@router.get("/explist/{file:path}/{class_name}/arginfo")
+async def get_explist_arginfo(file: str, class_name: str) -> api.models.ExperimentArginfo:
+    """Return the full arginfo (including complete ndscan_params) for a single experiment."""
+    explist = await api.notifiers.get_explist()
+    for exp in explist.experiments:
+        if exp.file == file and exp.class_name == class_name:
+            return api.models.ExperimentArginfo(
+                file=exp.file,
+                class_name=exp.class_name,
+                arginfo=exp.arginfo,
+            )
+    raise HTTPException(404, f"Experiment {file}/{class_name} not found")
+
+
+@router.post("/schedule/submit-and-wait")
+async def submit_and_wait(
+    expid: api.models.ExpID,
+    pipeline: str = "main",
+    priority: int = 0,
+    flush: bool = False,
+    due_date: float = None,
+    timeout: float = 60.0,
+) -> api.models.SubmitAndWaitResult:
+    """Submit an experiment and wait for it to complete.
+
+    Args:
+        expid: Experiment ID specification
+        pipeline: Pipeline name (default: "main")
+        priority: Scheduling priority (default: 0)
+        flush: Whether to flush the pipeline (default: False)
+        due_date: Optional due date as Unix timestamp
+        timeout: Max seconds to wait (default: 60, max: 300)
+
+    Returns:
+        SubmitAndWaitResult with rid, status, and timed_out fields
+    """
+    timeout = min(timeout, 300.0)
+    try:
+        rid = await api.control_schedule.submit_experiment(
+            expid,
+            pipeline,
+            priority,
+            flush,
+            due_date,
+        )
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+    elapsed = 0.0
+    while elapsed < timeout:
+        schedule = await api.notifiers.get_schedule()
+        if rid not in schedule:
+            return api.models.SubmitAndWaitResult(rid=rid, status="completed", timed_out=False)
+        await asyncio.sleep(1)
+        elapsed += 1.0
+
+    return api.models.SubmitAndWaitResult(rid=rid, status="timeout", timed_out=True)
 
 
 @router.post("/schedule")
@@ -288,7 +420,7 @@ async def submit_experiment(
     priority: int = 0,
     flush: bool = False,
     due_date: float = None,
-) -> None:
+) -> int:
     try:
         return await api.control_schedule.submit_experiment(
             expid,

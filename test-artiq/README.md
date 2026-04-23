@@ -20,7 +20,7 @@ This directory contains a Docker-based ARTIQ master setup for local testing and 
 3. **Verify connectivity**:
    ```bash
    # From the project root
-   poetry run sipyco_rpctool 127.0.0.1 3251 list-targets
+   uv run sipyco_rpctool 127.0.0.1 3251 list-targets
    ```
 
 4. **Interact with the master**:

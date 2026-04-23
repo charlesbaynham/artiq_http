@@ -55,7 +55,7 @@ def test_cancel_experiment_with_force(mock_cancel, mock_get_schedule):
 @patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
 def test_submit_experiment_success(mock_submit):
     """Test POST /schedule with valid experiment"""
-    mock_submit.return_value = None
+    mock_submit.return_value = 42
 
     expid_data = {
         "log_level": 30,
@@ -67,12 +67,13 @@ def test_submit_experiment_success(mock_submit):
 
     response = client.post("/api/schedule?pipeline=main&priority=0&flush=false", json=expid_data)
     assert response.status_code == 200
+    assert response.json() == 42
 
 
 @patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
 def test_submit_experiment_with_due_date(mock_submit):
     """Test POST /schedule with due_date parameter"""
-    mock_submit.return_value = None
+    mock_submit.return_value = 43
 
     expid_data = {
         "log_level": 30,
@@ -87,6 +88,7 @@ def test_submit_experiment_with_due_date(mock_submit):
         json=expid_data,
     )
     assert response.status_code == 200
+    assert response.json() == 43
 
 
 @patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)

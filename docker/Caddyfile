@@ -8,6 +8,9 @@ http://, https://localhost {
     handle /openapi.json {
         reverse_proxy {$API_URL:http://backend:8000}
     }
+    handle /mcp* {
+        reverse_proxy {$MCP_URL:http://mcp:8001}
+    }
     handle {
         root * /srv/result
         encode gzip zstd

@@ -264,21 +264,6 @@ function NewNDScanItem(props) {
     return item;
   });
 
-  // Filter parameters based on search term
-  const searchSelectedFQNs = paramSearchTerm
-    ? Object.entries(allParams)
-        .filter(([fqn, schema]) => {
-          return (
-            fqn.toLowerCase().includes(paramSearchTerm.toLowerCase()) ||
-            (schema.description &&
-              schema.description
-                .toLowerCase()
-                .includes(paramSearchTerm.toLowerCase()))
-          );
-        })
-        .map(([fqn, schema]) => fqn)
-    : [];
-
   // Construct filtered parameters for display
   // If useDefaultVisibility is true, include always shown params
   // Add all the parameters that have been manually selected and added to visibleFqns
@@ -287,11 +272,18 @@ function NewNDScanItem(props) {
     ...visibleFqns,
   ]);
 
-  const filteredParams = Object.entries(allParams).filter(([fqn, schema]) => {
-    return combinedFQNs.has(fqn);
-  });
-
-  console.log("Filtered parameters:", filteredParams);
+  // Parameters matching the search term (for the search dropdown)
+  const searchResults = paramSearchTerm
+    ? Object.entries(allParams).filter(([fqn, schema]) => {
+        return (
+          fqn.toLowerCase().includes(paramSearchTerm.toLowerCase()) ||
+          (schema.description &&
+            schema.description
+              .toLowerCase()
+              .includes(paramSearchTerm.toLowerCase()))
+        );
+      })
+    : [];
 
   return (
     <Card className="shadow-sm border-0">
@@ -365,7 +357,7 @@ function NewNDScanItem(props) {
                 {(() => {
                   // If search term is active, show flat filtered list
                   if (paramSearchTerm) {
-                    if (filteredParams.length === 0) {
+                    if (searchResults.length === 0) {
                       return (
                         <div className="p-2 text-center text-muted small">
                           No parameters found
@@ -373,19 +365,19 @@ function NewNDScanItem(props) {
                       );
                     }
 
-                    return filteredParams.map(([fqn, schema]) => (
+                    return searchResults.map(([fqn, schema]) => (
                       <div
                         key={fqn}
                         className="p-1 px-2 d-flex justify-content-between align-items-center border-bottom small ndscan-param-row"
                         style={{
-                          backgroundColor: visibleFqns.has(fqn)
+                          backgroundColor: combinedFQNs.has(fqn)
                             ? "#e7f1ff"
                             : "transparent",
                         }}
                         onClick={() => {
                           // On mobile, clicking anywhere toggles visibility
                           if (window.innerWidth < 768) {
-                            if (visibleFqns.has(fqn)) {
+                            if (combinedFQNs.has(fqn)) {
                               removeFQNFromVisibleParams(fqn);
                             } else {
                               addFQNToVisibleParams(fqn);
@@ -406,14 +398,14 @@ function NewNDScanItem(props) {
                         <Button
                           size="sm"
                           variant={
-                            visibleFqns.has(fqn)
+                            combinedFQNs.has(fqn)
                               ? "outline-danger"
                               : "outline-primary"
                           }
                           onClick={(e) => {
                             // Prevent double-firing on mobile
                             e.stopPropagation();
-                            if (visibleFqns.has(fqn)) {
+                            if (combinedFQNs.has(fqn)) {
                               removeFQNFromVisibleParams(fqn);
                             } else {
                               addFQNToVisibleParams(fqn);
@@ -422,7 +414,7 @@ function NewNDScanItem(props) {
                           style={{ padding: "0 0.5rem" }}
                           className="desktop-only"
                         >
-                          {visibleFqns.has(fqn) ? "Hide" : "Show"}
+                          {combinedFQNs.has(fqn) ? "Hide" : "Show"}
                         </Button>
                       </div>
                     ));
@@ -464,14 +456,14 @@ function NewNDScanItem(props) {
                                     key={fqn}
                                     className="p-1 px-2 d-flex justify-content-between align-items-center border-bottom small ndscan-param-row"
                                     style={{
-                                      backgroundColor: visibleFqns.has(fqn)
+                                      backgroundColor: combinedFQNs.has(fqn)
                                         ? "#e7f1ff"
                                         : "transparent",
                                     }}
                                     onClick={() => {
                                       // On mobile, clicking anywhere toggles visibility
                                       if (window.innerWidth < 768) {
-                                        if (visibleFqns.has(fqn)) {
+                                        if (combinedFQNs.has(fqn)) {
                                           removeFQNFromVisibleParams(fqn);
                                         } else {
                                           addFQNToVisibleParams(fqn);
@@ -492,14 +484,14 @@ function NewNDScanItem(props) {
                                     <Button
                                       size="sm"
                                       variant={
-                                        visibleFqns.has(fqn)
+                                        combinedFQNs.has(fqn)
                                           ? "outline-danger"
                                           : "outline-primary"
                                       }
                                       onClick={(e) => {
                                         // Prevent double-firing on mobile
                                         e.stopPropagation();
-                                        if (visibleFqns.has(fqn)) {
+                                        if (combinedFQNs.has(fqn)) {
                                           removeFQNFromVisibleParams(fqn);
                                         } else {
                                           addFQNToVisibleParams(fqn);
@@ -508,7 +500,7 @@ function NewNDScanItem(props) {
                                       style={{ padding: "0 0.5rem" }}
                                       className="desktop-only"
                                     >
-                                      {visibleFqns.has(fqn) ? "Hide" : "Show"}
+                                      {combinedFQNs.has(fqn) ? "Hide" : "Show"}
                                     </Button>
                                   </div>
                                 ))}

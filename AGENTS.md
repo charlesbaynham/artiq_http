@@ -6,7 +6,7 @@ A controller for ARTIQ which exposes ARTIQ's functionality as a RESTful API
 
 - **Tech Stack:** Python/FastAPI
 - **Database:** None
-- **Dev Environment:** Local (Poetry)
+- **Dev Environment:** Local (uv)
 
 ## Quick Start
 
@@ -20,6 +20,13 @@ See README.rst for instructions
   - `config.py` - Configuration
   - `artiq_api/` - ARTIQ API wrapper modules
 - `frontend/` - React frontend
+- `docker/` - Container and compose configuration for backend/frontend deployment
+  - `compose.yml` - Main backend/frontend compose stack
+  - `compose.localtesting.yml` - Local ARTIQ test stack override
+  - `compose.watchtower.yml` - Watchtower auto-update override
+  - `Dockerfile.backend` - Backend image definition
+  - `Dockerfile.frontend` - Frontend image definition
+  - `Caddyfile` - Frontend reverse-proxy/static serving config
 - `test-artiq/` - Local ARTIQ test environment (Docker). This directory mimics the structure of an external ARTIQ experiment repository for testing purposes, but is a subdirectory of this project.
   - `repository/` - Minimal experiments for testing. This folder represents the root of the "mock" ARTIQ repository. Note that it is not a git repository, despite the name.
   - `Dockerfile` - ARTIQ + ndscan image
@@ -32,7 +39,7 @@ See README.rst for instructions
 - Follow PEP 8 style guidelines
 - Use type hints for all functions
 - Write tests for new functionality
-- Use Poetry for dependency management
+- Use uv for dependency management
 - Run `ruff check` before committing
 - Always run unit tests after making changes and fix issues before finishing
 - If on the master branch, be sparing with commits - one per feature
@@ -44,7 +51,7 @@ See README.rst for instructions
 After any major change to the backend or experiment discovery logic, you **must** verify the changes against the local ARTIQ test environment:
 
 1. Start the local master: `cd test-artiq && docker compose up -d`
-2. Verify connectivity: `poetry run sipyco_rpctool 127.0.0.1 3251 list-targets`
+2. Verify connectivity: `uv run sipyco_rpctool 127.0.0.1 3251 list-targets`
 3. Check logs for experiment discovery errors: `docker compose logs artiq-master`
 
 See `test-artiq/README.md` (or the walkthrough) for more details.
@@ -55,17 +62,19 @@ To run the unit tests, use the following commands:
 
 ```bash
 # Run basic tests
-poetry run pytest
+uv run pytest
 
 # Run all tests, including those requiring a real ARTIQ stack (Docker)
-poetry run pytest --realserver
+uv run pytest --realserver
 
 # Run with coverage
-poetry run coverage run -m pytest --realserver
-poetry run coverage report
+uv run coverage run -m pytest --realserver
+uv run coverage report
 ```
 
 ## Agent Configuration
+
+> **TODO:** `userConfig` in the `.claude-plugin/plugin.json` is temporarily hard-coded to `http://10.137.1.252:8000/mcp` because `userConfig` support is broken pending https://github.com/anthropics/claude-code/issues/39827. Future agent runs should check whether that issue is resolved before reintroducing `userConfig`.
 
 This project includes agent configuration in the `.agent/` directory:
 - `.agent/settings.local.json` - Permissions and auto-approval settings
@@ -75,9 +84,9 @@ This project includes agent configuration in the `.agent/` directory:
 
 ## Versioning
 
-This project uses manual semantic versioning. The version is stored in both:
-- `VERSION.json` - Primary source of truth
-- `pyproject.toml` - Poetry configuration (must match VERSION.json)
+This project uses manual semantic versioning with hard-coded version strings. The version is stored in both:
+- `artiq_http/__init__.py` - Runtime package version (`__version__`)
+- `pyproject.toml` - Packaging metadata version
 
 **When making changes, update the version according to Semantic Versioning (semver) principles:**
 - **MAJOR** (X.0.0): Breaking changes to the API
@@ -86,7 +95,7 @@ This project uses manual semantic versioning. The version is stored in both:
 
 **Update both files whenever you make changes:**
 1. Determine the appropriate version increment based on the changes
-2. Update `VERSION.json`
+2. Update `artiq_http/__init__.py` (`__version__`)
 3. Update the `version` field in `pyproject.toml` to match
 
 ## Agent documentation

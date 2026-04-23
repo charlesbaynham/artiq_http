@@ -9,7 +9,7 @@ class ExpID(BaseModel):
     file: str
     class_name: str
     arguments: Optional[Dict[str, Any]]
-    repo_rev: Optional[str]
+    repo_rev: Optional[str] = None
 
 
 class ScheduleItem(BaseModel):
@@ -26,12 +26,31 @@ class ExperimentEntry(BaseModel):
     name: str
     file: str
     class_name: str
-    arginfo: Dict[str, Any]
-    argument_ui: Optional[str]
-    scheduler_defaults: dict
+    arginfo: Optional[Dict[str, Any]] = None
+    argument_ui: Optional[str] = None
+    scheduler_defaults: Optional[dict] = None
+    docstring: Optional[str] = None
 
 
 class ExperimentList(BaseModel):
     current_rev: Optional[str]
     scanning: bool
     experiments: List[ExperimentEntry] = []
+
+
+class ExperimentDefaults(BaseModel):
+    file: str
+    class_name: str
+    arguments: Dict[str, Any]
+
+
+class ExperimentArginfo(BaseModel):
+    file: str
+    class_name: str
+    arginfo: Dict[str, Any]
+
+
+class SubmitAndWaitResult(BaseModel):
+    rid: int
+    status: str
+    timed_out: bool

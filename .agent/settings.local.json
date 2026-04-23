@@ -3,17 +3,17 @@
     "allow": [
       "Bash(tree:*)",
       "Bash(cat:*)",
-      "Bash(poetry install:*)",
-      "Bash(poetry run python:*)",
-      "Bash(poetry run aqctl_artiq_http:*)",
-      "Bash(poetry build:*)",
-      "Bash(poetry show:*)",
+      "Bash(uv sync:*)",
+      "Bash(uv run python:*)",
+      "Bash(uv run aqctl_artiq_http:*)",
+      "Bash(uv build:*)",
+      "Bash(uv pip list:*)",
       "Bash(unzip:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(python -m pytest:*)",
-      "Bash(poetry --version:*)",
-      "Bash(poetry run pytest:*)",
+      "Bash(uv --version:*)",
+      "Bash(uv run pytest:*)",
       "Bash(curl:*)"
     ]
   }
