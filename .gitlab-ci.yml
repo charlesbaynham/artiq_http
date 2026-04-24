@@ -63,7 +63,7 @@ compute-test-master-hash:
     - nix-channel --update
   after_script: []  # Skip cache upload since we don't build the image here    
   cache:
-    - !reference [.nix, cache]
+    policy: pull
   script:
     - cd test-artiq
     - |
