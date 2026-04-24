@@ -4,12 +4,14 @@
 import asyncio
 import json
 
+import pytest
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
 MCP_URL = "http://localhost:8001/mcp"
 
 
+@pytest.mark.realserver
 async def test_all():
     print("=" * 70)
     print("CONNECTING TO MCP SERVER")
