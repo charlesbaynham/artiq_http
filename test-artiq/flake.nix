@@ -49,9 +49,9 @@
             oitg
             pyqt6
             pyqtgraph
-            qasync
           ];
           doCheck = false;
+          dontWrapQtApps = true;
         };
         artiq-repo = pkgs.stdenv.mkDerivation {
           name = "artiq-repo";
