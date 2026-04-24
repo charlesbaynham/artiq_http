@@ -9,6 +9,7 @@ stages:
   - Compile Documentation
   - Build Documentation
   - Docker
+  - AI
 
 # Include the GitLab CI Nix template for caching support
 include:
@@ -234,3 +235,39 @@ docker-mcp:
   extends: .docker-build
   variables:
     IMAGE_NAME: mcp
+
+### Claude Code — General-Purpose Coding Assistant ###
+
+# Triggered explicitly via @claude mention in MR/issue comments.
+# Requires a project webhook that listens for note/comment events and calls
+# the GitLab pipeline trigger API with AI_FLOW_INPUT + AI_FLOW_CONTEXT when
+# @claude is detected. The job is skipped for all normal CI events.
+#
+# Examples:
+#   "@claude review this MR"        → code review
+#   "@claude solve issue 2"         → implement fix from issue
+#   "@claude refactor the SSE code" → general coding task
+#   "@claude write tests for api.py" → generate tests
+claude-code:
+  stage: AI
+  image: node:24-alpine3.21
+  rules:
+    # Only run when triggered via trigger API with AI_FLOW_* variables
+    - if: '$CI_PIPELINE_SOURCE == "trigger" && $AI_FLOW_INPUT'
+      when: always
+    - when: never
+  variables:
+    GIT_STRATEGY: fetch
+  before_script:
+    - apk update
+    - apk add --no-cache git curl bash jq
+    - curl -fsSL https://claude.ai/install.sh | bash
+  script:
+    # Optionally start GitLab MCP server if available in the image
+    - /bin/gitlab-mcp-server || true
+    - >
+      claude
+      -p "${AI_FLOW_INPUT}"
+      --permission-mode acceptEdits
+      --allowedTools "Bash Read Edit Write mcp__gitlab"
+      --debug
