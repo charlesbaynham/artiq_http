@@ -25,7 +25,8 @@
             cp device_db.py $out/artiq/
           '';
         };
-      in {
+      in rec {
+        packages.default = packages.docker;
         packages.docker = pkgs.dockerTools.buildImage {
           name = "artiq-test-master";
           tag = "latest";
