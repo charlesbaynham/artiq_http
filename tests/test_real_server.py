@@ -1,7 +1,11 @@
+import asyncio
 import json
 from pathlib import Path
 
+import httpx
 import pytest
+
+from artiq_http.main import fastapi_app
 
 LOG_DIR = Path(__file__).parent / "logs"
 
@@ -46,25 +50,138 @@ def test_get_explist(client):
     assert "current_rev" in data
 
 
-def test_datasets_stream_sends_init_event(client):
-    """Test SSE dataset stream returns an init event and stream headers."""
-    datasets_response = client.get("/api/datasets")
-    assert datasets_response.status_code == 200
-    datasets = datasets_response.json()
+def _get_ndscan_experiment(client) -> dict:
+    response = client.get("/api/explist?fields=file,class_name,arginfo&full=true")
+    assert response.status_code == 200
 
-    prefix = "ndscan.rid_missing"
-    for key in datasets:
-        if "." in key:
-            prefix = key.rsplit(".", 1)[0]
-            break
+    experiments = response.json()["experiments"]
+    for experiment in experiments:
+        arginfo = experiment.get("arginfo") or {}
+        if "ndscan_params" not in arginfo:
+            continue
 
-    with client.stream("GET", f"/api/datasets/stream/{prefix}") as response:
-        assert response.status_code == 200
-        assert response.headers["content-type"].startswith("text/event-stream")
-        assert response.headers["cache-control"] == "no-cache"
-        assert response.headers["connection"] == "keep-alive"
-        assert response.headers["x-accel-buffering"] == "no"
+        schemata = json.loads(arginfo["ndscan_params"][0]["default"])["schemata"]
+        if any(key.endswith(".frequency") for key in schemata) and any(key.endswith(".amplitude") for key in schemata):
+            return experiment
 
-        first_chunk = next(response.iter_text())
+    pytest.skip("No suitable ndscan experiment with frequency/amplitude parameters available")
 
-    assert first_chunk.startswith("event: init\n")
+
+def _build_ndscan_arguments(arginfo: dict) -> dict:
+    ndscan_params = json.loads(arginfo["ndscan_params"][0]["default"])
+    schemata = ndscan_params["schemata"]
+
+    fqn_to_path = {}
+    for path, fqns in ndscan_params["instances"].items():
+        for fqn in fqns:
+            fqn_to_path.setdefault(fqn, path)
+
+    def find_fqn(param_name: str) -> str:
+        for fqn in schemata:
+            if fqn.endswith(f".{param_name}"):
+                return fqn
+        raise AssertionError(f"Missing ndscan parameter: {param_name}")
+
+    overrides = {}
+    for param_name, value in {
+        "frequency": 25_000_000.0,
+        "amplitude": 0.8,
+        "enable_noise": False,
+    }.items():
+        fqn = find_fqn(param_name)
+        overrides[fqn] = [{"path": fqn_to_path.get(fqn, ""), "value": value}]
+
+    ndscan_params["overrides"] = overrides
+    return {"ndscan_params": json.dumps(ndscan_params)}
+
+
+async def _collect_sse_events(prefix: str, timeout: float = 10.0) -> tuple[httpx.Headers, list[dict], dict]:
+    events = []
+    state = {}
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=fastapi_app),
+        base_url="http://testserver",
+        timeout=timeout,
+    ) as async_client:
+        async with async_client.stream("GET", f"/api/datasets/stream/{prefix}") as response:
+            line_iter = response.aiter_lines()
+            current_event = None
+            data_lines = []
+
+            while True:
+                line = await asyncio.wait_for(anext(line_iter), timeout=timeout)
+
+                if not line:
+                    if current_event is None:
+                        continue
+
+                    payload = json.loads("\n".join(data_lines)) if data_lines else None
+                    events.append({"event": current_event, "data": payload})
+
+                    if current_event in {"init", "update"} and isinstance(payload, dict):
+                        state.update(payload)
+
+                    if current_event == "delete" and isinstance(payload, dict) and payload.get("key"):
+                        state.pop(payload["key"], None)
+
+                    signal_key = f"{prefix}.point.signal"
+                    completed_key = f"{prefix}.completed"
+                    if signal_key in state and completed_key in state and state[completed_key][1] is True:
+                        return response.headers, events, state
+
+                    current_event = None
+                    data_lines = []
+                    continue
+
+                if line.startswith("event: "):
+                    current_event = line.removeprefix("event: ")
+                elif line.startswith("data: "):
+                    data_lines.append(line.removeprefix("data: "))
+
+
+def test_datasets_stream_collects_real_ndscan_data(client):
+    """Submit a real ndscan experiment and verify SSE exposes its signal datasets."""
+    health_response = client.get("/api/health")
+    assert health_response.status_code == 200
+    assert health_response.json()["artiq_connected"] is True
+
+    experiment = _get_ndscan_experiment(client)
+    arguments = _build_ndscan_arguments(experiment["arginfo"])
+
+    submit_response = client.post(
+        "/api/schedule",
+        json={
+            "log_level": 30,
+            "file": experiment["file"],
+            "class_name": experiment["class_name"],
+            "arguments": arguments,
+            "repo_rev": "repository",
+        },
+    )
+    assert submit_response.status_code == 200
+    rid = submit_response.json()
+
+    prefix = f"ndscan.rid_{rid}"
+    headers, events, state = asyncio.run(_collect_sse_events(prefix))
+
+    LOG_DIR.mkdir(exist_ok=True)
+    (LOG_DIR / "sse_ndscan_events_debug.json").write_text(json.dumps(events, indent=2))
+    (LOG_DIR / "sse_ndscan_state_debug.json").write_text(json.dumps(state, indent=2))
+
+    assert headers["content-type"].startswith("text/event-stream")
+    assert headers["cache-control"] == "no-cache"
+    assert headers["connection"] == "keep-alive"
+    assert headers["x-accel-buffering"] == "no"
+
+    signal_key = f"{prefix}.point.signal"
+    completed_key = f"{prefix}.completed"
+    channels_key = f"{prefix}.channels"
+
+    assert any(event["event"] == "init" for event in events)
+    assert signal_key in state
+    assert channels_key in state
+    assert completed_key in state
+    assert state[completed_key][1] is True
+    assert isinstance(state[signal_key][1], (int, float))
+    assert abs(state[signal_key][1] - 0.8) < 1e-6

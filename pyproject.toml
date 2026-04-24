@@ -1,6 +1,6 @@
 [project]
 name = "artiq_http"
-version = "0.5.3"
+version = "0.5.5"
 description = "A controller for ARTIQ which exposes ARTIQ's functionality as a RESTful API"
 authors = [
     { name = "Charles Baynham", email = "charles.baynham@gmail.com" }
