@@ -3,12 +3,56 @@
     extrapkg.url =
       "git+https://git.m-labs.hk/M-Labs/artiq-extrapkg.git?ref=release-9";
     flake-utils.url = "github:numtide/flake-utils";
+    ndscan-src = {
+      url = "github:OxfordIonTrapGroup/ndscan";
+      flake = false;
+    };
+    oitg-src = {
+      url = "github:OxfordIonTrapGroup/oitg";
+      flake = false;
+    };
   };
-  outputs = { self, extrapkg, flake-utils }:
+  outputs = { self, extrapkg, flake-utils, ndscan-src, oitg-src }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = extrapkg.pkgs;
         artiq = extrapkg.packages.${system};
+        py = pkgs.python3;
+
+        oitg = py.pkgs.buildPythonPackage {
+          pname = "oitg";
+          version = "0.1.0";
+          src = oitg-src;
+          pyproject = true;
+          postPatch = ''
+            substituteInPlace pyproject.toml \
+              --replace-warn \
+                'requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]' \
+                'requires = ["poetry-core>=1.0.0"]' \
+              --replace-warn 'version = "0.1"' 'version = "0.1.0"'
+          '';
+          build-system = with py.pkgs; [ poetry-core ];
+          dependencies = with py.pkgs; [ statsmodels scipy numpy h5py ];
+          doCheck = false;
+        };
+
+        ndscan = py.pkgs.buildPythonPackage {
+          pname = "ndscan";
+          version = "0.4.0";
+          src = ndscan-src;
+          pyproject = true;
+          build-system = with py.pkgs; [ hatchling ];
+          dependencies = with py.pkgs; [
+            artiq.artiq
+            h5py
+            numpy
+            oitg
+            pyqt6
+            pyqtgraph
+            qasync
+          ];
+          doCheck = false;
+        };
         artiq-repo = pkgs.stdenv.mkDerivation {
           name = "artiq-repo";
           src = ./.;
@@ -22,11 +66,12 @@
         artiqEnv = pkgs.buildEnv {
           name = "artiq-env";
           paths = [
-            (pkgs.python3.withPackages (ps: [
+            (py.withPackages (ps: [
               # List desired Python packages here.
               artiq.artiq
               ps.paramiko # needed if and only if flashing boards remotely (artiq_flash -H)
               artiq.flake8-artiq
+              ndscan
             ]))
           ];
         };

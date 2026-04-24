@@ -344,6 +344,22 @@
         "type": "github"
       }
     },
+    "ndscan-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1774637836,
+        "narHash": "sha256-bZtSUCuCfh7GXyKO/OKbKVu4aaW80RRCSFJ6clTqG3g=",
+        "owner": "OxfordIonTrapGroup",
+        "repo": "ndscan",
+        "rev": "34e6fec30a7fb77d52bfe2d14157ccd447682543",
+        "type": "github"
+      },
+      "original": {
+        "owner": "OxfordIonTrapGroup",
+        "repo": "ndscan",
+        "type": "github"
+      }
+    },
     "nix-servo": {
       "inputs": {
         "nixpkgs": [
@@ -416,10 +432,28 @@
         "type": "github"
       }
     },
+    "oitg-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1776939731,
+        "narHash": "sha256-UZZngzukVVeT6dGA6hfCH3N6RNxPFASGHMGZMOtwstU=",
+        "owner": "OxfordIonTrapGroup",
+        "repo": "oitg",
+        "rev": "5bdf4f83fde01c37abdf6756b657d6e655d4951b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "OxfordIonTrapGroup",
+        "repo": "oitg",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "extrapkg": "extrapkg",
-        "flake-utils": "flake-utils_4"
+        "flake-utils": "flake-utils_4",
+        "ndscan-src": "ndscan-src",
+        "oitg-src": "oitg-src"
       }
     },
     "rust-analyzer-src": {
