@@ -44,10 +44,33 @@ A local ARTIQ master can be run using Docker for testing without a real physical
 
     # Start the local ARTIQ master
     cd test-artiq
+    nix build .#docker --accept-flake-config
+    docker load < result
     docker compose up -d
 
     # The master will be available on the default ARTIQ ports (3250-3251)
     # The default configuration in artiq_http is set to use 127.0.0.1
+
+**Running real-server tests locally:**
+
+The ``--realserver`` test suite talks to that local ARTIQ master.
+
+.. code-block:: bash
+
+    cd test-artiq
+    nix build .#docker --accept-flake-config
+    docker load < result
+    docker compose up -d
+    cd ..
+    uv run pytest --realserver
+
+To inspect or reset the test stack:
+
+.. code-block:: bash
+
+    cd test-artiq
+    docker compose logs artiq-master
+    docker compose down -v
 
 **Tests:**
 
