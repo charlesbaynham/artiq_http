@@ -50,6 +50,31 @@ pre-commit:
 ### Tests ###
 
 # Build the test master image using Nix with caching
+compute-test-master-hash:
+  stage: Prepare
+  extends: .nix
+  variables:
+    NIX_CONFIG: |
+      experimental-features = nix-command flakes
+      accept-flake-config = true
+  before_script:
+    - !reference [.nix, before_script]
+    - nix-channel --add https://nixos.org/channels/nixos-24.11 nixpkgs
+    - nix-channel --update
+  cache:
+    - !reference [.nix, cache]
+  script:
+    - cd test-artiq
+    - |
+      set -euo pipefail
+      HASH=$(nix eval --json .#docker.outPath | tr '/' '\n' | tail -1 | cut -d'-' -f1)
+      echo "ARTIQ_TEST_MASTER_HASH=$HASH" >> build.env
+      echo "Image hash: $HASH"
+  needs: []
+  artifacts:
+    reports:
+      dotenv: test-artiq/build.env
+
 build-test-master:
   stage: Prepare
   extends: .nix
@@ -86,6 +111,12 @@ build-test-master:
         docker push "$CI_REGISTRY_IMAGE/test-master:$HASH"
       fi
   needs: []
+  rules:
+    - changes:
+        paths:
+          - test-artiq/**/*
+      when: always
+    - when: never
   artifacts:
     reports:
       dotenv: test-artiq/build.env
@@ -117,7 +148,7 @@ pytest:
     - uv run coverage run --omit "tests/*" -m pytest --realserver --junitxml=report.xml
     - uv run coverage report
   coverage: '/^TOTAL.+?(\d+\%)$/'
-  needs: ["build-test-master"]
+  needs: ["compute-test-master-hash"]
   artifacts:
     when: always
     reports:
