@@ -10,7 +10,13 @@ This directory contains a Docker-based ARTIQ master setup for local testing and 
 
 ## Getting Started
 
-1. **Start the environment**:
+1. **Build the image** (requires Nix with flakes enabled):
+   ```bash
+   nix build .#docker
+   docker load < result
+   ```
+
+2. **Start the environment**:
    ```bash
    docker compose up -d
    ```
@@ -32,7 +38,7 @@ This directory contains a Docker-based ARTIQ master setup for local testing and 
 
 ## Repository Structure
 
-- `Dockerfile`: Debian-based image with `micromamba` and ARTIQ environment.
+- `flake.nix`: Nix flake defining the ARTIQ environment and Docker image.
 - `docker-compose.yml`: Orchestration for the master.
 - `device_db.py`: A minimal device database.
 - `repository/`: Contains experiments that are automatically scanned by the master.
@@ -40,6 +46,6 @@ This directory contains a Docker-based ARTIQ master setup for local testing and 
 ## Troubleshooting
 
 - **Check logs**: `docker compose logs artiq-master`
-- **Rebuild**: `docker compose up -d --build`
+- **Rebuild**: `nix build .#docker && docker load < result && docker compose up -d`
 - **Binding**: The master is configured to bind to all interfaces (`--bind *`).
 - **ndscan parameters**: Ensure `setattr_param` calls include the description before defaults.
