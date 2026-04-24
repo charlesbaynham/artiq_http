@@ -4,12 +4,12 @@
       "inputs": {
         "flake-utils": "flake-utils",
         "nixpkgs": [
-          "artiq-extrapkg",
+          "extrapkg",
           "artiqpkgs",
           "nixpkgs"
         ],
         "sipyco": [
-          "artiq-extrapkg",
+          "extrapkg",
           "artiqpkgs",
           "sipyco"
         ]
@@ -28,42 +28,20 @@
         "url": "https://git.m-labs.hk/M-Labs/artiq-comtools.git"
       }
     },
-    "artiq-extrapkg": {
-      "inputs": {
-        "artiqpkgs": "artiqpkgs",
-        "daxpkgs": "daxpkgs",
-        "kirdy": "kirdy",
-        "nix-servo": "nix-servo"
-      },
-      "locked": {
-        "lastModified": 1776425356,
-        "narHash": "sha256-lRMlAhxulysdhd+M2uU7ksP+EgCRtVtbI7mGV79ruNw=",
-        "ref": "release-9",
-        "rev": "45b0b23699795fd43d11bfa1bf36f24c921bdacd",
-        "revCount": 198,
-        "type": "git",
-        "url": "https://git.m-labs.hk/M-Labs/artiq-extrapkg.git"
-      },
-      "original": {
-        "ref": "release-9",
-        "type": "git",
-        "url": "https://git.m-labs.hk/M-Labs/artiq-extrapkg.git"
-      }
-    },
     "artiq-stubs": {
       "inputs": {
         "artiqpkgs": [
-          "artiq-extrapkg",
+          "extrapkg",
           "daxpkgs",
           "artiqpkgs"
         ],
         "flake8-artiq": [
-          "artiq-extrapkg",
+          "extrapkg",
           "daxpkgs",
           "flake8-artiq"
         ],
         "nixpkgs": [
-          "artiq-extrapkg",
+          "extrapkg",
           "daxpkgs",
           "nixpkgs"
         ]
@@ -94,11 +72,11 @@
         "src-pythonparser": "src-pythonparser"
       },
       "locked": {
-        "lastModified": 1776422669,
-        "narHash": "sha256-fuD1o9dpBuwNTXD3iM8a24x2JHVpG2eBPUIyAe6+KzU=",
+        "lastModified": 1776943689,
+        "narHash": "sha256-2BtI6Lixt2jSbMLR3w3wxcF3196S4ddj+ulo/lNr5aI=",
         "ref": "release-9",
-        "rev": "a8479e028869ef6a02b2c5b1aa4f7c3836eb36f9",
-        "revCount": 9654,
+        "rev": "727333d03f8aa800614206224a3c6259fb02a90f",
+        "revCount": 9655,
         "type": "git",
         "url": "https://git.m-labs.hk/M-Labs/artiq.git"
       },
@@ -112,17 +90,17 @@
       "inputs": {
         "artiq-stubs": "artiq-stubs",
         "artiqpkgs": [
-          "artiq-extrapkg",
+          "extrapkg",
           "artiqpkgs"
         ],
         "flake8-artiq": "flake8-artiq",
         "nixpkgs": [
-          "artiq-extrapkg",
+          "extrapkg",
           "artiqpkgs",
           "nixpkgs"
         ],
         "sipyco": [
-          "artiq-extrapkg",
+          "extrapkg",
           "artiqpkgs",
           "sipyco"
         ],
@@ -142,10 +120,32 @@
         "url": "https://gitlab.com/duke-artiq/dax.git"
       }
     },
+    "extrapkg": {
+      "inputs": {
+        "artiqpkgs": "artiqpkgs",
+        "daxpkgs": "daxpkgs",
+        "kirdy": "kirdy",
+        "nix-servo": "nix-servo"
+      },
+      "locked": {
+        "lastModified": 1776943706,
+        "narHash": "sha256-p87ZpbxtcsTacfLxpj6tsyx+peL58r+sW5W5Gqr5jMQ=",
+        "ref": "release-9",
+        "rev": "bbe7bcd6bf5f99052c3669187345dbc5238376ad",
+        "revCount": 201,
+        "type": "git",
+        "url": "https://git.m-labs.hk/M-Labs/artiq-extrapkg.git"
+      },
+      "original": {
+        "ref": "release-9",
+        "type": "git",
+        "url": "https://git.m-labs.hk/M-Labs/artiq-extrapkg.git"
+      }
+    },
     "fenix": {
       "inputs": {
         "nixpkgs": [
-          "artiq-extrapkg",
+          "extrapkg",
           "artiqpkgs",
           "naersk",
           "nixpkgs"
@@ -236,29 +236,11 @@
         "type": "github"
       }
     },
-    "flake-utils_4": {
-      "inputs": {
-        "systems": "systems_4"
-      },
-      "locked": {
-        "lastModified": 1731533236,
-        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
-        "type": "github"
-      },
-      "original": {
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "type": "github"
-      }
-    },
     "flake8-artiq": {
       "inputs": {
         "flake-utils": "flake-utils_2",
         "nixpkgs": [
-          "artiq-extrapkg",
+          "extrapkg",
           "daxpkgs",
           "nixpkgs"
         ]
@@ -281,12 +263,12 @@
       "inputs": {
         "mozilla-overlay": "mozilla-overlay",
         "nixpkgs": [
-          "artiq-extrapkg",
+          "extrapkg",
           "artiqpkgs",
           "nixpkgs"
         ],
         "rust-overlay": [
-          "artiq-extrapkg",
+          "extrapkg",
           "artiqpkgs",
           "rust-overlay"
         ]
@@ -325,17 +307,17 @@
       "inputs": {
         "fenix": "fenix",
         "nixpkgs": [
-          "artiq-extrapkg",
+          "extrapkg",
           "artiqpkgs",
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1769799857,
-        "narHash": "sha256-88IFXZ7Sa1vxbz5pty0Io5qEaMQMMUPMonLa3Ls/ss4=",
+        "lastModified": 1776200608,
+        "narHash": "sha256-broZ6RFQr4Fv0wT73gGmzNX14A43TmTFF8g4wDKlNss=",
         "owner": "nix-community",
         "repo": "naersk",
-        "rev": "9d4ed44d8b8cecdceb1d6fd76e74123d90ae6339",
+        "rev": "8b23250ab45c2a38cd91031aee26478ca4d0a28e",
         "type": "github"
       },
       "original": {
@@ -347,28 +329,28 @@
     "nix-servo": {
       "inputs": {
         "nixpkgs": [
-          "artiq-extrapkg",
+          "extrapkg",
           "artiqpkgs",
           "nixpkgs"
         ],
         "not-os": "not-os",
         "src-migen": [
-          "artiq-extrapkg",
+          "extrapkg",
           "artiqpkgs",
           "src-migen"
         ],
         "src-misoc": [
-          "artiq-extrapkg",
+          "extrapkg",
           "artiqpkgs",
           "src-misoc"
         ]
       },
       "locked": {
-        "lastModified": 1776424568,
-        "narHash": "sha256-ahZQAq3NTL7QL/AUZ/JOPvhIi4HmU9AzYtFSoZk+QNs=",
+        "lastModified": 1776909001,
+        "narHash": "sha256-u982WetEez99onTBjQm4+LGvLWM8hQ8/UQ+gH5KvSzY=",
         "ref": "refs/heads/master",
-        "rev": "245d6e39dd803d60785488242f766f7ca5dbf0aa",
-        "revCount": 200,
+        "rev": "c86e2def24b33c938d1bdc793714eb6e339fccb6",
+        "revCount": 208,
         "type": "git",
         "url": "https://git.m-labs.hk/M-Labs/nix-servo.git"
       },
@@ -379,11 +361,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1773222311,
-        "narHash": "sha256-BHoB/XpbqoZkVYZCfXJXfkR+GXFqwb/4zbWnOr2cRcU=",
+        "lastModified": 1776734388,
+        "narHash": "sha256-vl3dkhlE5gzsItuHoEMVe+DlonsK+0836LIRDnm6MXQ=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "0590cd39f728e129122770c029970378a79d076a",
+        "rev": "10e7ad5bbcb421fe07e3a4ad53a634b0cd57ffac",
         "type": "github"
       },
       "original": {
@@ -393,27 +375,11 @@
         "type": "github"
       }
     },
-    "nixpkgs_2": {
-      "locked": {
-        "lastModified": 1776169885,
-        "narHash": "sha256-l/iNYDZ4bGOAFQY2q8y5OAfBBtrDAaPuRQqWaFHVRXM=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "4bd9165a9165d7b5e33ae57f3eecbcb28fb231c9",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "ref": "nixos-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "not-os": {
       "inputs": {
         "firmware": "firmware",
         "nixpkgs": [
-          "artiq-extrapkg",
+          "extrapkg",
           "nix-servo",
           "nixpkgs"
         ]
@@ -434,9 +400,7 @@
     },
     "root": {
       "inputs": {
-        "artiq-extrapkg": "artiq-extrapkg",
-        "flake-utils": "flake-utils_4",
-        "nixpkgs": "nixpkgs_2"
+        "extrapkg": "extrapkg"
       }
     },
     "rust-analyzer-src": {
@@ -459,7 +423,7 @@
     "rust-overlay": {
       "inputs": {
         "nixpkgs": [
-          "artiq-extrapkg",
+          "extrapkg",
           "artiqpkgs",
           "nixpkgs"
         ]
@@ -482,17 +446,17 @@
     "sipyco": {
       "inputs": {
         "nixpkgs": [
-          "artiq-extrapkg",
+          "extrapkg",
           "artiqpkgs",
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1769689331,
-        "narHash": "sha256-85pe9Y56HhmcdYnyaiHZr56eJesoeTHLoQKcknX/Scw=",
+        "lastModified": 1776943619,
+        "narHash": "sha256-GGw/wCduc/9OEZ1XYwDH7xOPEjUNVJPhI8yk59SmAGA=",
         "ref": "refs/heads/master",
-        "rev": "ab3d738ee302a2a37304e8ee59bb23e30bfb81ae",
-        "revCount": 156,
+        "rev": "08114235deb00b7406ab12224c8144c6c310e98a",
+        "revCount": 158,
         "type": "git",
         "url": "https://git.m-labs.hk/M-Labs/sipyco.git"
       },
@@ -596,26 +560,11 @@
         "type": "github"
       }
     },
-    "systems_4": {
-      "locked": {
-        "lastModified": 1681028828,
-        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
-        "owner": "nix-systems",
-        "repo": "default",
-        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-systems",
-        "repo": "default",
-        "type": "github"
-      }
-    },
     "trap-dac-utils": {
       "inputs": {
         "flake-utils": "flake-utils_3",
         "nixpkgs": [
-          "artiq-extrapkg",
+          "extrapkg",
           "daxpkgs",
           "nixpkgs"
         ]
