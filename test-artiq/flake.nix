@@ -14,9 +14,8 @@
           cp device_db.py $out/artiq/
         '';
       };
-    in {
-      # This section defines the new environment
-      packages.x86_64-linux.default = pkgs.buildEnv {
+
+      artiqEnv = pkgs.buildEnv {
         name = "artiq-env";
         paths = [
           (pkgs.python3.withPackages (ps: [
@@ -27,18 +26,21 @@
           ]))
         ];
       };
+    in {
+      # This section defines the new environment
+      packages.x86_64-linux.default = artiqEnv;
 
-      packages.docker = pkgs.dockerTools.buildImage {
+      packages.x86_64-linux.docker = pkgs.dockerTools.buildImage {
         name = "artiq-test-master";
         tag = "latest";
 
         copyToRoot = pkgs.buildEnv {
           name = "image-root";
-          paths = [ artiq artiq-repo ];
+          paths = [ artiq-repo ];
         };
 
         config = {
-          Cmd = [ "artiq_master" "-r" "repository" "--bind" "*" "-vv" ];
+          Cmd = [ "${artiqEnv}/bin/artiq_master" "-r" "repository" "--bind" "*" "-vv" ];
           ExposedPorts = {
             "1066/tcp" = { };
             "1067/tcp" = { };
