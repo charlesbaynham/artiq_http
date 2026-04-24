@@ -1,0 +1,268 @@
+import asyncio
+import math
+from typing import Any
+from unittest.mock import patch
+
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from artiq_http import sse
+
+
+class FakeDatasetsSubscriber:
+    def __init__(self, data: dict[str, Any] | None = None, fail_get_data: bool = False):
+        self._data = dict(data or {})
+        self._fail_get_data = fail_get_data
+        self._callbacks = []
+
+    def register_change_callback(self, callback):
+        self._callbacks.append(callback)
+
+    def unregister_change_callback(self, callback):
+        self._callbacks.remove(callback)
+
+    def get_data(self) -> dict[str, Any]:
+        if self._fail_get_data:
+            raise RuntimeError("subscriber disconnected")
+        return dict(self._data)
+
+    def set_value(self, key: str, value: Any) -> None:
+        self._data[key] = value
+
+    def delete_value(self, key: str) -> None:
+        self._data.pop(key, None)
+
+    def emit(self, mod: dict[str, Any]) -> None:
+        for callback in list(self._callbacks):
+            callback(mod)
+
+
+class FakeSubscriberManager:
+    def __init__(self, subscriber: FakeDatasetsSubscriber | None = None, error: RuntimeError | None = None):
+        self._subscriber = subscriber
+        self._error = error
+
+    def get_datasets_subscriber(self) -> FakeDatasetsSubscriber:
+        if self._error is not None:
+            raise self._error
+        if self._subscriber is None:
+            raise RuntimeError("datasets subscriber missing")
+        return self._subscriber
+
+
+def run_async(awaitable):
+    return asyncio.run(awaitable)
+
+
+def test_sanitize_for_json_handles_special_values():
+    payload = {
+        "nan": math.nan,
+        "inf": math.inf,
+        "nested": [1.0, -math.inf, {"ok": 2.0}],
+    }
+
+    assert sse.sanitize_for_json(payload) == {
+        "nan": None,
+        "inf": None,
+        "nested": [1.0, None, {"ok": 2.0}],
+    }
+
+
+def test_format_sse_event_serializes_payload():
+    assert sse.format_sse_event("update", {"key": [1, 2, 3]}) == 'event: update\ndata: {"key":[1,2,3]}\n\n'
+
+
+def test_get_datasets_for_prefix_filters_matching_keys():
+    datasets = {
+        "ndscan.rid_1.points": [False, [1, 2], {}],
+        "ndscan.rid_1.axis_0": [False, [0.1, 0.2], {}],
+        "ndscan.rid_10.points": [False, [9, 9], {}],
+        "other.prefix.value": [False, 42, {}],
+    }
+
+    assert sse.get_datasets_for_prefix(datasets, "ndscan.rid_1") == {
+        "ndscan.rid_1.points": [False, [1, 2], {}],
+        "ndscan.rid_1.axis_0": [False, [0.1, 0.2], {}],
+    }
+
+
+def test_stream_dataset_updates_emits_init_update_and_delete_events():
+    subscriber = FakeDatasetsSubscriber(
+        {
+            "ndscan.rid_1.points": [False, [1, 2], {}],
+            "other.prefix.value": [False, 42, {}],
+        }
+    )
+
+    async def scenario():
+        stream = sse.stream_dataset_updates("ndscan.rid_1")
+        try:
+            with patch.object(
+                sse.api.persistent_subscriber,
+                "subscriber_manager",
+                FakeSubscriberManager(subscriber=subscriber),
+            ):
+                init_event = await anext(stream)
+                assert init_event == sse.format_sse_event(
+                    "init",
+                    {"ndscan.rid_1.points": [False, [1, 2], {}]},
+                )
+                assert len(subscriber._callbacks) == 1
+
+                update_task = asyncio.create_task(anext(stream))
+                subscriber.set_value("ndscan.rid_1.points", [False, [3, 4], {}])
+                subscriber.emit({"action": "setitem", "key": "ndscan.rid_1.points"})
+                assert await asyncio.wait_for(update_task, timeout=0.5) == sse.format_sse_event(
+                    "update",
+                    {"ndscan.rid_1.points": [False, [3, 4], {}]},
+                )
+
+                delete_task = asyncio.create_task(anext(stream))
+                subscriber.delete_value("ndscan.rid_1.points")
+                subscriber.emit({"action": "delitem", "key": "ndscan.rid_1.points"})
+                assert await asyncio.wait_for(delete_task, timeout=0.5) == sse.format_sse_event(
+                    "delete",
+                    {"key": "ndscan.rid_1.points"},
+                )
+        finally:
+            await stream.aclose()
+
+        assert subscriber._callbacks == []
+
+    run_async(scenario())
+
+
+def test_stream_dataset_updates_ignores_irrelevant_changes():
+    subscriber = FakeDatasetsSubscriber({"ndscan.rid_1.points": [False, [1], {}]})
+
+    async def scenario():
+        stream = sse.stream_dataset_updates("ndscan.rid_1")
+        try:
+            with patch.object(
+                sse.api.persistent_subscriber,
+                "subscriber_manager",
+                FakeSubscriberManager(subscriber=subscriber),
+            ):
+                await anext(stream)
+                next_event = asyncio.create_task(anext(stream))
+                subscriber.emit({"action": "setitem", "key": "other.prefix.value"})
+
+                try:
+                    await asyncio.wait_for(asyncio.shield(next_event), timeout=0.1)
+                except asyncio.TimeoutError:
+                    pass
+                else:
+                    raise AssertionError("Irrelevant dataset change should not emit an SSE event")
+
+                next_event.cancel()
+                try:
+                    await next_event
+                except (asyncio.CancelledError, StopAsyncIteration):
+                    pass
+        finally:
+            await stream.aclose()
+
+    run_async(scenario())
+
+
+def test_stream_dataset_updates_emits_heartbeat_on_timeout():
+    subscriber = FakeDatasetsSubscriber({"ndscan.rid_1.points": [False, [1], {}]})
+
+    async def fake_wait_for(awaitable, timeout):
+        awaitable.close()
+        raise asyncio.TimeoutError
+
+    async def scenario():
+        stream = sse.stream_dataset_updates("ndscan.rid_1")
+        try:
+            with patch.object(
+                sse.api.persistent_subscriber,
+                "subscriber_manager",
+                FakeSubscriberManager(subscriber=subscriber),
+            ), patch("artiq_http.sse.asyncio.wait_for", side_effect=fake_wait_for):
+                await anext(stream)
+                assert await anext(stream) == sse.format_sse_event("heartbeat", {})
+        finally:
+            await stream.aclose()
+
+    run_async(scenario())
+
+
+def test_stream_dataset_updates_emits_error_when_subscriber_is_unavailable():
+    async def scenario():
+        stream = sse.stream_dataset_updates("ndscan.rid_1")
+        with patch.object(
+            sse.api.persistent_subscriber,
+            "subscriber_manager",
+            FakeSubscriberManager(error=RuntimeError("datasets subscriber not initialized")),
+        ):
+            assert await anext(stream) == sse.format_sse_event(
+                "error",
+                {"message": "datasets subscriber not initialized"},
+            )
+
+    run_async(scenario())
+
+
+def test_stream_dataset_updates_emits_error_when_initial_snapshot_fails():
+    subscriber = FakeDatasetsSubscriber(fail_get_data=True)
+
+    async def scenario():
+        stream = sse.stream_dataset_updates("ndscan.rid_1")
+        with patch.object(
+            sse.api.persistent_subscriber,
+            "subscriber_manager",
+            FakeSubscriberManager(subscriber=subscriber),
+        ):
+            assert await anext(stream) == sse.format_sse_event(
+                "error",
+                {"message": "Failed to get initial data: subscriber disconnected"},
+            )
+
+    run_async(scenario())
+
+
+def test_stream_dataset_updates_emits_error_when_connection_is_lost_after_init():
+    subscriber = FakeDatasetsSubscriber({"ndscan.rid_1.points": [False, [1], {}]})
+
+    async def scenario():
+        stream = sse.stream_dataset_updates("ndscan.rid_1")
+        try:
+            with patch.object(
+                sse.api.persistent_subscriber,
+                "subscriber_manager",
+                FakeSubscriberManager(subscriber=subscriber),
+            ):
+                await anext(stream)
+                next_event = asyncio.create_task(anext(stream))
+                subscriber._fail_get_data = True
+                subscriber.emit({"action": "setitem", "key": "ndscan.rid_1.points"})
+                assert await asyncio.wait_for(next_event, timeout=0.5) == sse.format_sse_event(
+                    "error",
+                    {"message": "Connection lost"},
+                )
+        finally:
+            await stream.aclose()
+
+    run_async(scenario())
+
+
+def test_stream_datasets_endpoint_returns_event_stream_response():
+    app = FastAPI()
+    app.include_router(sse.router, prefix="/api")
+
+    async def fake_stream(prefix: str):
+        assert prefix == "ndscan.rid_1"
+        yield sse.format_sse_event("init", {"ndscan.rid_1.points": [False, [1], {}]})
+
+    with patch("artiq_http.sse.stream_dataset_updates", side_effect=fake_stream):
+        with TestClient(app) as client:
+            with client.stream("GET", "/api/datasets/stream/ndscan.rid_1") as response:
+                body = "".join(response.iter_text())
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert response.headers["cache-control"] == "no-cache"
+    assert response.headers["connection"] == "keep-alive"
+    assert response.headers["x-accel-buffering"] == "no"
+    assert body == sse.format_sse_event("init", {"ndscan.rid_1.points": [False, [1], {}]})
