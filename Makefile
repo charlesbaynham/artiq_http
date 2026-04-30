@@ -5,6 +5,10 @@ install:
 	uv sync --extra dev
 	cd frontend && npm install
 
+dev: install
+	echo "Launching dev servers..."
+	exec ./dev.sh
+
 build:
 	echo "Building the test docker image..."
 	cd test-artiq && nix build .#docker && docker load < result

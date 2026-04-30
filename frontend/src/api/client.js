@@ -72,6 +72,17 @@ export function get_explist() {
   return api_fetch("api/explist");
 }
 
+export function get_explist_arginfo(file, class_name) {
+  // file may contain slashes (path), so encode each segment individually
+  const encodedFile = file
+    .split("/")
+    .map((s) => encodeURIComponent(s))
+    .join("/");
+  return api_fetch(
+    `api/explist/${encodedFile}/${encodeURIComponent(class_name)}/arginfo`,
+  );
+}
+
 export function get_dataset_names() {
   return api_fetch("api/datasets/names");
 }
