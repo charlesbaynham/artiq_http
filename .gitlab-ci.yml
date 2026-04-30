@@ -69,9 +69,9 @@ build-test-master:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
   cache:
     - !reference [.nix, cache]
+  after_script: [] # Take manual control of nix cache
   script:
     - cd test-artiq
-    - nix build .#docker
     - |
       set -euo pipefail
       HASH=$(nix eval --json .#docker.outPath | tr '/' '\n' | tail -1 | cut -d'-' -f1)
@@ -85,9 +85,11 @@ build-test-master:
         rm -rf ".cache"
         rm -rf ".nix-cache"
       else
+        nix build .#docker
         docker load < result
         docker tag artiq-test-master:latest "$CI_REGISTRY_IMAGE/test-master:$HASH"
         docker push "$CI_REGISTRY_IMAGE/test-master:$HASH"
+        gitlab-ci-nix-cache-after
       fi
   needs: []
   artifacts:
