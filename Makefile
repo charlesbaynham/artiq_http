@@ -20,3 +20,7 @@ test:
 serve: install build
 	echo "Starting development server..."
 	./dev.sh
+
+docker: build
+	echo "Running the docker containers..."
+	docker compose up
