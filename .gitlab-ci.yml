@@ -61,7 +61,7 @@ compute-test-master-hash:
     - !reference [.nix, before_script]
     - nix-channel --add https://nixos.org/channels/nixos-24.11 nixpkgs
     - nix-channel --update
-  after_script: []  # Skip cache upload since we don't build the image here    
+  after_script: []  # Skip cache upload since we don't build the image here
   cache:
     policy: pull
   script:
@@ -113,7 +113,8 @@ build-test-master:
       fi
   needs: []
   rules:
-    - changes:
+    - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'
+      changes:
         paths:
           - test-artiq/**/*
       when: always
