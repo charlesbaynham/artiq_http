@@ -49,33 +49,6 @@ pre-commit:
 
 ### Tests ###
 
-# Build the test master image using Nix with caching
-compute-test-master-hash:
-  stage: Prepare
-  extends: .nix
-  variables:
-    NIX_CONFIG: |
-      experimental-features = nix-command flakes
-      accept-flake-config = true
-  before_script:
-    - !reference [.nix, before_script]
-    - nix-channel --add https://nixos.org/channels/nixos-24.11 nixpkgs
-    - nix-channel --update
-  after_script: []  # Skip cache upload since we don't build the image here
-  cache:
-    policy: pull
-  script:
-    - cd test-artiq
-    - |
-      set -euo pipefail
-      HASH=$(nix eval --json .#docker.outPath | tr '/' '\n' | tail -1 | cut -d'-' -f1)
-      echo "ARTIQ_TEST_MASTER_HASH=$HASH" >> build.env
-      echo "Image hash: $HASH"
-  needs: []
-  artifacts:
-    reports:
-      dotenv: test-artiq/build.env
-
 build-test-master:
   stage: Prepare
   extends: .nix
@@ -106,19 +79,17 @@ build-test-master:
       echo "Image hash: $HASH"
       if docker manifest inspect "$CI_REGISTRY_IMAGE/test-master:$HASH" > /dev/null 2>&1; then
         echo "Image already in registry, skipping push"
+        echo "Deleteing cache dir - this will force gitlab to skip cache update"
+        echo "See https://olex.biz/2025/04/gitlab-ci-prevent-cache-reupload-without-changes/"
+
+        rm -rf ".cache"
+        rm -rf ".nix-cache"
       else
         docker load < result
         docker tag artiq-test-master:latest "$CI_REGISTRY_IMAGE/test-master:$HASH"
         docker push "$CI_REGISTRY_IMAGE/test-master:$HASH"
       fi
   needs: []
-  rules:
-    - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'
-      changes:
-        paths:
-          - test-artiq/**/*
-      when: always
-    - when: never
   artifacts:
     reports:
       dotenv: test-artiq/build.env
@@ -154,7 +125,7 @@ pytest:
     - uv run coverage run --omit "tests/*" -m pytest --realserver --junitxml=report.xml
     - uv run coverage report
   coverage: '/^TOTAL.+?(\d+\%)$/'
-  needs: ["compute-test-master-hash"]
+  needs: ["build-test-master"]
   artifacts:
     when: always
     reports:
