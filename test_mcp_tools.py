@@ -72,9 +72,7 @@ async def test_all():
             if "experiments" in data:
                 print(f"Experiments count: {len(data['experiments'])}")
                 for exp in data["experiments"][:3]:
-                    print(
-                        f"  - {exp.get('name', 'unknown')} ({exp.get('file', 'unknown')})"
-                    )
+                    print(f"  - {exp.get('name', 'unknown')} ({exp.get('file', 'unknown')})")
                 if len(data["experiments"]) > 3:
                     print(f"  ... and {len(data['experiments']) - 3} more")
 
@@ -184,9 +182,7 @@ async def test_all():
 
             print("\n--- run_experiment_workflow ---")
             try:
-                result = await session.get_prompt(
-                    "run_experiment_workflow", {"experiment_name": "Cooling"}
-                )
+                result = await session.get_prompt("run_experiment_workflow", {"experiment_name": "Cooling"})
                 for msg in result.messages[:2]:
                     print(f"  [{msg.role}]: {msg.content.text[:100]}...")
             except Exception as e:

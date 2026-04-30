@@ -30,9 +30,7 @@ function ExperimentSubmission({ explist, experiment, repo_rev }) {
     setArginfo(null);
     get_explist_arginfo(expData.file, expData.class_name)
       .then((result) => setArginfo(result.arginfo))
-      .catch((err) =>
-        console.error("Failed to fetch arginfo:", err.message),
-      )
+      .catch((err) => console.error("Failed to fetch arginfo:", err.message))
       .finally(() => setArginfoLoading(false));
   }, [experiment]);
 

@@ -261,10 +261,7 @@ async def get_dataset_values(names: list[str]) -> dict[str, Any]:
     return {
         name: (
             value[1]
-            if isinstance(value, list)
-            and len(value) == 3
-            and isinstance(value[0], bool)
-            and isinstance(value[2], dict)
+            if isinstance(value, list) and len(value) == 3 and isinstance(value[0], bool) and isinstance(value[2], dict)
             else value
         )
         for name, value in raw.items()
@@ -289,9 +286,7 @@ def run_experiment_workflow(experiment_name: str = "") -> list[dict]:
             "role": "user",
             "content": (
                 "You are an ARTIQ experiment operator. Follow this workflow rigorously when running experiments.\n\n"
-                "I want to run an ARTIQ experiment"
-                + (f": {experiment_name}" if experiment_name else "")
-                + ".\n\n"
+                "I want to run an ARTIQ experiment" + (f": {experiment_name}" if experiment_name else "") + ".\n\n"
                 "Follow this exact workflow:\n\n"
                 "1. **Check health** — Call `check_health()` first. If "
                 "`artiq_connected` is false, stop and warn the user.\n\n"

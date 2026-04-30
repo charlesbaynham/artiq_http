@@ -5,8 +5,6 @@ import sys
 
 import uvicorn
 
-from .api import app as fastapi_app
-
 logger = logging.getLogger(__name__)
 
 # If uvloop is installed, prevent its use by replacing it with the default
@@ -23,9 +21,7 @@ except ImportError:
 
 
 def get_argparser():
-    parser = argparse.ArgumentParser(
-        description="""ARTIQ RESTful API and basic web interface."""
-    )
+    parser = argparse.ArgumentParser(description="""ARTIQ RESTful API and basic web interface.""")
     parser.add_argument(
         "--port",
         type=int,
