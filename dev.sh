@@ -27,17 +27,17 @@ tmux send-keys "sleep 5 && npm run frontend" C-m
 tmux split-window -v -c "$SCRIPT_DIR/test-artiq"
 tmux send-keys "docker compose up" C-m
 
-# Split the backend pane (left) horizontally for the schedule watcher
+# Split the backend pane (left) horizontally for the MCP server
 tmux select-pane -t 0
-tmux split-window -v -c "$SCRIPT_DIR/test-artiq"
-tmux send-keys "sleep 10 && nix shell -c artiq_client show schedule" C-m
+tmux split-window -v -c "$SCRIPT_DIR"
+tmux send-keys "sleep 5 && npm run mcp" C-m
 
 # Final layout:
 # +----------+----------+
 # | Backend  | Frontend |
 # | (pane 0) | (pane 1) |
 # +----------+----------+
-# | Schedule |  ARTIQ   |
+# |   MCP    |  ARTIQ   |
 # | (pane 3) | (pane 2) |
 # +----------+----------+
 

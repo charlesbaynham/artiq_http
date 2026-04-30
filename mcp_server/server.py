@@ -259,9 +259,14 @@ async def get_dataset_values(names: list[str]) -> dict[str, Any]:
     # ARTIQ datasets are returned as [persist, value, metadata] tuples.
     # Unwrap them so clients get the raw value.
     return {
-        name: value[1]
-        if isinstance(value, list) and len(value) == 3 and isinstance(value[0], bool) and isinstance(value[2], dict)
-        else value
+        name: (
+            value[1]
+            if isinstance(value, list)
+            and len(value) == 3
+            and isinstance(value[0], bool)
+            and isinstance(value[2], dict)
+            else value
+        )
         for name, value in raw.items()
     }
 
@@ -281,15 +286,12 @@ def run_experiment_workflow(experiment_name: str = "") -> list[dict]:
     """
     messages = [
         {
-            "role": "system",
-            "content": (
-                "You are an ARTIQ experiment operator. Follow this workflow " "rigorously when running experiments."
-            ),
-        },
-        {
             "role": "user",
             "content": (
-                "I want to run an ARTIQ experiment" + (f": {experiment_name}" if experiment_name else "") + ".\n\n"
+                "You are an ARTIQ experiment operator. Follow this workflow rigorously when running experiments.\n\n"
+                "I want to run an ARTIQ experiment"
+                + (f": {experiment_name}" if experiment_name else "")
+                + ".\n\n"
                 "Follow this exact workflow:\n\n"
                 "1. **Check health** — Call `check_health()` first. If "
                 "`artiq_connected` is false, stop and warn the user.\n\n"
@@ -308,7 +310,6 @@ def run_experiment_workflow(experiment_name: str = "") -> list[dict]:
                 "Safety rules:\n"
                 "- Never submit experiments when ARTIQ is disconnected.\n"
                 "- Never override defaults without explicit user confirmation.\n"
-                "- For `submit_and_wait()`, cap timeout at 300 seconds.\n"
                 "- If an experiment is stuck, ask before calling `cancel_experiment()`."
             ),
         },
@@ -325,12 +326,9 @@ def analyze_datasets(experiment_rid: int | None = None) -> list[dict]:
     """
     messages = [
         {
-            "role": "system",
-            "content": ("You are an ARTIQ data analyst. Help the user inspect and " "interpret experimental datasets."),
-        },
-        {
             "role": "user",
             "content": (
+                "You are an ARTIQ data analyst. Help the user inspect and interpret experimental datasets.\n\n"
                 "Help me analyze ARTIQ datasets"
                 + (f" from experiment RID {experiment_rid}" if experiment_rid else "")
                 + ".\n\n"
@@ -368,14 +366,9 @@ def manage_schedule() -> list[dict]:
     """
     messages = [
         {
-            "role": "system",
-            "content": (
-                "You are an ARTIQ scheduler operator. Help the user understand " "and manage the experiment queue."
-            ),
-        },
-        {
             "role": "user",
             "content": (
+                "You are an ARTIQ scheduler operator. Help the user understand and manage the experiment queue.\n\n"
                 "Help me manage the ARTIQ experiment schedule.\n\n"
                 "Follow this workflow:\n\n"
                 "1. **Get current state** — Call `get_schedule()` to see all "

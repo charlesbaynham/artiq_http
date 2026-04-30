@@ -72,7 +72,9 @@ async def test_all():
             if "experiments" in data:
                 print(f"Experiments count: {len(data['experiments'])}")
                 for exp in data["experiments"][:3]:
-                    print(f"  - {exp.get('name', 'unknown')} ({exp.get('file', 'unknown')})")
+                    print(
+                        f"  - {exp.get('name', 'unknown')} ({exp.get('file', 'unknown')})"
+                    )
                 if len(data["experiments"]) > 3:
                     print(f"  ... and {len(data['experiments']) - 3} more")
 
@@ -89,7 +91,10 @@ async def test_all():
             print("\n--- 4. get_experiment_defaults ---")
             result = await session.call_tool(
                 "get_experiment_defaults",
-                {"file": "Cooling/RF/Basic_Cooling_RF_454.py", "class_name": "BasicCoolingRF454"},
+                {
+                    "file": "Cooling/RF/Basic_Cooling_RF_454.py",
+                    "class_name": "BasicCoolingRF454",
+                },
             )
             print(format_result(result))
 
@@ -97,10 +102,13 @@ async def test_all():
             print("\n--- 5. get_experiment_arginfo ---")
             result = await session.call_tool(
                 "get_experiment_arginfo",
-                {"file": "Cooling/RF/Basic_Cooling_RF_454.py", "class_name": "BasicCoolingRF454"},
+                {
+                    "file": "Cooling/RF/Basic_Cooling_RF_454.py",
+                    "class_name": "BasicCoolingRF454",
+                },
             )
             data = format_result(result)
-            if "arginfo" in data:
+            if isinstance(data, dict) and "arginfo" in data:
                 print(f"Parameters: {list(data['arginfo'].keys())}")
             else:
                 print(data)
@@ -176,7 +184,9 @@ async def test_all():
 
             print("\n--- run_experiment_workflow ---")
             try:
-                result = await session.get_prompt("run_experiment_workflow", {"experiment_name": "Cooling"})
+                result = await session.get_prompt(
+                    "run_experiment_workflow", {"experiment_name": "Cooling"}
+                )
                 for msg in result.messages[:2]:
                     print(f"  [{msg.role}]: {msg.content.text[:100]}...")
             except Exception as e:
