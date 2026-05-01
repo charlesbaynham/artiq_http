@@ -34,11 +34,11 @@ function NewExperimentItem(props) {
   // Load initial state from localStorage or defaults
   const [argValues, setArgValues] = React.useState(() => {
     const stored = loadExperimentState(file, class_name);
-    return stored ? stored.argValues : defaultValues;
+    return stored?.argValues ?? defaultValues;
   });
   const [pipeline, setPipeline] = React.useState(() => {
     const stored = loadExperimentState(file, class_name);
-    return stored ? stored.pipeline : "main";
+    return stored?.pipeline ?? "main";
   });
 
   // Toast state for error messages

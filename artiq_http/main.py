@@ -5,7 +5,7 @@ import sys
 
 import uvicorn
 
-from .api import app as fastapi_app
+from artiq_http.api import app as fastapi_app  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,12 @@ def get_argparser():
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         help="Logging level",
     )
+    parser.add_argument(
+        "--reload",
+        action="store_true",
+        default=False,
+        help="Enable auto-reload on code changes",
+    )
     return parser
 
 
@@ -54,7 +60,12 @@ def main():
     )
 
     logger.info("Starting ARTIQ HTTP server on %s:%d", args.host, args.port)
-    uvicorn.run(fastapi_app, host=args.host, port=args.port)
+    uvicorn.run(
+        "artiq_http.main:fastapi_app",
+        host=args.host,
+        port=args.port,
+        reload=args.reload,
+    )
 
 
 if __name__ == "__main__":

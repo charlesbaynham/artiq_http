@@ -1,6 +1,6 @@
 services:
   artiq-master:
-    build: .
+    image: artiq-test-master:latest
     container_name: artiq-test-master
     ports:
       - "3250:3250"
