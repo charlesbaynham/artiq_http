@@ -2,6 +2,9 @@
 
 # dev.sh - Start development environment with frontend, backend, and ARTIQ stack in tmux
 
+make install
+make docker
+
 SESSION_NAME="artiq_http_dev"
 
 # Check if tmux session already exists
