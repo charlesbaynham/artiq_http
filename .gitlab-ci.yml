@@ -127,13 +127,13 @@ pytest:
     # Start the ARTIQ HTTP backend in the background
     - |
       echo "Starting ARTIQ HTTP backend..."
-      npm run backend -- --port 8000 &
+      uv run aqctl_artiq_http --port 8000 &
       BACKEND_PID=$!
       echo "Backend PID: $BACKEND_PID"
     # Start the MCP server in the background
     - |
       echo "Starting MCP server..."
-      ARTIQ_HTTP_URL=http://localhost:8000 npm run mcp &
+      ARTIQ_HTTP_URL=http://localhost:8000 uv run python mcp_server/server.py &
       MCP_PID=$!
       echo "MCP PID: $MCP_PID"
     # Wait for backend to be ready
