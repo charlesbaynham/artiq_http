@@ -3,7 +3,7 @@
 # dev.sh - Start development environment with frontend, backend, and ARTIQ stack in tmux
 
 make install
-make docker
+make build
 
 SESSION_NAME="artiq_http_dev"
 
