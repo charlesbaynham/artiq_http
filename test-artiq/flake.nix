@@ -1,21 +1,58 @@
 {
-  description = "ARTIQ Test Master Environment";
-
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    extrapkg.url =
+      "git+https://git.m-labs.hk/M-Labs/artiq-extrapkg.git?ref=release-9";
     flake-utils.url = "github:numtide/flake-utils";
-    artiq-extrapkg = {
-      url = "git+https://git.m-labs.hk/M-Labs/artiq-extrapkg.git?ref=release-9";
+    ndscan-src = {
+      url = "github:OxfordIonTrapGroup/ndscan";
+      flake = false;
+    };
+    oitg-src = {
+      url = "github:OxfordIonTrapGroup/oitg";
+      flake = false;
     };
   };
-
-  outputs = { self, nixpkgs, flake-utils, artiq-extrapkg }:
+  outputs = { self, extrapkg, flake-utils, ndscan-src, oitg-src }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
-        artiq = artiq-extrapkg.packages.${system}.artiq;
+        pkgs = extrapkg.pkgs;
+        artiq = extrapkg.packages.${system};
+        py = pkgs.python3;
 
-        # Create a derivation for the ARTIQ repository files
+        oitg = py.pkgs.buildPythonPackage {
+          pname = "oitg";
+          version = "0.1.0";
+          src = oitg-src;
+          pyproject = true;
+          postPatch = ''
+            substituteInPlace pyproject.toml \
+              --replace-warn \
+                'requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]' \
+                'requires = ["poetry-core>=1.0.0"]' \
+              --replace-warn 'version = "0.1"' 'version = "0.1.0"'
+          '';
+          build-system = with py.pkgs; [ poetry-core ];
+          dependencies = with py.pkgs; [ statsmodels scipy numpy h5py ];
+          doCheck = false;
+        };
+
+        ndscan = py.pkgs.buildPythonPackage {
+          pname = "ndscan";
+          version = "0.4.0";
+          src = ndscan-src;
+          pyproject = true;
+          build-system = with py.pkgs; [ hatchling ];
+          dependencies = with py.pkgs; [
+            artiq.artiq
+            h5py
+            numpy
+            oitg
+            pyqt6
+            pyqtgraph
+          ];
+          doCheck = false;
+          dontWrapQtApps = true;
+        };
         artiq-repo = pkgs.stdenv.mkDerivation {
           name = "artiq-repo";
           src = ./.;
@@ -25,48 +62,55 @@
             cp device_db.py $out/artiq/
           '';
         };
+
+        artiqEnv = pkgs.buildEnv {
+          name = "artiq-env";
+          paths = [
+            (py.withPackages (ps: [
+              # List desired Python packages here.
+              artiq.artiq
+              ps.paramiko # needed if and only if flashing boards remotely (artiq_flash -H)
+              artiq.flake8-artiq
+              ndscan
+            ]))
+          ];
+        };
       in {
+        packages.default = artiqEnv;
+
         packages.docker = pkgs.dockerTools.buildImage {
           name = "artiq-test-master";
           tag = "latest";
 
           copyToRoot = pkgs.buildEnv {
             name = "image-root";
-            paths = [ artiq artiq-repo ];
+            paths = [ artiq-repo ];
           };
 
           config = {
-            Cmd = [ "artiq_master" "-r" "repository" "--bind" "*" "-vv" ];
+            Cmd = [
+              "${artiqEnv}/bin/artiq_master"
+              "-r"
+              "repository"
+              "--bind"
+              "*"
+              "-vv"
+            ];
             ExposedPorts = {
-              "1066/tcp" = {};
-              "1067/tcp" = {};
-              "3250/tcp" = {};
-              "3251/tcp" = {};
+              "1066/tcp" = { };
+              "1067/tcp" = { };
+              "3250/tcp" = { };
+              "3251/tcp" = { };
             };
             WorkingDir = "/artiq";
           };
         };
-
-        devShells.default = pkgs.mkShell {
-          packages = [ artiq pkgs.git pkgs.python313Packages.pip ];
-          shellHook = ''
-            VENV_DIR="$PWD/.artiq-venv"
-            if [ ! -d "$VENV_DIR" ]; then
-              echo "Creating Python venv..."
-              python3 -m venv "$VENV_DIR"
-              "$VENV_DIR/bin/pip" install --quiet git+https://github.com/OxfordIonTrapGroup/oitg.git
-              "$VENV_DIR/bin/pip" install --quiet git+https://github.com/OxfordIonTrapGroup/ndscan.git
-            fi
-            export PATH="$VENV_DIR/bin:$PATH"
-            export PYTHONPATH="$VENV_DIR/lib/python3.13/site-packages:$PYTHONPATH"
-            echo "ARTIQ test environment ready."
-            echo "Run: artiq_master -r repository --bind '*' -vv"
-          '';
-        };
       });
 
-  nixConfig = {
-    extra-trusted-public-keys = "nixbld.m-labs.hk-1:5aSRVA5b320xbNvu30tqxVPXpld73bhtOeH6uAjRyHc=";
+  # This section configures additional settings to be able to use M-Labs binary caches
+  nixConfig = { # work around https://github.com/NixOS/nix/issues/6771
+    extra-trusted-public-keys =
+      "nixbld.m-labs.hk-1:5aSRVA5b320xbNvu30tqxVPXpld73bhtOeH6uAjRyHc=";
     extra-substituters = "https://nixbld.m-labs.hk";
   };
 }
