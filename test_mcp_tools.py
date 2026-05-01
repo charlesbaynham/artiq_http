@@ -3,12 +3,13 @@
 
 import asyncio
 import json
+import os
 
 import pytest
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
-MCP_URL = "http://localhost:8001/mcp"
+MCP_URL = os.getenv("MCP_URL", "http://localhost:8001/mcp")
 
 
 @pytest.mark.realserver
