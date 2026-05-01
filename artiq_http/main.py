@@ -5,6 +5,8 @@ import sys
 
 import uvicorn
 
+from artiq_http.api import app as fastapi_app  # noqa: F401
+
 logger = logging.getLogger(__name__)
 
 # If uvloop is installed, prevent its use by replacing it with the default
