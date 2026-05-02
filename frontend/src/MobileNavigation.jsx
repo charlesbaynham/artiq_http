@@ -32,6 +32,11 @@ function MobileNavigation({ currentPage, onPageChange }) {
       label: "Configure",
       icon: "⚙️", // Settings/configure icon
     },
+    {
+      id: "logs",
+      label: "Logs",
+      icon: "📝", // Notes/logs icon
+    },
   ];
 
   return (

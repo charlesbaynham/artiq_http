@@ -1,6 +1,7 @@
 import asyncio
+import copy
 import logging
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from sipyco.sync_struct import Subscriber
 
@@ -10,13 +11,26 @@ logger = logging.getLogger(__name__)
 
 
 class PersistentSubscriber:
-    """Manages a persistent subscriber connection with automatic reconnection"""
+    """Manages a persistent subscriber connection with automatic reconnection.
 
-    def __init__(self, notifier_name: str, host: str, port: int):
+    The underlying ARTIQ notifier may be either a dict (e.g. ``schedule``,
+    ``datasets``) or a list (e.g. ``log``). Pass ``data_factory=list`` to
+    subscribe to list-typed notifiers; the default ``dict`` matches the
+    historical behaviour.
+    """
+
+    def __init__(
+        self,
+        notifier_name: str,
+        host: str,
+        port: int,
+        data_factory: Callable[[], Any] = dict,
+    ):
         self._notifier_name = notifier_name
         self._host = host
         self._port = port
-        self._data: Dict = {}
+        self._data_factory = data_factory
+        self._data: Any = data_factory()
         self._lock = asyncio.Lock()
         self._subscriber: Optional[Subscriber] = None
         self._reconnect_task: Optional[asyncio.Task] = None
@@ -110,8 +124,19 @@ class PersistentSubscriber:
 
                 async def update_data():
                     async with self._lock:
-                        self._data.clear()
-                        self._data.update(data)
+                        if isinstance(self._data, dict) and isinstance(data, dict):
+                            self._data.clear()
+                            self._data.update(data)
+                        elif isinstance(self._data, list) and isinstance(data, list):
+                            self._data.clear()
+                            self._data.extend(data)
+                        else:
+                            logger.warning(
+                                "Subscriber %s: unexpected init shape (%s); expected %s",
+                                self._notifier_name,
+                                type(data).__name__,
+                                type(self._data).__name__,
+                            )
                         self._initialized = True
                         self._init_event.set()
 
@@ -175,9 +200,17 @@ class PersistentSubscriber:
         """Check if subscriber is currently connected and initialized"""
         return self._connected and self._initialized
 
-    def get_data(self) -> Dict:
+    def is_initialized(self) -> bool:
+        """Return True once the subscriber has received initial data."""
+        return self._initialized
+
+    def get_data(self) -> Any:
         """
         Get current data snapshot (thread-safe, non-blocking)
+
+        Returns:
+            A shallow copy of the underlying data (dict or list, depending on the
+            ``data_factory`` passed to ``__init__``).
 
         Raises:
             RuntimeError: If subscriber is not connected/initialized
@@ -186,8 +219,8 @@ class PersistentSubscriber:
             raise RuntimeError(f"Subscriber {self._notifier_name} not initialized")
         if not self._connected:
             raise RuntimeError(f"Subscriber {self._notifier_name} not connected")
-        # Return a copy to prevent external modifications
-        return dict(self._data)
+        # Return a shallow copy to prevent external modifications
+        return copy.copy(self._data)
 
     def register_change_callback(self, callback: Callable[[Dict], None]) -> None:
         """
@@ -241,7 +274,11 @@ class SubscriberManager:
     """Singleton manager for all persistent subscribers"""
 
     def __init__(self):
-        self._subscribers: Dict[str, PersistentSubscriber] = {}
+        # Subscribers may be plain ``PersistentSubscriber`` instances or
+        # higher-level wrappers like :class:`LogBuffer`. Both types expose
+        # the same lifecycle protocol (``start``/``stop``/``wait_for_init``/
+        # ``is_connected``) so the manager can iterate over them uniformly.
+        self._subscribers: Dict[str, Any] = {}
         self._started = False
 
     async def start(self):
@@ -260,6 +297,12 @@ class SubscriberManager:
         # Create subscribers for schedule and datasets
         self._subscribers["schedule"] = PersistentSubscriber("schedule", host, port)
         self._subscribers["datasets"] = PersistentSubscriber("datasets", host, port)
+
+        # Create the log buffer (wraps a list-typed subscriber for the ``log``
+        # notifier).
+        from .log_buffer import LogBuffer
+
+        self._subscribers["logs"] = LogBuffer(host, port)
 
         # Start all subscribers
         for subscriber in self._subscribers.values():
@@ -333,6 +376,29 @@ class SubscriberManager:
         if "datasets" not in self._subscribers:
             raise RuntimeError("datasets subscriber not initialized")
         return self._subscribers["datasets"]
+
+    def get_logs(self) -> List[Dict]:
+        """Get the current buffered log entries.
+
+        Raises:
+            RuntimeError: If the log subscriber is not connected/initialized.
+        """
+        if "logs" not in self._subscribers:
+            raise RuntimeError("logs subscriber not initialized")
+        log_buffer = self._subscribers["logs"]
+        if not log_buffer.is_connected():
+            raise RuntimeError("logs subscriber not connected")
+        return log_buffer.get_logs()
+
+    def get_logs_subscriber(self):
+        """Return the underlying :class:`LogBuffer` for the log notifier.
+
+        Raises:
+            RuntimeError: If the log subscriber is not initialized.
+        """
+        if "logs" not in self._subscribers:
+            raise RuntimeError("logs subscriber not initialized")
+        return self._subscribers["logs"]
 
     async def wait_for_init(self, timeout: float = 5.0) -> bool:
         """Wait for all subscribers to initialize
