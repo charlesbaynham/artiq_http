@@ -20,6 +20,9 @@ function NDScanPlotCollection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Feature flag: gate the plots view behind VITE_SHOW_PLOTS
+  const showPlots = import.meta.env.VITE_SHOW_PLOTS === "true";
+
   const fetchPrefixes = async () => {
     try {
       const data = await get_dataset_names();
@@ -81,6 +84,20 @@ function NDScanPlotCollection() {
     setSelectedPrefix(prefix);
     setSearchParams({ scan: prefix });
   };
+
+  if (!showPlots) {
+    return (
+      <div className="empty-state">
+        <div className="empty-state__eyebrow">Coming soon!</div>
+        <p className="empty-state__message">
+          The plots view is currently under development.
+        </p>
+        <p className="empty-state__hint">
+          Enable VITE_SHOW_PLOTS at build time to preview this feature.
+        </p>
+      </div>
+    );
+  }
 
   if (loading && prefixes.length === 0) {
     return (
