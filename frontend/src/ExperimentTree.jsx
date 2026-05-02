@@ -1,12 +1,5 @@
 import React from "react";
-import NewExperimentItem from "./NewExperimentItem";
-import NewNDScanItem from "./NewNDScanItem";
-import { isNDScanExperiment } from "./api/ndscan";
-
-/*
-Note: I'll use simple text icons (+ / -) or unicode if lucide-react is not available.
-Let's check package.json for icons.
-*/
+import { ChevronRight, Folder, FileEarmarkCode } from "react-bootstrap-icons";
 
 function ExperimentTree({
   tree,
@@ -39,7 +32,6 @@ function TreeNode({
   onSelect,
   selectedExperiment,
 }) {
-  // ... (storage key and state logic remains same)
   const nodeKey = path || "root";
   const storageKey = `experimentTree_${nodeKey}`;
 
@@ -70,23 +62,29 @@ function TreeNode({
 
   // If it's a leaf (experiment)
   if (node.experiment) {
-    const isSelected = selectedExperiment === node;
+    // Match logic: selectedExperiment is "file:class_name" string
+    const exp = node.experiment;
+    const uniqueId = `${exp.file}:${exp.class_name}`;
+    const isSelected =
+      selectedExperiment === node || selectedExperiment === uniqueId;
     return (
       <div
-        className={`experiment-item px-2 py-1 mb-1 rounded cursor-pointer ${
-          isSelected ? "list-group-item-action active" : "hover-bg-light"
-        }`}
+        className={`experiment-item ${isSelected ? "is-active" : ""}`}
         onClick={() => onSelect(node)}
-        style={{ cursor: "pointer", transition: "background-color 0.2s" }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect(node);
+          }
+        }}
       >
-        <span className="me-2">📄</span>
-        <span className="class-name fw-bold">{node.experiment.class_name}</span>
-        <span
-          className="ms-2 text-muted small"
-          style={{ color: isSelected ? "#eee" : "#6c757d" }}
-        >
-          {node.experiment.file}
+        <span className="experiment-item__icon" aria-hidden="true">
+          <FileEarmarkCode size={14} />
         </span>
+        <span className="experiment-item__class">{exp.class_name}</span>
+        <span className="experiment-item__file">{exp.file}</span>
       </div>
     );
   }
@@ -121,23 +119,33 @@ function TreeNode({
   }
 
   return (
-    <div className="ms-3 mb-1">
+    <div>
       <div
-        className="experiment-folder d-flex align-items-center fw-bold py-1 px-2 rounded hover-bg-light"
+        className="experiment-folder"
         onClick={() => setIsOpen(!isOpen)}
-        style={{ cursor: "pointer" }}
+        role="button"
+        tabIndex={0}
+        aria-expanded={isOpen}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsOpen(!isOpen);
+          }
+        }}
       >
         <span
-          className="folder-icon me-2"
-          style={{ width: "1em", textAlign: "center" }}
+          className={`experiment-folder__chevron ${isOpen ? "is-open" : ""}`}
+          aria-hidden="true"
         >
-          {isOpen ? "▼" : "▶"}
+          <ChevronRight size={12} />
         </span>
-        <span className="me-2">📁</span>
-        {name}
+        <span className="experiment-folder__icon" aria-hidden="true">
+          <Folder size={14} />
+        </span>
+        <span>{name}</span>
       </div>
       {isOpen && (
-        <div className="mt-1">
+        <div className="experiment-tree-children">
           {sortedKeys.map((key) => (
             <TreeNode
               key={key}
