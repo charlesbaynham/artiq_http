@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
-import { ChevronRight, ChevronDown } from "react-bootstrap-icons";
+import { ChevronRight, ChevronDown, GraphUp } from "react-bootstrap-icons";
 
 /**
  * Build a hierarchical tree structure from flat dataset names
@@ -69,7 +69,14 @@ function TreeNode({ name, node, selectedDatasets, onSelect, level = 0 }) {
             )}
           </span>
         )}
-        {node.isLeaf && <span className="me-2">📊</span>}
+        {node.isLeaf && (
+          <span
+            className="me-2 dataset-tree-node__leaf-icon"
+            aria-hidden="true"
+          >
+            <GraphUp size={14} />
+          </span>
+        )}
         <span>{name}</span>
         {!node.isLeaf && (
           <span className="text-muted ms-2 small">
