@@ -36,25 +36,23 @@ function ExperimentSubmission({ explist, experiment, repo_rev }) {
 
   if (!expData) {
     return (
-      <Card className="mt-4 shadow-sm border-0 bg-secondary bg-opacity-10">
-        <Card.Body className="text-center p-5 text-muted">
-          <h5>No experiment selected</h5>
-          <p>
-            Select an experiment from the browser above to configure and submit
-            it.
-          </p>
-        </Card.Body>
-      </Card>
+      <div className="submission-empty">
+        <div className="eyebrow">Submit</div>
+        <h5>No experiment selected</h5>
+        <p>
+          Select an experiment from the browser above to configure and submit
+          it.
+        </p>
+      </div>
     );
   }
 
   if (arginfoLoading) {
     return (
-      <Card className="mt-4 shadow-sm border-0 bg-secondary bg-opacity-10">
-        <Card.Body className="text-center p-5 text-muted">
-          <p>Loading experiment parameters...</p>
-        </Card.Body>
-      </Card>
+      <div className="submission-empty">
+        <div className="eyebrow">Submit</div>
+        <p>Loading experiment parameters…</p>
+      </div>
     );
   }
 

@@ -1,59 +1,56 @@
 import React, { useState, useEffect } from "react";
 import Collapse from "react-bootstrap/Collapse";
+import { ChevronRight } from "react-bootstrap-icons";
+
+const SECTION_EYEBROWS = {
+  Running: "Live queue",
+  Datasets: "Storage",
+  Plots: "Live data",
+  "Schedule new": "Browse",
+  "Configure Submission": "Submit",
+};
 
 function CollapsibleSection({
   title,
   children,
   defaultExpanded = true,
   className = "",
+  eyebrow,
 }) {
   const [open, setOpen] = useState(defaultExpanded);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Detect mobile viewport
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-
     checkMobile();
     window.addEventListener("resize", checkMobile);
-
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // On mobile, always show content (ignore collapse state)
   const isOpen = isMobile ? true : open;
   const showToggle = !isMobile;
+  const eyebrowText = eyebrow || SECTION_EYEBROWS[title] || "Section";
 
   return (
     <div className={`collapsible-section ${className}`}>
       <div
-        className={`d-flex align-items-center py-2 mb-2 border-bottom section-header ${
-          showToggle ? "" : "pe-none"
-        }`}
+        className={`section-header ${showToggle ? "is-clickable" : ""}`}
         onClick={showToggle ? () => setOpen(!open) : undefined}
-        style={{
-          cursor: showToggle ? "pointer" : "default",
-          userSelect: "none",
-        }}
       >
         {showToggle && (
           <span
-            className="me-2 section-toggle"
-            style={{
-              transform: open ? "rotate(90deg)" : "rotate(0deg)",
-              transition: "transform 0.2s",
-              display: "inline-block",
-              fontSize: "0.8em",
-            }}
+            className={`section-toggle ${open ? "is-open" : ""}`}
+            aria-hidden="true"
           >
-            ▶
+            <ChevronRight size={14} />
           </span>
         )}
-        <h2 className="m-0 h4" style={{ flexGrow: 1 }}>
-          {title}
-        </h2>
+        <div className="section-header__text">
+          <span className="section-header__eyebrow">{eyebrowText}</span>
+          <h2>{title}</h2>
+        </div>
       </div>
       <Collapse in={isOpen}>
         <div>{children}</div>

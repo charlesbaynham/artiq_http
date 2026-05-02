@@ -1,55 +1,47 @@
 import React from "react";
+import {
+  PlayFill,
+  Database,
+  GraphUp,
+  ListUl,
+  Sliders,
+} from "react-bootstrap-icons";
 
 /**
- * Mobile navigation bar component
- * Displays at bottom of screen on mobile devices (<768px)
- * Hidden on desktop
+ * Mobile bottom navigation bar.
+ * BEM classes: mobile-nav, mobile-nav__item (is-active),
+ * mobile-nav__indicator, mobile-nav__icon, mobile-nav__label.
  */
 function MobileNavigation({ currentPage, onPageChange }) {
   const navItems = [
-    {
-      id: "running",
-      label: "Running",
-      icon: "▶️", // Play/running icon
-    },
-    {
-      id: "datasets",
-      label: "Datasets",
-      icon: "📊", // Data/chart icon
-    },
-    {
-      id: "plots",
-      label: "Plots",
-      icon: "📈", // Graph/plot icon
-    },
-    {
-      id: "schedule",
-      label: "Schedule",
-      icon: "📋", // List/schedule icon
-    },
-    {
-      id: "configure",
-      label: "Configure",
-      icon: "⚙️", // Settings/configure icon
-    },
+    { id: "running", label: "Running", Icon: PlayFill },
+    { id: "datasets", label: "Datasets", Icon: Database },
+    { id: "plots", label: "Plots", Icon: GraphUp },
+    { id: "schedule", label: "Schedule", Icon: ListUl },
+    { id: "configure", label: "Configure", Icon: Sliders },
   ];
 
   return (
-    <nav className="mobile-nav">
-      {navItems.map((item) => (
-        <button
-          key={item.id}
-          className={`mobile-nav-item ${
-            currentPage === item.id ? "active" : ""
-          }`}
-          onClick={() => onPageChange(item.id)}
-          aria-label={item.label}
-          aria-current={currentPage === item.id ? "page" : undefined}
-        >
-          <span className="mobile-nav-icon">{item.icon}</span>
-          <span className="mobile-nav-label">{item.label}</span>
-        </button>
-      ))}
+    <nav className="mobile-nav" aria-label="Primary">
+      {navItems.map(({ id, label, Icon }) => {
+        const active = currentPage === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            className={`mobile-nav__item ${active ? "is-active" : ""}`}
+            onClick={() => onPageChange(id)}
+            aria-label={label}
+            aria-current={active ? "page" : undefined}
+          >
+            <span className="mobile-nav__indicator" aria-hidden="true" />
+            <span className="mobile-nav__icon" aria-hidden="true">
+              <Icon size={20} />
+            </span>
+            <span className="mobile-nav__label">{label}</span>
+          </button>
+        );
+      })}
     </nav>
   );
 }
