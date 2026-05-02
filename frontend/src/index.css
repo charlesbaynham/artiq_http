@@ -67,6 +67,59 @@
     --bs-tertiary-bg: var(--surface-raised);
     --bs-form-control-bg: var(--surface-input);
     --bs-emphasis-color: var(--text-primary);
+
+    color-scheme: light dark;
+}
+
+/* ==========================================================================
+   Light theme (follows system preference)
+   ========================================================================== */
+
+@media (prefers-color-scheme: light) {
+    :root {
+        /* Surfaces — warm off-white with faint cool tint */
+        --surface-deep: oklch(0.94 0.005 245);
+        --surface-base: oklch(0.97 0.003 245);
+        --surface-raised: oklch(0.92 0.005 245);
+        --surface-input: oklch(0.95 0.003 245);
+
+        /* Borders */
+        --border-subtle: oklch(0.85 0.008 245);
+        --border-strong: oklch(0.70 0.01 245);
+
+        /* Text */
+        --text-primary: oklch(0.15 0.01 245);
+        --text-secondary: oklch(0.42 0.008 245);
+        --text-muted: oklch(0.55 0.01 245);
+
+        /* Accent — slightly darker amber for light-ground contrast */
+        --accent: oklch(0.62 0.15 55);
+        --accent-hover: oklch(0.55 0.15 55);
+        --accent-soft: oklch(0.62 0.15 55 / 0.12);
+        --accent-on: oklch(0.98 0.003 245);
+
+        /* Status */
+        --status-running: oklch(0.50 0.14 145);
+        --status-preparing: oklch(0.60 0.12 80);
+        --status-pending: oklch(0.55 0.015 240);
+        --status-error: oklch(0.55 0.18 25);
+
+        /* Bootstrap overrides */
+        --bs-body-bg: var(--surface-base);
+        --bs-body-color: var(--text-primary);
+        --bs-border-color: var(--border-subtle);
+        --bs-border-color-translucent: var(--border-subtle);
+        --bs-primary: oklch(0.62 0.15 55);
+        --bs-primary-rgb: 190, 126, 46;
+        --bs-link-color: var(--accent);
+        --bs-link-hover-color: var(--accent-hover);
+        --bs-secondary-bg: var(--surface-raised);
+        --bs-tertiary-bg: var(--surface-raised);
+        --bs-form-control-bg: var(--surface-input);
+        --bs-emphasis-color: var(--text-primary);
+
+        color-scheme: light;
+    }
 }
 
 /* ==========================================================================
