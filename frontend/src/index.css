@@ -462,3 +462,176 @@ h1 {
 .dataset-tree-node.branch {
     color: #495057;
 }
+
+/* ========================================
+   Logs Component
+   ======================================== */
+
+/* Container */
+.logs-container {
+    width: 100%;
+}
+
+/* Loading state */
+.logs-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    gap: var(--spacing-md);
+    color: var(--color-text-muted);
+}
+
+.logs-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: logs-spin 0.8s linear infinite;
+}
+
+@keyframes logs-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Error banner */
+.logs-error-banner {
+    background-color: rgba(217, 83, 79, 0.15);
+    border: 1px solid var(--color-danger);
+    color: var(--color-danger);
+    padding: var(--spacing-md);
+    border-radius: 4px;
+    margin-bottom: var(--spacing-md);
+    font-weight: 500;
+}
+
+/* Empty state */
+.logs-empty-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+/* Scrollable table wrapper */
+.logs-table-wrapper {
+    max-height: 500px;
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+}
+
+/* Table */
+.logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+}
+
+/* Sticky header */
+.logs-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.logs-table thead tr {
+    background-color: #243342;
+}
+
+.logs-table th {
+    padding: var(--spacing-sm) var(--spacing-md);
+    text-align: left;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+}
+
+/* Body rows */
+.logs-table tbody tr {
+    border-bottom: 1px solid var(--color-border);
+    transition: background-color 0.15s ease;
+}
+
+.logs-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.logs-table tbody tr:hover {
+    background-color: var(--color-hover);
+}
+
+.logs-table td {
+    padding: var(--spacing-sm) var(--spacing-md);
+    vertical-align: top;
+    color: var(--color-text);
+}
+
+/* Timestamp column: monospace for alignment */
+.logs-timestamp {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+/* Message column */
+.logs-message {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Log level pills */
+.log-level-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.log-level-critical,
+.log-level-error {
+    background-color: var(--color-danger);
+    color: #fff;
+}
+
+.log-level-warning {
+    background-color: var(--color-warning);
+    color: #1a1a1a;
+}
+
+.log-level-info {
+    background-color: var(--color-info);
+    color: #1a1a1a;
+}
+
+.log-level-debug {
+    background-color: var(--color-text-muted);
+    color: #1a1a1a;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 767px) {
+    .logs-table th,
+    .logs-table td {
+        padding: var(--spacing-sm);
+    }
+
+    .logs-table-wrapper {
+        max-height: 60vh;
+    }
+}

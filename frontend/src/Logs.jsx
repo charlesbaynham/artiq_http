@@ -1,27 +1,23 @@
 import React, { useEffect, useState } from "react";
-import Alert from "react-bootstrap/Alert";
-import Badge from "react-bootstrap/Badge";
-import Spinner from "react-bootstrap/Spinner";
-import Table from "react-bootstrap/Table";
 
 import { get_logs } from "./api/client";
 
 const LEVEL_INFO = [
-  { name: "CRITICAL", min: 50, variant: "danger" },
-  { name: "ERROR", min: 40, variant: "danger" },
-  { name: "WARNING", min: 30, variant: "warning" },
-  { name: "INFO", min: 20, variant: "primary" },
-  { name: "DEBUG", min: 10, variant: "secondary" },
+  { name: "CRITICAL", min: 50, className: "log-level-critical" },
+  { name: "ERROR", min: 40, className: "log-level-error" },
+  { name: "WARNING", min: 30, className: "log-level-warning" },
+  { name: "INFO", min: 20, className: "log-level-info" },
+  { name: "DEBUG", min: 10, className: "log-level-debug" },
 ];
 
 function levelInfoFor(level) {
   if (typeof level !== "number") {
-    return { name: String(level ?? ""), variant: "secondary" };
+    return { name: String(level ?? ""), className: "log-level-debug" };
   }
   for (const info of LEVEL_INFO) {
     if (level >= info.min) return info;
   }
-  return { name: String(level), variant: "secondary" };
+  return { name: String(level), className: "log-level-debug" };
 }
 
 function formatTimestamp(ts) {
@@ -59,29 +55,29 @@ function Logs() {
 
   if (loading) {
     return (
-      <div className="text-center p-4">
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading…</span>
-        </Spinner>
+      <div className="logs-loading">
+        <div className="logs-spinner" aria-label="Loading logs" />
+        <span>Loading logs…</span>
       </div>
     );
   }
 
   return (
-    <div className="logs-view">
-      {error && <Alert variant="danger">{error}</Alert>}
+    <div className="logs-container">
+      {error && (
+        <div className="logs-error-banner" role="alert">
+          {error}
+        </div>
+      )}
 
       {logs.length === 0 ? (
-        <div className="text-muted p-3">No log entries available.</div>
+        <div className="logs-empty-state">No log entries available.</div>
       ) : (
-        <div
-          className="border rounded"
-          style={{ maxHeight: "500px", overflowY: "auto" }}
-        >
-          <Table size="sm" hover className="mb-0">
-            <thead className="sticky-top bg-body">
+        <div className="logs-table-wrapper">
+          <table className="logs-table">
+            <thead>
               <tr>
-                <th style={{ whiteSpace: "nowrap" }}>Time</th>
+                <th>Time</th>
                 <th>Source</th>
                 <th>Level</th>
                 <th>Message</th>
@@ -89,24 +85,24 @@ function Logs() {
             </thead>
             <tbody>
               {logs.map((entry, idx) => {
-                const { name, variant } = levelInfoFor(entry.level);
+                const { name, className } = levelInfoFor(entry.level);
                 return (
                   <tr key={idx}>
-                    <td style={{ whiteSpace: "nowrap" }}>
+                    <td className="logs-timestamp">
                       {formatTimestamp(entry.timestamp)}
                     </td>
                     <td>{entry.source ?? ""}</td>
                     <td>
-                      <Badge bg={variant}>{name}</Badge>
+                      <span className={`log-level-pill ${className}`}>
+                        {name}
+                      </span>
                     </td>
-                    <td style={{ whiteSpace: "pre-wrap" }}>
-                      {entry.message ?? ""}
-                    </td>
+                    <td className="logs-message">{entry.message ?? ""}</td>
                   </tr>
                 );
               })}
             </tbody>
-          </Table>
+          </table>
         </div>
       )}
     </div>
