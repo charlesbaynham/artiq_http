@@ -7,6 +7,7 @@ import Spinner from "react-bootstrap/Spinner";
 import { get_dataset_names, get_dataset_values } from "./api/client";
 import DatasetTree from "./DatasetTree";
 import DatasetValue from "./DatasetValue";
+import { ArrowClockwise } from "react-bootstrap-icons";
 
 /**
  * Main component for dataset exploration
@@ -165,11 +166,12 @@ function DatasetExplorer() {
           <div className="d-flex justify-content-between align-items-center mb-2">
             <h5>Selected Datasets ({selectedDatasets.length})</h5>
             <button
-              className="btn btn-sm btn-outline-primary"
+              className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
               onClick={refreshSelectedDatasets}
               disabled={selectedDatasets.length === 0}
+              aria-label="Refresh selected datasets"
             >
-              🔄 Refresh
+              <ArrowClockwise aria-hidden="true" /> Refresh
             </button>
           </div>
           <div
