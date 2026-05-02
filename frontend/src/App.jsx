@@ -295,7 +295,7 @@ function App() {
           <Col>
             <CollapsibleSection title="Logs" defaultExpanded={false}>
               <ErrorBoundary>
-                <Logs />
+                <Logs currentPage={currentPage} />
               </ErrorBoundary>
             </CollapsibleSection>
           </Col>
