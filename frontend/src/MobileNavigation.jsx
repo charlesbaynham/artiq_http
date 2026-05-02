@@ -5,6 +5,7 @@ import {
   GraphUp,
   ListUl,
   Sliders,
+  JournalText,
 } from "react-bootstrap-icons";
 
 /**
@@ -19,6 +20,7 @@ function MobileNavigation({ currentPage, onPageChange }) {
     { id: "plots", label: "Plots", Icon: GraphUp },
     { id: "schedule", label: "Schedule", Icon: ListUl },
     { id: "configure", label: "Configure", Icon: Sliders },
+    { id: "logs", label: "Logs", Icon: JournalText },
   ];
 
   return (

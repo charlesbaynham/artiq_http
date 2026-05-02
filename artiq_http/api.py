@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict
 
+import pydantic
 from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.encoders import ENCODERS_BY_TYPE
 from fastapi.middleware.cors import CORSMiddleware
@@ -221,6 +222,27 @@ async def get_dataset_values(names: str):
             result[name] = all_datasets[name]
 
     return result
+
+
+@router.get("/logs")
+async def get_logs() -> api.models.LogList:
+    """Return the current buffered ARTIQ system log entries.
+
+    Each entry is validated against :class:`LogEntry`; entries whose shape
+    differs are returned as-is so the endpoint stays usable across ARTIQ
+    version variations.
+    """
+    raw_logs = await api.notifiers.get_logs()
+    entries: list = []
+    for entry in raw_logs:
+        if not isinstance(entry, dict):
+            continue
+        try:
+            validated = api.models.LogEntry.model_validate(entry)
+            entries.append(validated.model_dump())
+        except pydantic.ValidationError:
+            entries.append(entry)
+    return api.models.LogList(logs=entries)
 
 
 @router.get("/health")

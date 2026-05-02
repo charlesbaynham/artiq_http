@@ -13,6 +13,7 @@ import DatasetExplorer from "./DatasetExplorer";
 import NDScanPlotCollection from "./NDScanPlotCollection";
 import ConnectionErrorModal from "./ConnectionErrorModal";
 import ErrorBoundary from "./ErrorBoundary";
+import Logs from "./Logs";
 import { get_health, get_explist } from "./api/client";
 import MobileNavigation from "./MobileNavigation";
 
@@ -66,6 +67,7 @@ function App() {
     if (pathname.startsWith("/schedule")) return "schedule";
     if (pathname.startsWith("/configure")) return "configure";
     if (pathname.startsWith("/running")) return "running";
+    if (pathname.startsWith("/logs")) return "logs";
     return "schedule"; // Default
   };
 
@@ -89,6 +91,7 @@ function App() {
       plots: "/plots",
       schedule: "/schedule",
       configure: "/configure",
+      logs: "/logs",
     };
     const route = routes[page] || "/schedule";
     navigate(route);
@@ -277,6 +280,22 @@ function App() {
                   experiment={selectedExperiment}
                   repo_rev={repoRev}
                 />
+              </ErrorBoundary>
+            </CollapsibleSection>
+          </Col>
+        </Row>
+
+        {/* Logs Section */}
+        <Row
+          id="section-logs"
+          className={`pt-2 page-section ${
+            currentPage === "logs" ? "active" : ""
+          }`}
+        >
+          <Col>
+            <CollapsibleSection title="Logs" defaultExpanded={false}>
+              <ErrorBoundary>
+                <Logs />
               </ErrorBoundary>
             </CollapsibleSection>
           </Col>
