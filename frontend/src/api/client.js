@@ -97,3 +97,7 @@ export function get_dataset_values(names) {
 export function get_health() {
   return api_fetch("api/health");
 }
+
+export function get_logs() {
+  return api_fetch("api/logs");
+}

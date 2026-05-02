@@ -1,5 +1,7 @@
 from typing import Any, Dict
 
+from fastapi import HTTPException
+
 from ._get_dict import get_dict
 from .models import ExperimentEntry, ExperimentList, ScheduleItem
 
@@ -178,8 +180,6 @@ async def get_schedule() -> Dict[int, ScheduleItem]:
     Raises:
         HTTPException: 503 if ARTIQ master is not connected
     """
-    from fastapi import HTTPException
-
     from .persistent_subscriber import subscriber_manager
 
     try:
@@ -213,12 +213,24 @@ async def get_datasets() -> dict:
     Raises:
         HTTPException: 503 if ARTIQ master is not connected
     """
-    from fastapi import HTTPException
-
     from .persistent_subscriber import subscriber_manager
 
     try:
         return subscriber_manager.get_datasets()
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=f"ARTIQ master not available: {str(e)}")
+
+
+async def get_logs() -> list:
+    """Return the current buffered log entries from the persistent subscriber.
+
+    Raises:
+        HTTPException: 503 if the log subscriber is not connected/initialised.
+    """
+    from .persistent_subscriber import subscriber_manager
+
+    try:
+        return subscriber_manager.get_logs()
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=f"ARTIQ master not available: {str(e)}")
 
@@ -274,8 +286,6 @@ async def get_explist() -> ExperimentList:
     Raises:
         HTTPException: 503 if ARTIQ master is not connected
     """
-    from fastapi import HTTPException
-
     from .persistent_subscriber import subscriber_manager
 
     try:

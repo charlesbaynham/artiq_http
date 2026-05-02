@@ -54,3 +54,21 @@ class SubmitAndWaitResult(BaseModel):
     rid: int
     status: str
     timed_out: bool
+
+
+class LogEntry(BaseModel):
+    timestamp: float
+    source: str
+    level: int
+    message: str
+
+
+class LogList(BaseModel):
+    """Response shape for ``GET /api/logs``.
+
+    Entries are typed as ``Dict[str, Any]`` rather than ``LogEntry`` so the
+    endpoint can fall back to returning raw dicts when an ARTIQ entry doesn't
+    match the expected shape.
+    """
+
+    logs: List[Dict[str, Any]]
