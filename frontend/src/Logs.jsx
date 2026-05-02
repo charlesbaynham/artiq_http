@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowClockwise } from "react-bootstrap-icons";
 
 import { get_logs } from "./api/client";
 
@@ -27,32 +28,64 @@ function formatTimestamp(ts) {
   return d.toLocaleString();
 }
 
-function Logs() {
+const POLL_INTERVAL = 5000;
+
+function Logs({ currentPage }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [levelFilter, setLevelFilter] = useState(20);
+  const latestRequestRef = useRef(0);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    get_logs()
-      .then((data) => {
-        if (cancelled) return;
-        setLogs(Array.isArray(data?.logs) ? data.logs : []);
-        setError(null);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(`Failed to load logs: ${err.message}`);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+  const fetchLogs = useCallback(async (isBackground = false) => {
+    const requestId = Date.now();
+    latestRequestRef.current = requestId;
+
+    if (!isBackground) setLoading(true);
+    else setRefreshing(true);
+
+    try {
+      const data = await get_logs();
+      if (latestRequestRef.current !== requestId) return;
+      setLogs(Array.isArray(data?.logs) ? data.logs : []);
+      setError(null);
+    } catch (err) {
+      if (latestRequestRef.current !== requestId) return;
+      setError(`Failed to load logs: ${err.message}`);
+    } finally {
+      if (latestRequestRef.current === requestId) {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }
   }, []);
+
+  // Initial load
+  useEffect(() => {
+    fetchLogs(false);
+  }, [fetchLogs]);
+
+  // Auto-poll every 5s when on logs page and tab is visible
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible" && currentPage === "logs") {
+        fetchLogs(true);
+      }
+    }, POLL_INTERVAL);
+    return () => clearInterval(interval);
+  }, [fetchLogs, currentPage]);
+
+  // Fetch immediately when tab becomes visible
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && currentPage === "logs") {
+        fetchLogs(true);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [fetchLogs, currentPage]);
 
   const filteredLogs = useMemo(() => {
     return logs.filter((entry) => {
@@ -93,6 +126,18 @@ function Logs() {
             ))}
           </select>
           <span className="logs-count">{filteredLogs.length} entries</span>
+          <button
+            className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
+            onClick={() => fetchLogs(true)}
+            disabled={refreshing}
+            aria-label="Refresh logs"
+          >
+            <ArrowClockwise
+              className={refreshing ? "logs-icon-spin" : ""}
+              aria-hidden="true"
+            />
+            Refresh
+          </button>
         </div>
       )}
 

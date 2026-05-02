@@ -1512,6 +1512,11 @@ a:hover {
     }
 }
 
+/* Refresh button spin */
+.logs-icon-spin {
+    animation: logs-spin 0.8s linear infinite;
+}
+
 /* Filter bar */
 .logs-filter-bar {
     display: flex;
