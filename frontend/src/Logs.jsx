@@ -97,7 +97,11 @@ function Logs() {
       )}
 
       {filteredLogs.length === 0 ? (
-        <div className="logs-empty-state">No log entries available.</div>
+        <div className="logs-empty-state">
+          {logs.length === 0
+            ? "No log entries available."
+            : "No log entries match the selected filter."}
+        </div>
       ) : (
         <div className="logs-table-wrapper">
           <table className="logs-table">
