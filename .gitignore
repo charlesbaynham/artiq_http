@@ -128,3 +128,4 @@ ENV/
 
 # Local tooling scratch dir
 .tmp/
+.worktrees/
