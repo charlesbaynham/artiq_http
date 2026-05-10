@@ -33,7 +33,7 @@ def test_health_endpoint_structure(client):
 
     # Check details contains expected subscribers
     details = data["details"]
-    expected_subscribers = ["explist", "explist_status", "schedule", "datasets"]
+    expected_subscribers = ["explist", "explist_status", "schedule", "datasets", "logs"]
 
     for subscriber in expected_subscribers:
         assert subscriber in details

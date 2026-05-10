@@ -3,13 +3,16 @@
 
 import asyncio
 import json
+import os
 
+import pytest
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
-MCP_URL = "http://localhost:8001/mcp"
+MCP_URL = os.getenv("MCP_URL", "http://localhost:8001/mcp")
 
 
+@pytest.mark.realserver
 async def test_all():
     print("=" * 70)
     print("CONNECTING TO MCP SERVER")
@@ -87,7 +90,10 @@ async def test_all():
             print("\n--- 4. get_experiment_defaults ---")
             result = await session.call_tool(
                 "get_experiment_defaults",
-                {"file": "Cooling/RF/Basic_Cooling_RF_454.py", "class_name": "BasicCoolingRF454"},
+                {
+                    "file": "Cooling/RF/Basic_Cooling_RF_454.py",
+                    "class_name": "BasicCoolingRF454",
+                },
             )
             print(format_result(result))
 
@@ -95,10 +101,13 @@ async def test_all():
             print("\n--- 5. get_experiment_arginfo ---")
             result = await session.call_tool(
                 "get_experiment_arginfo",
-                {"file": "Cooling/RF/Basic_Cooling_RF_454.py", "class_name": "BasicCoolingRF454"},
+                {
+                    "file": "Cooling/RF/Basic_Cooling_RF_454.py",
+                    "class_name": "BasicCoolingRF454",
+                },
             )
             data = format_result(result)
-            if "arginfo" in data:
+            if isinstance(data, dict) and "arginfo" in data:
                 print(f"Parameters: {list(data['arginfo'].keys())}")
             else:
                 print(data)

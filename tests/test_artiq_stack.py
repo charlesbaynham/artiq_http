@@ -79,7 +79,7 @@ def test_datasets_after_exp(client):
     print(datasets)
     assert "results" in datasets
     # ARTIQ datasets via this API are returned as [persist, value, metadata]
-    assert datasets["results"][1] == 15
+    assert datasets["results"][1][1] == 15
 
 
 def test_devices_list(client):

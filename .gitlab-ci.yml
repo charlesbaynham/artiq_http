@@ -49,7 +49,6 @@ pre-commit:
 
 ### Tests ###
 
-# Build the test master image using Nix with caching
 build-test-master:
   stage: Prepare
   extends: .nix
@@ -70,9 +69,9 @@ build-test-master:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
   cache:
     - !reference [.nix, cache]
+  after_script: [] # Take manual control of nix cache
   script:
     - cd test-artiq
-    - nix build .#docker
     - |
       set -euo pipefail
       HASH=$(nix eval --json .#docker.outPath | tr '/' '\n' | tail -1 | cut -d'-' -f1)
@@ -80,10 +79,17 @@ build-test-master:
       echo "Image hash: $HASH"
       if docker manifest inspect "$CI_REGISTRY_IMAGE/test-master:$HASH" > /dev/null 2>&1; then
         echo "Image already in registry, skipping push"
+        echo "Deleteing cache dir - this will force gitlab to skip cache update"
+        echo "See https://olex.biz/2025/04/gitlab-ci-prevent-cache-reupload-without-changes/"
+
+        rm -rf ".cache"
+        rm -rf ".nix-cache"
       else
+        nix build .#docker
         docker load < result
         docker tag artiq-test-master:latest "$CI_REGISTRY_IMAGE/test-master:$HASH"
         docker push "$CI_REGISTRY_IMAGE/test-master:$HASH"
+        gitlab-ci-nix-cache-after
       fi
   needs: []
   artifacts:
@@ -98,21 +104,72 @@ pytest:
       alias: test-master
   variables:
     ARTIQ_HTTP_HOST: "test-master"
+    MCP_URL: "http://localhost:8001/mcp"
   before_script:
     - !reference [.uv-setup, before_script]
     # Wait for ARTIQ master to be ready
     - |
       echo "Waiting for ARTIQ master to be ready..."
+      READY=false
       for i in {1..30}; do
         if timeout 1 bash -c "cat < /dev/null > /dev/tcp/test-master/3251" 2>/dev/null; then
           echo "ARTIQ master is ready!"
-          exit 0
+          READY=true
+          break
         fi
         echo "Still waiting..."
         sleep 1
       done
-      echo "ARTIQ master failed to start"
-      exit 1
+      if [ "$READY" != "true" ]; then
+        echo "ARTIQ master failed to start"
+        exit 1
+      fi
+    # Start the ARTIQ HTTP backend in the background
+    - |
+      echo "Starting ARTIQ HTTP backend..."
+      uv run aqctl_artiq_http --port 8000 &
+      BACKEND_PID=$!
+      echo "Backend PID: $BACKEND_PID"
+    # Start the MCP server in the background
+    - |
+      echo "Starting MCP server..."
+      ARTIQ_HTTP_URL=http://localhost:8000 uv run python mcp_server/server.py &
+      MCP_PID=$!
+      echo "MCP PID: $MCP_PID"
+    # Wait for backend to be ready
+    - |
+      echo "Waiting for backend to be ready..."
+      READY=false
+      for i in {1..30}; do
+        if timeout 1 bash -c "cat < /dev/null > /dev/tcp/localhost/8000" 2>/dev/null; then
+          echo "Backend is ready!"
+          READY=true
+          break
+        fi
+        echo "Still waiting for backend..."
+        sleep 1
+      done
+      if [ "$READY" != "true" ]; then
+        echo "Backend failed to start"
+        exit 1
+      fi
+    # Wait for MCP server to be ready
+    - |
+      echo "Waiting for MCP server to be ready..."
+      READY=false
+      for i in {1..30}; do
+        if timeout 1 bash -c "cat < /dev/null > /dev/tcp/localhost/8001" 2>/dev/null; then
+          echo "MCP server is ready!"
+          READY=true
+          break
+        fi
+        echo "Still waiting for MCP server..."
+        sleep 1
+      done
+      if [ "$READY" != "true" ]; then
+        echo "MCP server failed to start"
+        exit 1
+      fi
   script:
     - uv run coverage run --omit "tests/*" -m pytest --realserver --junitxml=report.xml
     - uv run coverage report
@@ -198,6 +255,7 @@ pages:
     DOCKER_TLS_CERTDIR: "/certs"
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  needs: []
   script:
     - |
       # Build with inline cache

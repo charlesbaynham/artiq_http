@@ -6,7 +6,7 @@ REPO_DIR = "/home/charles/artiq_http/test-artiq/repository"
 PRIMARY_FOLDERS = ["Cooling", "Trapping", "Spectroscopy", "Entanglement", "Calibration"]
 SECONDARY_FOLDERS = ["Laser", "Magnetic", "RF", "Optical", "Global"]
 
-# Template 1: Basic component test with various parameter types
+# Template 1: Basic component tests with various parameter types
 TEMPLATE_BASIC = """
 import numpy as np
 import time

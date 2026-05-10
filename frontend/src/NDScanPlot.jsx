@@ -5,6 +5,7 @@ import Spinner from "react-bootstrap/Spinner";
 import Alert from "react-bootstrap/Alert";
 import Badge from "react-bootstrap/Badge";
 import { useSSEDataset, SSEState } from "./hooks/useSSEDataset";
+import { XCircleFill } from "react-bootstrap-icons";
 
 /**
  * Component to render NDScan visualizations (0D, 1D, 2D)
@@ -28,6 +29,7 @@ function NDScanPlot({ prefix }) {
       const axesKey = `${prefix}.axes`;
       const channelsKey = `${prefix}.channels`;
       const completedKey = `${prefix}.completed`;
+      const fragmentFqnKey = `${prefix}.fragment_fqn`;
 
       if (!rawData[axesKey] || !rawData[channelsKey]) {
         return null;
@@ -36,7 +38,7 @@ function NDScanPlot({ prefix }) {
       const axes = JSON.parse(rawData[axesKey][1]);
       const channels = JSON.parse(rawData[channelsKey][1]);
       const completed = rawData[completedKey]?.[1] ?? false;
-      const fragmentFqn = rawData[`${prefix}.fragment_fqn`]?.[1] || null;
+      const fragmentFqn = rawData[fragmentFqnKey]?.[1] || null;
 
       // Build channelData from raw data
       const channelData = {};
@@ -54,8 +56,8 @@ function NDScanPlot({ prefix }) {
         channels,
         channelData,
         completed,
-        prefix,
         fragmentFqn,
+        prefix,
       };
     } catch (err) {
       console.error("Error parsing NDScan data:", err);
@@ -84,8 +86,12 @@ function NDScanPlot({ prefix }) {
     }
     if (connectionState === SSEState.ERROR) {
       return (
-        <Badge bg="danger" className="me-2" title={error || "Connection error"}>
-          ✕ Error
+        <Badge
+          bg="danger"
+          className="me-2 d-inline-flex align-items-center gap-1"
+          title={error || "Connection error"}
+        >
+          <XCircleFill aria-hidden="true" /> Error
         </Badge>
       );
     }

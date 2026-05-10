@@ -125,3 +125,7 @@ ENV/
 
 # Git worktrees
 .worktrees/
+
+# Local tooling scratch dir
+.tmp/
+.worktrees/
