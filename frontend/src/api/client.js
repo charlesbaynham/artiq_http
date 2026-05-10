@@ -1,5 +1,8 @@
 const isDev = import.meta.env.DEV;
-const baseURL = isDev ? "http://localhost:8000" : window.location.origin;
+const basePath = import.meta.env.BASE_URL || "/";
+const baseURL = isDev
+  ? "http://localhost:8000"
+  : window.location.origin + basePath.replace(/\/$/, "") + "/";
 
 export function make_query_url(endpoint, params = {}) {
   const url = new URL(endpoint, baseURL);
@@ -15,7 +18,7 @@ export function make_query_url(endpoint, params = {}) {
  * @returns {string} - Full SSE endpoint URL
  */
 export function get_sse_url(prefix) {
-  return `${baseURL}/api/datasets/stream/${encodeURIComponent(prefix)}`;
+  return `${baseURL}api/datasets/stream/${encodeURIComponent(prefix)}`;
 }
 
 export async function api_fetch(endpoint, options = {}) {

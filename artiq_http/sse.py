@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+HEARTBEAT_INTERVAL = 15.0  # seconds
+
 
 def sanitize_for_json(obj: Any) -> Any:
     """Recursively sanitize values to be JSON compliant"""
@@ -114,13 +116,11 @@ async def stream_dataset_updates(prefix: str):
             return
 
         # Stream updates
-        heartbeat_interval = 15.0  # seconds
-
         while True:
             try:
                 # Wait for updates with timeout for heartbeat
                 try:
-                    mod = await asyncio.wait_for(update_queue.get(), timeout=heartbeat_interval)
+                    mod = await asyncio.wait_for(update_queue.get(), timeout=HEARTBEAT_INTERVAL)
 
                     # Process the modification
                     key = mod.get("key")

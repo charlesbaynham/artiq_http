@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
 const isDev = import.meta.env.DEV;
-const baseURL = isDev ? "http://localhost:8000" : window.location.origin;
+const basePath = import.meta.env.BASE_URL || "/";
+const baseURL = isDev
+  ? "http://localhost:8000"
+  : window.location.origin + basePath.replace(/\/$/, "") + "/";
 
 /**
  * Connection states for SSE
@@ -34,6 +37,12 @@ export function useSSEDataset(prefix, options = {}) {
   const reconnectTimeoutRef = useRef(null);
   const mountedRef = useRef(true);
   const lastConnectionAttemptRef = useRef(0);
+  const connectionStateRef = useRef(connectionState);
+
+  // Keep the ref in sync with state
+  useEffect(() => {
+    connectionStateRef.current = connectionState;
+  }, [connectionState]);
 
   // Merge update data into existing data
   const mergeUpdate = useCallback((updateData) => {
@@ -83,7 +92,7 @@ export function useSSEDataset(prefix, options = {}) {
     setConnectionState(SSEState.CONNECTING);
     setError(null);
 
-    const url = `${baseURL}/api/datasets/stream/${encodeURIComponent(prefix)}`;
+    const url = `${baseURL}api/datasets/stream/${encodeURIComponent(prefix)}`;
     const eventSource = new EventSource(url);
     eventSourceRef.current = eventSource;
 
@@ -122,7 +131,7 @@ export function useSSEDataset(prefix, options = {}) {
     eventSource.addEventListener("heartbeat", () => {
       // Heartbeat received, connection is alive
       if (!mountedRef.current) return;
-      if (connectionState !== SSEState.CONNECTED) {
+      if (connectionStateRef.current !== SSEState.CONNECTED) {
         setConnectionState(SSEState.CONNECTED);
       }
     });
@@ -163,7 +172,6 @@ export function useSSEDataset(prefix, options = {}) {
     reconnectDelay,
     mergeUpdate,
     handleDelete,
-    connectionState,
   ]);
 
   // Connect when prefix changes or component mounts
