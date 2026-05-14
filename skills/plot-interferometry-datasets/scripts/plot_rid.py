@@ -22,11 +22,21 @@ def api_get(path, params=None):
 
 
 def get_dataset_values(names):
-    """Fetch values for one or more datasets by name."""
+    """Fetch values for one or more datasets by name.
+
+    The artiq_http /datasets/values endpoint returns each entry as
+    [persist_flag, value, metadata_dict]. Unwrap to the bare value list."""
     if not names:
         return {}
     names_str = ",".join(names)
-    return api_get("/datasets/values", {"names": names_str})
+    raw = api_get("/datasets/values", {"names": names_str})
+    unwrapped = {}
+    for k, v in raw.items():
+        if isinstance(v, list) and len(v) >= 2 and isinstance(v[0], bool):
+            unwrapped[k] = v[1]
+        else:
+            unwrapped[k] = v
+    return unwrapped
 
 
 def list_dataset_names():

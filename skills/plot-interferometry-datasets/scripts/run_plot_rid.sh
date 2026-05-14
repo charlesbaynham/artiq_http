@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 # Plot ARTIQ ndscan data for a given RID as ASCII art.
 # Usage: ./plot-rid.sh <RID> [SERVER_URL]
-# Default server: http://10.137.1.252:8000
+# Default server: https://artiq.baynham.me/api
 
 set -euo pipefail
 
 RID="${1:-}"
-SERVER="${2:-http://10.137.1.252:8000}"
+SERVER="${2:-https://artiq.baynham.me/api}"
 VENV_DIR="/tmp/artiq-plot-venv"
 DIR_OF_THIS_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ -z "$RID" ]; then
     echo "Usage: $0 <RID> [SERVER_URL]"
     echo "  RID:          ARTIQ run ID to plot"
-    echo "  SERVER_URL:   artiq_http backend URL (default: http://10.137.1.252:8000)"
+    echo "  SERVER_URL:   artiq_http backend URL (default: https://artiq.baynham.me/api)"
     exit 1
 fi
 

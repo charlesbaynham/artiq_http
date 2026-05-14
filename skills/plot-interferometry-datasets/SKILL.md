@@ -19,7 +19,7 @@ When a user asks to plot, visualise, or see the results of a specific ARTIQ RID 
 ## Usage
 
 ```bash
-# Plot data for RID 71798 using the default server (10.137.1.252:8000)
+# Plot data for RID 71798 using the default server (https://artiq.baynham.me/api)
 scripts/run_plot_rid.sh 71798
 
 # Plot data for a different RID against a custom server
