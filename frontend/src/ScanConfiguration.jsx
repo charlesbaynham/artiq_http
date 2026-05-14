@@ -295,8 +295,11 @@ function ScanConfiguration({ scan, schemata, onChange }) {
               value={no_axes_mode}
               onChange={(e) => handleNoAxesModeChange(e.target.value)}
             >
-              <option value="single">Single</option>
-              <option value="repeat">Repeat</option>
+              <option value="single">Single (run once)</option>
+              <option value="repeat">Repeat (save only last)</option>
+              <option value="time_series">
+                Time series (save all, with timestamps)
+              </option>
             </Form.Select>
           </Col>
         </Row>
