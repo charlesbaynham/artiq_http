@@ -7,6 +7,9 @@ make build
 
 SESSION_NAME="artiq_http_dev"
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Check if tmux session already exists
 if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
     echo "Session '$SESSION_NAME' already exists. Attaching..."
@@ -14,8 +17,8 @@ if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
     exit 0
 fi
 
-# Get the directory where this script is located
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Clean up any stale containers from previous dev sessions before starting fresh
+(cd "$SCRIPT_DIR/test-artiq" && docker compose down 2>/dev/null) || true
 
 # Create new tmux session with backend
 tmux new-session -d -s "$SESSION_NAME" -n "dev" -c "$SCRIPT_DIR"
