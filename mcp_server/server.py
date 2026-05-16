@@ -7,27 +7,60 @@ from urllib.parse import quote
 
 import httpx
 import uvicorn
+from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, RevocationOptions
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
+from pydantic import AnyHttpUrl
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
-from starlette.routing import Mount
+from starlette.routing import Mount, Route
 
 logging.basicConfig(level=logging.WARNING, stream=sys.stderr)
 log = logging.getLogger(__name__)
 
 ARTIQ_HTTP_URL = os.getenv("ARTIQ_HTTP_URL", "http://localhost:8000").rstrip("/")
+INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "")
+
+# ---------------------------------------------------------------------------
+# Auth — only active when EXTERNAL_BASE_URL is set.
+# Without it the server starts unauthenticated (original behaviour).
+# ---------------------------------------------------------------------------
+
+_EXTERNAL_BASE_URL = os.environ.get("EXTERNAL_BASE_URL", "").rstrip("/")
+_auth_kwargs: dict = {}
+
+if _EXTERNAL_BASE_URL:
+    from mcp_server.auth import github_callback, provider  # noqa: E402
+
+    _auth_kwargs = {
+        "auth_server_provider": provider,
+        "auth": AuthSettings(
+            issuer_url=AnyHttpUrl(_EXTERNAL_BASE_URL),
+            resource_server_url=AnyHttpUrl(f"{_EXTERNAL_BASE_URL}/mcp"),
+            client_registration_options=ClientRegistrationOptions(
+                enabled=True,
+                valid_scopes=["artiq"],
+                default_scopes=["artiq"],
+            ),
+            revocation_options=RevocationOptions(enabled=True),
+        ),
+    }
+    log.warning("OAuth enabled — issuer: %s", _EXTERNAL_BASE_URL)
+else:
+    log.warning("EXTERNAL_BASE_URL not set — running WITHOUT authentication (local mode only)")
 
 # Disable DNS rebinding protection since the MCP server is accessed remotely
 # (e.g. Claude Code connecting to the Docker host IP), not just from localhost.
 mcp = FastMCP(
     "artiq-http",
     transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
+    **_auth_kwargs,
 )
 
 
 def _client(timeout: float = 30.0) -> httpx.AsyncClient:
-    return httpx.AsyncClient(base_url=ARTIQ_HTTP_URL, timeout=timeout)
+    headers = {"X-Internal-Key": INTERNAL_API_KEY} if INTERNAL_API_KEY else {}
+    return httpx.AsyncClient(base_url=ARTIQ_HTTP_URL, timeout=timeout, headers=headers)
 
 
 # ---------------------------------------------------------------------------
@@ -558,8 +591,15 @@ async def lifespan(app: Starlette):
         yield
 
 
+_extra_routes: list[Route] = []
+if _EXTERNAL_BASE_URL:
+    from mcp_server.auth import github_callback as _github_callback  # already imported above but mypy prefers explicit
+
+    _extra_routes = [Route("/github-callback", endpoint=_github_callback)]
+
 starlette_app = Starlette(
     routes=[
+        *_extra_routes,  # must be before the catch-all Mount
         Mount("/", app=mcp.streamable_http_app()),
     ],
     lifespan=lifespan,

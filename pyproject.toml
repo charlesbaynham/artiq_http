@@ -17,7 +17,7 @@ dependencies = [
     "numpy",
     "mcp[cli]>=1.2.0",
     "httpx>=0.24.0",
-
+    "PyJWT>=2.8.0",
 ]
 
 [project.optional-dependencies]

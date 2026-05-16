@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 import pydantic
-from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from fastapi.encoders import ENCODERS_BY_TYPE
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import artiq_api as api
 from . import sse
+from .auth import require_auth
 from .config import config
 
 logger = logging.getLogger(__name__)
@@ -135,7 +136,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(default_response_class=NumpyJSONResponse, lifespan=lifespan)
 
-router = APIRouter()
+router = APIRouter()  # public endpoints (no auth required)
+protected = APIRouter(dependencies=[Depends(require_auth)])  # all other endpoints
 
 origins = [
     "http://localhost",
@@ -158,12 +160,12 @@ async def root():
     return {"message": "Hello World"}
 
 
-@router.get("/schedule")
+@protected.get("/schedule")
 async def get_schedule() -> Dict[int, api.models.ScheduleItem]:
     return await api.notifiers.get_schedule()
 
 
-@router.get("/devices")
+@protected.get("/devices")
 async def get_devices() -> dict:
     """Get the current device_db
 
@@ -173,7 +175,7 @@ async def get_devices() -> dict:
     return await api.notifiers.get_devices()
 
 
-@router.get("/datasets", response_model=None)
+@protected.get("/datasets", response_model=None)
 async def get_datasets():
     """Get all existing ARTIQ datasets
 
@@ -185,7 +187,7 @@ async def get_datasets():
     return await api.notifiers.get_datasets()
 
 
-@router.get("/datasets/names")
+@protected.get("/datasets/names")
 async def get_dataset_names():
     """Get list of all dataset names (keys only)
 
@@ -199,7 +201,7 @@ async def get_dataset_names():
     return {"names": list(datasets.keys())}
 
 
-@router.get("/datasets/values", response_model=None)
+@protected.get("/datasets/values", response_model=None)
 async def get_dataset_values(names: str):
     """Get values for specific datasets
 
@@ -224,7 +226,7 @@ async def get_dataset_values(names: str):
     return result
 
 
-@router.get("/logs")
+@protected.get("/logs")
 async def get_logs() -> api.models.LogList:
     """Return the current buffered ARTIQ system log entries.
 
@@ -283,7 +285,7 @@ async def get_health():
     }
 
 
-@router.post("/cancel")
+@protected.post("/cancel")
 async def cancel_experiment(rid: int, force: bool = False) -> None:
     """Cancel a running experiment
 
@@ -316,7 +318,7 @@ def _filter_experiment_fields(
     return api.models.ExperimentEntry.model_validate(filtered)
 
 
-@router.get("/explist")
+@protected.get("/explist")
 async def get_explist(
     fields: str = "name,file,class_name,docstring",
     full: bool = False,
@@ -330,7 +332,7 @@ async def get_explist(
     )
 
 
-@router.get("/schedule/{rid}")
+@protected.get("/schedule/{rid}")
 async def get_schedule_item(rid: int) -> api.models.ScheduleItem:
     schedule = await api.notifiers.get_schedule()
     if rid not in schedule:
@@ -339,7 +341,7 @@ async def get_schedule_item(rid: int) -> api.models.ScheduleItem:
 
 
 # NOTE: must be registered before /{file:path} routes to avoid {file:path} consuming "search"
-@router.get("/explist/search")
+@protected.get("/explist/search")
 async def search_explist(
     q: str = "",
     fields: str = "name,file,class_name,docstring",
@@ -363,7 +365,7 @@ async def search_explist(
     )
 
 
-@router.get("/explist/{file:path}/{class_name}/defaults")
+@protected.get("/explist/{file:path}/{class_name}/defaults")
 async def get_explist_defaults(file: str, class_name: str) -> api.models.ExperimentDefaults:
     explist = await api.notifiers.get_explist()
     for exp in explist.experiments:
@@ -376,7 +378,7 @@ async def get_explist_defaults(file: str, class_name: str) -> api.models.Experim
     raise HTTPException(404, f"Experiment {file}/{class_name} not found")
 
 
-@router.get("/explist/{file:path}/{class_name}/arginfo")
+@protected.get("/explist/{file:path}/{class_name}/arginfo")
 async def get_explist_arginfo(file: str, class_name: str) -> api.models.ExperimentArginfo:
     """Return the full arginfo (including complete ndscan_params) for a single experiment."""
     explist = await api.notifiers.get_explist()
@@ -390,7 +392,7 @@ async def get_explist_arginfo(file: str, class_name: str) -> api.models.Experime
     raise HTTPException(404, f"Experiment {file}/{class_name} not found")
 
 
-@router.post("/schedule/submit-and-wait")
+@protected.post("/schedule/submit-and-wait")
 async def submit_and_wait(
     expid: api.models.ExpID,
     pipeline: str = "main",
@@ -435,7 +437,7 @@ async def submit_and_wait(
     return api.models.SubmitAndWaitResult(rid=rid, status="timeout", timed_out=True)
 
 
-@router.post("/schedule")
+@protected.post("/schedule")
 async def submit_experiment(
     expid: api.models.ExpID,
     pipeline: str = "main",
@@ -456,6 +458,7 @@ async def submit_experiment(
 
 
 app.include_router(router, prefix="/api")
+app.include_router(protected, prefix="/api")
 app.include_router(sse.router, prefix="/api")
 
 if config["dev_mode"]:

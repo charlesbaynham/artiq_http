@@ -1,4 +1,45 @@
 http://, https://localhost {
+    # -----------------------------------------------------------------------
+    # MCP server — OAuth endpoints and the MCP streamable HTTP endpoint.
+    # These must be routed to the MCP container at the root level, because
+    # the OAuth well-known paths are not prefixed with /mcp.
+    # -----------------------------------------------------------------------
+
+    # OAuth discovery (RFC 8414 / RFC 9728)
+    handle /.well-known/oauth-authorization-server {
+        reverse_proxy {$MCP_URL:http://mcp:8001}
+    }
+    handle /.well-known/oauth-protected-resource/mcp {
+        reverse_proxy {$MCP_URL:http://mcp:8001}
+    }
+
+    # OAuth flows
+    handle /authorize {
+        reverse_proxy {$MCP_URL:http://mcp:8001}
+    }
+    handle /token {
+        reverse_proxy {$MCP_URL:http://mcp:8001}
+    }
+    handle /register {
+        reverse_proxy {$MCP_URL:http://mcp:8001}
+    }
+    handle /revoke {
+        reverse_proxy {$MCP_URL:http://mcp:8001}
+    }
+
+    # GitHub OAuth callback
+    handle /github-callback {
+        reverse_proxy {$MCP_URL:http://mcp:8001}
+    }
+
+    # MCP streamable HTTP endpoint
+    handle /mcp* {
+        reverse_proxy {$MCP_URL:http://mcp:8001}
+    }
+
+    # -----------------------------------------------------------------------
+    # Backend REST API
+    # -----------------------------------------------------------------------
     handle /api/* {
         reverse_proxy {$API_URL:http://backend:8000}
     }
@@ -8,9 +49,10 @@ http://, https://localhost {
     handle /openapi.json {
         reverse_proxy {$API_URL:http://backend:8000}
     }
-    handle /mcp* {
-        reverse_proxy {$MCP_URL:http://mcp:8001}
-    }
+
+    # -----------------------------------------------------------------------
+    # Frontend SPA (catch-all)
+    # -----------------------------------------------------------------------
     handle {
         root * /srv/result
         encode gzip zstd

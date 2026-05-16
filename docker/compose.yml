@@ -12,6 +12,10 @@ services:
       - ARTIQ_HTTP_PORT_CLIENTS=${ARTIQ_HTTP_PORT_CLIENTS:-3251}
       - ARTIQ_HTTP_LOG_LEVEL=${ARTIQ_HTTP_LOG_LEVEL:-INFO}
       - ARTIQ_HTTP_OLD_ARTIQ_SUPPORT=${ARTIQ_HTTP_OLD_ARTIQ_SUPPORT:-false}
+      # Auth
+      - TOKEN_SECRET=${TOKEN_SECRET}
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
+      - AUTH_DISABLED=${AUTH_DISABLED:-false}
     restart: unless-stopped
 
   mcp:
@@ -24,6 +28,15 @@ services:
     environment:
       - ARTIQ_HTTP_URL=http://backend:8000
       - MCP_PORT=8001
+      # Auth — set EXTERNAL_BASE_URL to enable OAuth
+      - EXTERNAL_BASE_URL=${EXTERNAL_BASE_URL}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - TOKEN_SECRET=${TOKEN_SECRET}
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
+      - ALLOWED_GITHUB_USERS=${ALLOWED_GITHUB_USERS}
+      - ACCESS_TOKEN_TTL=${ACCESS_TOKEN_TTL:-3600}
+      - REFRESH_TOKEN_TTL=${REFRESH_TOKEN_TTL:-2592000}
     depends_on:
       - backend
     restart: unless-stopped
