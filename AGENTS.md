@@ -50,7 +50,6 @@ See README.rst for instructions
 - If on any other branch, use commits liberally. They will be squashed before merging
 - When making multi-step changes on development branches, you should automatically make a commit after each step without prompting the user
 
-<<<<<<< HEAD
 ## Mock Backend (Frontend Development)
 
 For frontend work that doesn't need a real ARTIQ master, prefer the Makefile entry point:
