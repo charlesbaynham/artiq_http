@@ -209,6 +209,116 @@ async def submit_and_wait(
 
 
 @mcp.tool()
+async def submit_1d_scan(
+    file: str,
+    class_name: str,
+    axis_fqn: str,
+    scan_type: str,
+    scan_range: dict[str, Any],
+    fixed_params: dict[str, Any] | None = None,
+    num_repeats: int = 1,
+    pipeline: str = "main",
+    priority: int = 0,
+    flush: bool = False,
+) -> int:
+    """Submit a 1-D ndscan scan without handcrafting ndscan_params.
+
+    The server builds canonical ndscan_params from the provided axis and
+    fixed-parameter overrides, then submits the experiment.
+
+    Args:
+        file: Relative path to the experiment file, e.g. "scans/rabi.py".
+        class_name: Python class name of the experiment, e.g. "RabiFlop".
+        axis_fqn: Fully-qualified parameter name of the scan axis,
+            e.g. "my_exp.frequency".  Must exist in the experiment's ndscan schemata.
+        scan_type: One of "LinearScan", "RandomScan", "ExpScan", "ListScan"
+            (case-sensitive).
+        scan_range: Range specification dict.
+            For LinearScan / RandomScan / ExpScan:
+                {"start": <float>, "stop": <float>, "num_points": <int>}
+            For ListScan:
+                {"values": [<float>, ...]}
+            Values must be in SI units as declared by the experiment parameter schema.
+        fixed_params: Optional dict of {fqn: value} for parameters to hold
+            fixed at a specific value during the scan.  Must not overlap with axis_fqn.
+        num_repeats: Number of times to repeat the full scan (default 1).
+        pipeline: Scheduling pipeline name (default "main").
+        priority: Scheduling priority — higher runs sooner (default 0).
+        flush: Flush the pipeline before submitting (default False).
+
+    Returns:
+        The integer Run ID (RID) assigned to this submission.
+    """
+    payload = {
+        "file": file,
+        "class_name": class_name,
+        "axes": [{"fqn": axis_fqn, "type": scan_type, "range": scan_range}],
+        "fixed_params": fixed_params,
+        "num_repeats": num_repeats,
+        "pipeline": pipeline,
+        "priority": priority,
+        "flush": flush,
+    }
+    async with _client() as c:
+        r = await c.post("/api/scan", json=payload)
+        r.raise_for_status()
+        return r.json()
+
+
+@mcp.tool()
+async def submit_multi_axis_scan(
+    file: str,
+    class_name: str,
+    axes: list[dict[str, Any]],
+    fixed_params: dict[str, Any] | None = None,
+    num_repeats: int = 1,
+    pipeline: str = "main",
+    priority: int = 0,
+    flush: bool = False,
+) -> int:
+    """Submit a multi-axis ndscan scan without handcrafting ndscan_params.
+
+    Each axis is scanned independently (not a grid); ndscan interleaves them
+    point-by-point.  For a single-axis scan prefer submit_1d_scan().
+
+    Args:
+        file: Relative path to the experiment file, e.g. "scans/rabi.py".
+        class_name: Python class name of the experiment, e.g. "RabiFlop".
+        axes: List of axis dicts.  Each dict must have:
+            - "fqn" (str): Fully-qualified parameter name.
+            - "type" (str): One of "LinearScan", "RandomScan", "ExpScan",
+              "ListScan" (case-sensitive).
+            - "range" (dict): For LinearScan/RandomScan/ExpScan:
+                {"start": <float>, "stop": <float>, "num_points": <int>}.
+              For ListScan: {"values": [<float>, ...]}.
+            Values must be in SI units as declared by the experiment schema.
+        fixed_params: Optional dict of {fqn: value} for parameters to hold
+            fixed during the scan.  Must not overlap with any axis fqn.
+        num_repeats: Number of times to repeat the full scan (default 1).
+        pipeline: Scheduling pipeline name (default "main").
+        priority: Scheduling priority — higher runs sooner (default 0).
+        flush: Flush the pipeline before submitting (default False).
+
+    Returns:
+        The integer Run ID (RID) assigned to this submission.
+    """
+    payload = {
+        "file": file,
+        "class_name": class_name,
+        "axes": axes,
+        "fixed_params": fixed_params,
+        "num_repeats": num_repeats,
+        "pipeline": pipeline,
+        "priority": priority,
+        "flush": flush,
+    }
+    async with _client() as c:
+        r = await c.post("/api/scan", json=payload)
+        r.raise_for_status()
+        return r.json()
+
+
+@mcp.tool()
 async def cancel_experiment(rid: int, force: bool = False) -> str:
     """Cancel a queued or running experiment.
 
