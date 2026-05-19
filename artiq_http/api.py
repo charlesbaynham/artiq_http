@@ -460,6 +460,25 @@ async def get_explist_arginfo(file: str, class_name: str) -> api.models.Experime
     raise HTTPException(404, f"Experiment {file}/{class_name} not found")
 
 
+async def _validate_expid_ndscan(expid: api.models.ExpID) -> None:
+    """Validate ndscan_params in *expid* and raise 422 on failure."""
+    arguments = expid.arguments or {}
+    if "ndscan_params" not in arguments:
+        return
+
+    # Fetch arginfo from explist for cross-checking FQNs
+    arginfo = None
+    explist = await api.notifiers.get_explist()
+    for exp in explist.experiments:
+        if exp.file == expid.file and exp.class_name == expid.class_name:
+            arginfo = exp.arginfo
+            break
+
+    error = api.ndscan_validation.validate_ndscan_params(arguments, arginfo)
+    if error:
+        raise HTTPException(422, error)
+
+
 @router.post("/schedule/submit-and-wait")
 async def submit_and_wait(
     expid: api.models.ExpID,
@@ -486,6 +505,7 @@ async def submit_and_wait(
         raise HTTPException(503, "Mock mode: experiment control not available")
 
     timeout = min(timeout, 300.0)
+    await _validate_expid_ndscan(expid)
     try:
         rid = await api.control_schedule.submit_experiment(
             expid,
@@ -519,6 +539,7 @@ async def submit_experiment(
     if config.get("mock"):
         raise HTTPException(503, "Mock mode: experiment control not available")
 
+    await _validate_expid_ndscan(expid)
     try:
         return await api.control_schedule.submit_experiment(
             expid,
