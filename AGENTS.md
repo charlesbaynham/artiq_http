@@ -50,6 +50,7 @@ See README.rst for instructions
 - If on any other branch, use commits liberally. They will be squashed before merging
 - When making multi-step changes on development branches, you should automatically make a commit after each step without prompting the user
 
+<<<<<<< HEAD
 ## Mock Backend (Frontend Development)
 
 For frontend work that doesn't need a real ARTIQ master, prefer the Makefile entry point:
@@ -70,6 +71,10 @@ uv run python -m artiq_http.main --mock
 The mock serves a live 0D repeat single-point NDScan (`ndscan.rid_1`) with four channels (Signal A–D) updating every 0.5 s, so the Plots view has data to render immediately. It also serves five animated camera images of differing sizes and patterns (`camera_image`, `mot_fluorescence_image`, `ion_chain_image`, `background_image`, `absorption_image`), so the Plots image view can be exercised with multiple images at once. Schedule is empty; experiment submission and cancellation return 503. No ARTIQ stack or Docker is required.
 
 The mock backend lives in `artiq_http/mock_backend.py`. It replaces the global `subscriber_manager` singleton at startup, so all API paths behave normally.
+
+## Reference repos
+
+This projects relies on interfacing with the ARTIQ and ndscan packages, even though they are not direct dependencies. To facilitate development, this project includes reference clones of both packages in `.claude/deps/` (updated by a Claude Code hook on startup). These are read-only and should be consulted for reference only.
 
 ## Local ARTIQ Testing
 
