@@ -476,6 +476,92 @@ async def submit_experiment(
         raise HTTPException(422, str(e))
 
 
+async def _build_scan_expid(req: api.models.ScanSubmitRequest) -> api.models.ExpID:
+    """Build an ExpID with ndscan_params from a high-level ScanSubmitRequest.
+
+    Raises HTTPException 404 if the experiment is not found, 422 if it has no
+    ndscan schemata or if the scan parameters are otherwise invalid.
+    """
+    axes = [axis.model_dump() for axis in req.axes]
+    try:
+        ndscan_params = await api.ndscan_builder.build_ndscan_params(
+            file=req.file,
+            class_name=req.class_name,
+            axes=axes,
+            fixed_params=req.fixed_params,
+            num_repeats=req.num_repeats,
+        )
+    except ValueError as e:
+        msg = str(e)
+        if "not found" in msg:
+            raise HTTPException(404, msg)
+        raise HTTPException(422, msg)
+
+    return api.models.ExpID(
+        file=req.file,
+        class_name=req.class_name,
+        arguments={"ndscan_params": ndscan_params},
+    )
+
+
+@router.post("/scan")
+async def submit_scan(req: api.models.ScanSubmitRequest) -> int:
+    """Submit a high-level ndscan scan without constructing ndscan_params manually.
+
+    The server builds canonical ndscan_params from *axes*, *fixed_params*, and
+    *num_repeats* and submits the experiment through the standard scheduling
+    path.  Returns the integer Run ID (RID).
+    """
+    expid = await _build_scan_expid(req)
+    await _validate_expid_ndscan(expid)
+    try:
+        return await api.control_schedule.submit_experiment(
+            expid,
+            req.pipeline,
+            req.priority,
+            req.flush,
+            req.due_date,
+        )
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+
+@router.post("/scan/submit-and-wait")
+async def submit_scan_and_wait(
+    req: api.models.ScanSubmitRequest,
+    timeout: float = 60.0,
+) -> api.models.SubmitAndWaitResult:
+    """Submit a high-level ndscan scan and wait for it to complete.
+
+    Builds ndscan_params server-side and submits through the standard
+    scheduling path.  Returns a SubmitAndWaitResult with *rid*, *status*,
+    and *timed_out* fields.
+    """
+    timeout = min(timeout, 300.0)
+    expid = await _build_scan_expid(req)
+    await _validate_expid_ndscan(expid)
+    try:
+        rid = await api.control_schedule.submit_experiment(
+            expid,
+            req.pipeline,
+            req.priority,
+            req.flush,
+            req.due_date,
+        )
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+    elapsed = 0.0
+    while elapsed < timeout:
+        schedule = await api.notifiers.get_schedule()
+        if rid not in schedule:
+            return api.models.SubmitAndWaitResult(rid=rid, status="completed", timed_out=False)
+        await asyncio.sleep(1)
+        elapsed += 1.0
+
+    return api.models.SubmitAndWaitResult(rid=rid, status="timeout", timed_out=True)
+
+
 app.include_router(router, prefix="/api")
 app.include_router(sse.router, prefix="/api")
 
