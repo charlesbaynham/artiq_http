@@ -12,6 +12,11 @@
             "command": "bash -c 'export PATH=\"$HOME/.local/bin:$PATH\"; if ! command -v uv >/dev/null 2>&1; then echo \"⚠️  uv not found. Install it from https://docs.astral.sh/uv/getting-started/installation/\"; exit 0; fi; if [ ! -d .venv ]; then uv venv; fi; uv sync; if git config core.hooksPath >/dev/null 2>&1; then git config --unset-all core.hooksPath; fi; uv run pre-commit install'",
             "timeout": 120,
             "statusMessage": "Setting up UV venv and pre-commit..."
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/clone-deps.sh",
+            "statusMessage": "Cloning reference dependencies..."
           }
         ]
       }
