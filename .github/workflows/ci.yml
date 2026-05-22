@@ -1,0 +1,204 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+  packages: write  # push test-master image to GHCR
+  pages: write     # deploy docs to GitHub Pages
+  id-token: write  # GitHub Pages OIDC
+
+jobs:
+
+  pre-commit:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra dev
+      - run: |
+          git config --global user.email test@example.com
+          git config --global user.name "GitHub CI Testing"
+      - run: uv run pre-commit run --all-files
+
+  build-test-master:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v14
+        with:
+          extra-conf: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Compute image hash
+        id: meta
+        working-directory: test-artiq
+        run: |
+          HASH=$(nix eval --json .#docker.outPath | tr '/' '\n' | tail -1 | cut -d'-' -f1)
+          IMAGE="ghcr.io/${{ github.repository }}/test-master:${HASH}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+      - name: Check if image already in registry
+        id: cache-check
+        run: |
+          if docker manifest inspect "${{ steps.meta.outputs.image }}" > /dev/null 2>&1; then
+            echo "hit=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "hit=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build and push (cache miss only)
+        if: steps.cache-check.outputs.hit == 'false'
+        working-directory: test-artiq
+        run: |
+          nix build .#docker
+          docker load < result
+          docker tag artiq-test-master:latest "${{ steps.meta.outputs.image }}"
+          docker push "${{ steps.meta.outputs.image }}"
+
+  pytest:
+    runs-on: ubuntu-latest
+    needs: build-test-master
+    services:
+      test-master:
+        image: ${{ needs.build-test-master.outputs.image }}
+        credentials:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      ARTIQ_HTTP_HOST: test-master
+      MCP_URL: http://localhost:8001/mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra dev
+      - run: |
+          git config --global user.email test@example.com
+          git config --global user.name "GitHub CI Testing"
+      - name: Wait for ARTIQ master (port 3251)
+        run: |
+          echo "Waiting for ARTIQ master..."
+          READY=false
+          for i in {1..30}; do
+            if timeout 1 bash -c "cat < /dev/null > /dev/tcp/test-master/3251" 2>/dev/null; then
+              echo "ARTIQ master is ready!"
+              READY=true
+              break
+            fi
+            echo "Still waiting..."
+            sleep 1
+          done
+          if [ "$READY" != "true" ]; then
+            echo "ARTIQ master failed to start"
+            exit 1
+          fi
+      - name: Start backend and MCP server
+        run: |
+          echo "Starting ARTIQ HTTP backend..."
+          uv run aqctl_artiq_http --port 8000 &
+          echo "Starting MCP server..."
+          ARTIQ_HTTP_URL=http://localhost:8000 uv run python mcp_server/server.py &
+      - name: Wait for backend (port 8000)
+        run: |
+          echo "Waiting for backend..."
+          READY=false
+          for i in {1..30}; do
+            if timeout 1 bash -c "cat < /dev/null > /dev/tcp/localhost/8000" 2>/dev/null; then
+              echo "Backend is ready!"
+              READY=true
+              break
+            fi
+            echo "Still waiting for backend..."
+            sleep 1
+          done
+          if [ "$READY" != "true" ]; then
+            echo "Backend failed to start"
+            exit 1
+          fi
+      - name: Wait for MCP server (port 8001)
+        run: |
+          echo "Waiting for MCP server..."
+          READY=false
+          for i in {1..30}; do
+            if timeout 1 bash -c "cat < /dev/null > /dev/tcp/localhost/8001" 2>/dev/null; then
+              echo "MCP server is ready!"
+              READY=true
+              break
+            fi
+            echo "Still waiting for MCP server..."
+            sleep 1
+          done
+          if [ "$READY" != "true" ]; then
+            echo "MCP server failed to start"
+            exit 1
+          fi
+      - name: Run pytest with coverage
+        run: uv run coverage run --omit "tests/*" -m pytest --realserver --junitxml=report.xml
+      - name: Print coverage report
+        run: uv run coverage report
+      - name: Publish test results
+        uses: mikepenz/action-junit-report@v4
+        if: always()
+        with:
+          report_paths: report.xml
+
+  build-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  make-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --extra dev
+      - run: sudo apt-get install -y librsvg2-bin
+      - run: |
+          uv run sphinx-apidoc -o docs/autogen artiq_http
+          uv run sphinx-build docs html_out -b html
+          uv run sphinx-build docs latex -b latex
+      - uses: actions/upload-artifact@v4
+        with:
+          name: html_out
+          path: html_out/
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: latex
+          path: latex/
+          retention-days: 1
+
+  deploy-docs:
+    runs-on: ubuntu-latest
+    needs: make-docs
+    if: github.ref == 'refs/heads/master'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: html_out
+          path: html_out/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: html_out/
+      - uses: actions/deploy-pages@v4
+        id: deployment
