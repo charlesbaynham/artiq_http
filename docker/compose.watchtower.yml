@@ -1,29 +1,28 @@
 # Docker Compose override file for Watchtower auto-updates
 # Usage: docker compose -f docker/compose.yml -f docker/compose.watchtower.yml up -d
 #
-# This configuration pulls images from GitLab Container Registry and uses
+# This configuration pulls images from GitHub Container Registry (GHCR) and uses
 # Watchtower to automatically update containers when new images are pushed.
 #
-# Before using, set these environment variables:
-#   - CI_REGISTRY_IMAGE: Your GitLab registry path (e.g., registry.gitlab.com/username/artiq_http)
-#   - CI_JOB_TOKEN or CI_REGISTRY_PASSWORD: Authentication token for pulling images
+# Before using, authenticate with GHCR:
+#   echo $GITHUB_TOKEN | docker login ghcr.io -u <github-username> --password-stdin
 
 services:
   backend:
     build: !reset []
-    image: ${BACKEND_IMAGE:-registry.gitlab.com/aion-physics/code/artiq/drivers/artiq_http/backend:latest}
+    image: ${BACKEND_IMAGE:-ghcr.io/charlesbaynham/artiq_http/backend:latest}
     labels:
       com.centurylinklabs.watchtower.scope: artiq_http
 
   frontend:
     build: !reset []
-    image: ${FRONTEND_IMAGE:-registry.gitlab.com/aion-physics/code/artiq/drivers/artiq_http/frontend:latest}
+    image: ${FRONTEND_IMAGE:-ghcr.io/charlesbaynham/artiq_http/frontend:latest}
     labels:
       com.centurylinklabs.watchtower.scope: artiq_http
 
   mcp:
     build: !reset []
-    image: ${MCP_IMAGE:-registry.gitlab.com/aion-physics/code/artiq/drivers/artiq_http/mcp:latest}
+    image: ${MCP_IMAGE:-ghcr.io/charlesbaynham/artiq_http/mcp:latest}
     labels:
       com.centurylinklabs.watchtower.scope: artiq_http
 
