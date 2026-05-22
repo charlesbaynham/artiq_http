@@ -74,8 +74,15 @@ jobs:
         credentials:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+        ports:
+          - 1066:1066
+          - 1067:1067
+          - 3250:3250
+          - 3251:3251
     env:
-      ARTIQ_HTTP_HOST: test-master
+      # Job runs directly on the runner (no container: key), so services are
+      # reachable via localhost with mapped ports, not by service hostname.
+      ARTIQ_HTTP_HOST: localhost
       MCP_URL: http://localhost:8001/mcp
     steps:
       - uses: actions/checkout@v4
@@ -89,7 +96,7 @@ jobs:
           echo "Waiting for ARTIQ master..."
           READY=false
           for i in {1..30}; do
-            if timeout 1 bash -c "cat < /dev/null > /dev/tcp/test-master/3251" 2>/dev/null; then
+            if timeout 1 bash -c "cat < /dev/null > /dev/tcp/localhost/3251" 2>/dev/null; then
               echo "ARTIQ master is ready!"
               READY=true
               break
