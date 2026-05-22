@@ -36,13 +36,23 @@ function formatTimestamp(ts) {
 
 const POLL_INTERVAL = 5000;
 
+const isLong = (msg) => msg && (msg.length > 200 || msg.includes("\n"));
+
 function Logs({ currentPage }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [levelFilter, setLevelFilter] = useState(20);
+  const [expandedCards, setExpandedCards] = useState(new Set());
   const latestRequestRef = useRef(0);
+
+  const toggleCard = (idx) =>
+    setExpandedCards((prev) => {
+      const next = new Set(prev);
+      next.has(idx) ? next.delete(idx) : next.add(idx);
+      return next;
+    });
 
   const fetchLogs = useCallback(async (isBackground = false) => {
     const requestId = Date.now();
@@ -154,37 +164,72 @@ function Logs({ currentPage }) {
             : "No log entries match the selected filter."}
         </div>
       ) : (
-        <div className="logs-table-wrapper">
-          <table className="logs-table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Source</th>
-                <th>Level</th>
-                <th>Message</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLogs.map((entry, idx) => {
-                const { name, className } = levelInfoFor(entry.level);
-                return (
-                  <tr key={idx}>
-                    <td className="logs-timestamp">
+        <>
+          <div className="logs-table-wrapper">
+            <table className="logs-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Source</th>
+                  <th>Level</th>
+                  <th>Message</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLogs.map((entry, idx) => {
+                  const { name, className } = levelInfoFor(entry.level);
+                  return (
+                    <tr key={idx}>
+                      <td className="logs-timestamp">
+                        {formatTimestamp(entry.timestamp)}
+                      </td>
+                      <td>{entry.source ?? ""}</td>
+                      <td>
+                        <span className={`log-level-pill ${className}`}>
+                          {name}
+                        </span>
+                      </td>
+                      <td className="logs-message">{entry.message ?? ""}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="logs-cards-list">
+            {filteredLogs.map((entry, idx) => {
+              const { name, className } = levelInfoFor(entry.level);
+              const expanded = expandedCards.has(idx);
+              return (
+                <div key={idx} className="logs-card">
+                  <div className="logs-card-header">
+                    <span className={`log-level-pill ${className}`}>{name}</span>
+                    <span className="logs-card-timestamp">
                       {formatTimestamp(entry.timestamp)}
-                    </td>
-                    <td>{entry.source ?? ""}</td>
-                    <td>
-                      <span className={`log-level-pill ${className}`}>
-                        {name}
-                      </span>
-                    </td>
-                    <td className="logs-message">{entry.message ?? ""}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    </span>
+                  </div>
+                  {entry.source && (
+                    <div className="logs-card-source">{entry.source}</div>
+                  )}
+                  <div
+                    className={`logs-card-message${expanded ? " is-expanded" : ""}`}
+                  >
+                    {entry.message ?? ""}
+                  </div>
+                  {isLong(entry.message) && (
+                    <button
+                      className="logs-card-expand-btn"
+                      onClick={() => toggleCard(idx)}
+                    >
+                      {expanded ? "Show less" : "Show more"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
