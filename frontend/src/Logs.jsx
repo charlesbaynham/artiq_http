@@ -104,10 +104,12 @@ function Logs({ currentPage }) {
   }, [fetchLogs, currentPage]);
 
   const filteredLogs = useMemo(() => {
-    return logs.filter((entry) => {
-      const level = typeof entry.level === "number" ? entry.level : 0;
-      return level >= levelFilter;
-    });
+    return logs
+      .filter((entry) => {
+        const level = typeof entry.level === "number" ? entry.level : 0;
+        return level >= levelFilter;
+      })
+      .sort((a, b) => b.timestamp - a.timestamp);
   }, [logs, levelFilter]);
 
   if (loading) {
