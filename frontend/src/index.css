@@ -1504,20 +1504,16 @@ a:hover {
 @media (max-width: 767px) {
     .logs-table th,
     .logs-table td {
-        padding: var(--spacing-sm);
+        padding: 6px 8px;
     }
 
     .logs-table-wrapper {
         max-height: 60vh;
         display: none;
     }
-
-    .logs-cards-list {
-        display: flex;
-    }
 }
 
-/* Card list — hidden on desktop, flex column on mobile */
+/* Card list — hidden on desktop by default; shown on mobile below */
 .logs-cards-list {
     display: none;
     flex-direction: column;
@@ -1526,9 +1522,9 @@ a:hover {
 }
 
 .logs-card {
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--border-subtle);
     border-radius: 6px;
-    background-color: var(--color-card);
+    background-color: var(--surface-raised);
     padding: 10px 12px;
     display: flex;
     flex-direction: column;
@@ -1543,22 +1539,22 @@ a:hover {
 }
 
 .logs-card-timestamp {
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-family: var(--font-mono);
     font-size: 0.75rem;
-    color: var(--color-text-muted);
+    color: var(--text-muted);
     white-space: nowrap;
 }
 
 .logs-card-source {
     font-size: 0.8rem;
-    color: var(--color-text-muted);
+    color: var(--text-muted);
 }
 
 .logs-card-message {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     font-size: 0.875rem;
-    color: var(--color-text);
+    color: var(--text-primary);
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 4;
@@ -1576,9 +1572,16 @@ a:hover {
     border: none;
     padding: 0;
     font-size: 0.8rem;
-    color: var(--color-primary);
+    color: var(--accent);
     cursor: pointer;
     text-align: left;
+}
+
+/* Show cards and hide table on mobile — must come after .logs-cards-list definition */
+@media (max-width: 767px) {
+    .logs-cards-list {
+        display: flex;
+    }
 }
 
 /* Refresh button spin */
