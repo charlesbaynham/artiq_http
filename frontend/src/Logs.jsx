@@ -204,7 +204,9 @@ function Logs({ currentPage }) {
               return (
                 <div key={idx} className="logs-card">
                   <div className="logs-card-header">
-                    <span className={`log-level-pill ${className}`}>{name}</span>
+                    <span className={`log-level-pill ${className}`}>
+                      {name}
+                    </span>
                     <span className="logs-card-timestamp">
                       {formatTimestamp(entry.timestamp)}
                     </span>
@@ -213,7 +215,9 @@ function Logs({ currentPage }) {
                     <div className="logs-card-source">{entry.source}</div>
                   )}
                   <div
-                    className={`logs-card-message${expanded ? " is-expanded" : ""}`}
+                    className={`logs-card-message${
+                      expanded ? " is-expanded" : ""
+                    }`}
                   >
                     {entry.message ?? ""}
                   </div>
