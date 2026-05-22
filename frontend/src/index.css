@@ -1463,7 +1463,7 @@ a:hover {
 /* Message column */
 .logs-message {
     white-space: pre-wrap;
-    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 /* Log level pills */
@@ -1509,7 +1509,76 @@ a:hover {
 
     .logs-table-wrapper {
         max-height: 60vh;
+        display: none;
     }
+
+    .logs-cards-list {
+        display: flex;
+    }
+}
+
+/* Card list — hidden on desktop, flex column on mobile */
+.logs-cards-list {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 0;
+}
+
+.logs-card {
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background-color: var(--color-card);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.logs-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.logs-card-timestamp {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+.logs-card-source {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.logs-card-message {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 0.875rem;
+    color: var(--color-text);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
+}
+
+.logs-card-message.is-expanded {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: unset;
+}
+
+.logs-card-expand-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.8rem;
+    color: var(--color-primary);
+    cursor: pointer;
+    text-align: left;
 }
 
 /* Refresh button spin */
