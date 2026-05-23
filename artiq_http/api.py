@@ -299,6 +299,9 @@ async def cancel_experiment(rid: int, force: bool = False) -> None:
     return await api.control_schedule.cancel_experiment(rid, force)
 
 
+_REQUIRED_EXPERIMENT_FIELDS = {"name", "file", "class_name"}
+
+
 def _filter_experiment_fields(
     exp: api.models.ExperimentEntry,
     fields: set[str],
@@ -310,7 +313,7 @@ def _filter_experiment_fields(
     inside arginfo are filtered to only the ``always_shown`` parameters.
     """
     data = exp.model_dump()
-    filtered: dict[str, Any] = {k: v for k, v in data.items() if k in fields}
+    filtered: dict[str, Any] = {k: v for k, v in data.items() if k in (fields | _REQUIRED_EXPERIMENT_FIELDS)}
     if "arginfo" in filtered and not full:
         filtered["arginfo"] = api.notifiers._filter_ndscan_always_shown(filtered["arginfo"])
     return api.models.ExperimentEntry.model_validate(filtered)

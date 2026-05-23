@@ -1,11 +1,8 @@
-import asyncio
 import json
 from pathlib import Path
 
 import httpx
 import pytest
-
-from artiq_http.main import fastapi_app
 
 LOG_DIR = Path(__file__).parent / "logs"
 
@@ -95,23 +92,16 @@ def _build_ndscan_arguments(arginfo: dict) -> dict:
     return {"ndscan_params": json.dumps(ndscan_params)}
 
 
-async def _collect_sse_events(prefix: str, timeout: float = 10.0) -> tuple[httpx.Headers, list[dict], dict]:
+def _collect_sse_events(prefix: str, timeout: float = 60.0) -> tuple[httpx.Headers, list[dict], dict]:
     events = []
     state = {}
 
-    async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=fastapi_app),
-        base_url="http://testserver",
-        timeout=timeout,
-    ) as async_client:
-        async with async_client.stream("GET", f"/api/datasets/stream/{prefix}") as response:
-            line_iter = response.aiter_lines()
+    with httpx.Client(timeout=timeout) as http_client:
+        with http_client.stream("GET", f"http://localhost:8000/api/datasets/stream/{prefix}") as response:
             current_event = None
             data_lines = []
 
-            while True:
-                line = await asyncio.wait_for(anext(line_iter), timeout=timeout)
-
+            for line in response.iter_lines():
                 if not line:
                     if current_event is None:
                         continue
@@ -139,6 +129,8 @@ async def _collect_sse_events(prefix: str, timeout: float = 10.0) -> tuple[httpx
                 elif line.startswith("data: "):
                     data_lines.append(line.removeprefix("data: "))
 
+    return response.headers, events, state
+
 
 def test_datasets_stream_collects_real_ndscan_data(client):
     """Submit a real ndscan experiment and verify SSE exposes its signal datasets."""
@@ -163,7 +155,7 @@ def test_datasets_stream_collects_real_ndscan_data(client):
     rid = submit_response.json()
 
     prefix = f"ndscan.rid_{rid}"
-    headers, events, state = asyncio.run(_collect_sse_events(prefix))
+    headers, events, state = _collect_sse_events(prefix)
 
     LOG_DIR.mkdir(exist_ok=True)
     (LOG_DIR / "sse_ndscan_events_debug.json").write_text(json.dumps(events, indent=2))

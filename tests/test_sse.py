@@ -3,6 +3,7 @@ import math
 from typing import Any
 from unittest.mock import patch
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -175,11 +176,14 @@ def test_stream_dataset_updates_emits_heartbeat_on_timeout():
     async def scenario():
         stream = sse.stream_dataset_updates("ndscan.rid_1")
         try:
-            with patch.object(
-                sse.api.persistent_subscriber,
-                "subscriber_manager",
-                FakeSubscriberManager(subscriber=subscriber),
-            ), patch("artiq_http.sse.asyncio.wait_for", side_effect=fake_wait_for):
+            with (
+                patch.object(
+                    sse.api.persistent_subscriber,
+                    "subscriber_manager",
+                    FakeSubscriberManager(subscriber=subscriber),
+                ),
+                patch("artiq_http.sse.asyncio.wait_for", side_effect=fake_wait_for),
+            ):
                 await anext(stream)
                 assert await anext(stream) == sse.format_sse_event("heartbeat", {})
         finally:
@@ -266,3 +270,176 @@ def test_stream_datasets_endpoint_returns_event_stream_response():
     assert response.headers["connection"] == "keep-alive"
     assert response.headers["x-accel-buffering"] == "no"
     assert body == sse.format_sse_event("init", {"ndscan.rid_1.points": [False, [1], {}]})
+
+
+def test_sanitize_for_json_handles_numpy_types():
+    np = pytest.importorskip("numpy")
+
+    payload = {
+        "arr": np.array([1, 2, 3]),
+        "int": np.int64(42),
+        "float": np.float64(3.14),
+        "bool": np.bool_(True),
+        "nested": {"arr": np.array([[1, 2], [3, 4]])},
+    }
+
+    assert sse.sanitize_for_json(payload) == {
+        "arr": [1, 2, 3],
+        "int": 42,
+        "float": 3.14,
+        "bool": True,
+        "nested": {"arr": [[1, 2], [3, 4]]},
+    }
+
+
+def test_sanitize_for_json_converts_numpy_nan_and_inf_to_none():
+    np = pytest.importorskip("numpy")
+
+    payload = {
+        "nan": np.float64(float("nan")),
+        "inf": np.float32(float("inf")),
+        "neg_inf": np.float16(float("-inf")),
+    }
+
+    result = sse.sanitize_for_json(payload)
+    assert result["nan"] is None
+    assert result["inf"] is None
+    assert result["neg_inf"] is None
+
+
+def test_stream_dataset_updates_emits_init_with_empty_data_when_no_match():
+    subscriber = FakeDatasetsSubscriber({"other.prefix.value": [False, 42, {}]})
+
+    async def scenario():
+        stream = sse.stream_dataset_updates("ndscan.rid_1")
+        with patch.object(
+            sse.api.persistent_subscriber,
+            "subscriber_manager",
+            FakeSubscriberManager(subscriber=subscriber),
+        ):
+            event = await anext(stream)
+            assert event == sse.format_sse_event("init", {})
+
+        await stream.aclose()
+
+    run_async(scenario())
+
+
+def test_stream_dataset_updates_emits_update_on_init_action():
+    subscriber = FakeDatasetsSubscriber({"ndscan.rid_1.points": [False, [1], {}]})
+
+    async def scenario():
+        stream = sse.stream_dataset_updates("ndscan.rid_1")
+        try:
+            with patch.object(
+                sse.api.persistent_subscriber,
+                "subscriber_manager",
+                FakeSubscriberManager(subscriber=subscriber),
+            ):
+                await anext(stream)
+
+                update_task = asyncio.create_task(anext(stream))
+                subscriber.set_value("ndscan.rid_1.points", [False, [2, 3], {}])
+                subscriber.emit({"action": "init", "key": "ndscan.rid_1.points"})
+                assert await asyncio.wait_for(update_task, timeout=0.5) == sse.format_sse_event(
+                    "update",
+                    {"ndscan.rid_1.points": [False, [2, 3], {}]},
+                )
+        finally:
+            await stream.aclose()
+
+    run_async(scenario())
+
+
+def test_stream_dataset_updates_breaks_on_cancelled_error():
+    subscriber = FakeDatasetsSubscriber({"ndscan.rid_1.points": [False, [1], {}]})
+
+    async def fake_wait_for(*args, **kwargs):
+        raise asyncio.CancelledError
+
+    async def scenario():
+        stream = sse.stream_dataset_updates("ndscan.rid_1")
+        with (
+            patch.object(
+                sse.api.persistent_subscriber,
+                "subscriber_manager",
+                FakeSubscriberManager(subscriber=subscriber),
+            ),
+            patch("artiq_http.sse.asyncio.wait_for", side_effect=fake_wait_for),
+        ):
+            await anext(stream)
+            assert len(subscriber._callbacks) == 1
+
+            # The next anext triggers CancelledError inside the generator loop
+            with pytest.raises(StopAsyncIteration):
+                await anext(stream)
+
+        # Callback should be cleaned up
+        assert subscriber._callbacks == []
+
+    run_async(scenario())
+
+
+def test_stream_dataset_updates_emits_error_on_unexpected_exception():
+    subscriber = FakeDatasetsSubscriber({"ndscan.rid_1.points": [False, [1], {}]})
+
+    async def fake_wait_for(*args, **kwargs):
+        raise ValueError("boom")
+
+    async def scenario():
+        stream = sse.stream_dataset_updates("ndscan.rid_1")
+        try:
+            with (
+                patch.object(
+                    sse.api.persistent_subscriber,
+                    "subscriber_manager",
+                    FakeSubscriberManager(subscriber=subscriber),
+                ),
+                patch("artiq_http.sse.asyncio.wait_for", side_effect=fake_wait_for),
+            ):
+                await anext(stream)
+                event = await anext(stream)
+                assert event == sse.format_sse_event("error", {"message": "boom"})
+
+                # Generator should be exhausted after error
+                with pytest.raises(StopAsyncIteration):
+                    await anext(stream)
+        finally:
+            await stream.aclose()
+
+    run_async(scenario())
+
+
+def test_stream_dataset_updates_queues_multiple_rapid_updates():
+    subscriber = FakeDatasetsSubscriber({"ndscan.rid_1.points": [False, [1], {}]})
+
+    async def scenario():
+        stream = sse.stream_dataset_updates("ndscan.rid_1")
+        try:
+            with patch.object(
+                sse.api.persistent_subscriber,
+                "subscriber_manager",
+                FakeSubscriberManager(subscriber=subscriber),
+            ):
+                await anext(stream)
+
+                # Emit, process, emit, process — tests that the queue drains
+                subscriber.set_value("ndscan.rid_1.points", [False, [2], {}])
+                subscriber.emit({"action": "setitem", "key": "ndscan.rid_1.points"})
+                event1 = await asyncio.wait_for(anext(stream), timeout=0.5)
+
+                subscriber.set_value("ndscan.rid_1.points", [False, [3], {}])
+                subscriber.emit({"action": "setitem", "key": "ndscan.rid_1.points"})
+                event2 = await asyncio.wait_for(anext(stream), timeout=0.5)
+
+                subscriber.set_value("ndscan.rid_1.points", [False, [4], {}])
+                subscriber.emit({"action": "setitem", "key": "ndscan.rid_1.points"})
+                event3 = await asyncio.wait_for(anext(stream), timeout=0.5)
+
+                assert event1 == sse.format_sse_event("update", {"ndscan.rid_1.points": [False, [2], {}]})
+                assert event2 == sse.format_sse_event("update", {"ndscan.rid_1.points": [False, [3], {}]})
+                assert event3 == sse.format_sse_event("update", {"ndscan.rid_1.points": [False, [4], {}]})
+        finally:
+            await stream.aclose()
+
+    run_async(scenario())
