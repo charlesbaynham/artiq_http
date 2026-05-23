@@ -29,7 +29,7 @@ See README.rst for instructions
   - `Caddyfile` - Frontend reverse-proxy/static serving config
 - `test-artiq/` - Local ARTIQ test environment (Docker). This directory mimics the structure of an external ARTIQ experiment repository for testing purposes, but is a subdirectory of this project.
   - `repository/` - Minimal experiments for testing. This folder represents the root of the "mock" ARTIQ repository. Note that it is not a git repository, despite the name.
-  - `Dockerfile` - ARTIQ + ndscan image
+  - `flake.nix` - Nix flake that builds the ARTIQ + ndscan Docker image
   - `docker-compose.yml` - Test stack orchestration
 - `tests/` - Test suite
 - `docs/` - Sphinx documentation
@@ -50,9 +50,21 @@ See README.rst for instructions
 
 After any major change to the backend or experiment discovery logic, you **must** verify the changes against the local ARTIQ test environment:
 
-1. Start the local master: `cd test-artiq && docker compose up -d`
-2. Verify connectivity: `uv run sipyco_rpctool 127.0.0.1 3251 list-targets`
-3. Check logs for experiment discovery errors: `docker compose logs artiq-master`
+1. Build and load the local test image: `cd test-artiq && nix build .#docker --accept-flake-config && docker load < result`
+2. Start the local master: `cd test-artiq && docker compose up -d`
+3. Verify connectivity: `uv run sipyco_rpctool 127.0.0.1 3251 list-targets`
+4. Check logs for experiment discovery errors: `docker compose logs artiq-master`
+
+To run the local real-server test suite end to end:
+
+```bash
+cd test-artiq
+nix build .#docker --accept-flake-config
+docker load < result
+docker compose up -d
+cd ..
+uv run pytest --realserver
+```
 
 See `test-artiq/README.md` (or the walkthrough) for more details.
 

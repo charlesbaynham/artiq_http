@@ -77,11 +77,19 @@ async def stream_dataset_updates(prefix: str):
     update_queue: asyncio.Queue = asyncio.Queue()
     relevant_keys: Set[str] = set()
 
+    def _extract_key(mod: Dict) -> str | None:
+        """Extract the top-level dataset key from a sync_struct mod."""
+        action = mod.get("action")
+        if action in ("append", "insert", "pop"):
+            # These actions carry the key in the path, not a key field
+            path = mod.get("path", [])
+            return path[0] if path else None
+        # setitem, delitem, init: key is the dataset name (path is empty for top-level)
+        return mod.get("key")
+
     def on_dataset_change(mod: Dict):
         """Callback when datasets change"""
-        # Check if this modification is relevant to our prefix
-        # The mod dict contains action, path, and possibly key/value
-        key = mod.get("key")
+        key = _extract_key(mod)
 
         if key and key.startswith(prefix + "."):
             # This is a relevant change, queue it
@@ -123,10 +131,10 @@ async def stream_dataset_updates(prefix: str):
                     mod = await asyncio.wait_for(update_queue.get(), timeout=heartbeat_interval)
 
                     # Process the modification
-                    key = mod.get("key")
+                    key = _extract_key(mod)
                     action = mod.get("action")
 
-                    if action in ("setitem", "init"):
+                    if action in ("setitem", "init", "append", "insert", "pop"):
                         # Get the current value for this key
                         try:
                             current_data = datasets_subscriber.get_data()

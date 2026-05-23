@@ -78,6 +78,7 @@
       in {
         packages.default = artiqEnv;
 
+
         packages.docker = pkgs.dockerTools.buildImage {
           name = "artiq-test-master";
           tag = "latest";
