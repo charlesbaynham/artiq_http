@@ -5,8 +5,10 @@ from ndscan.experiment import (
     ExpFragment,
     FloatChannel,
     FloatParam,
-    FloatParamHandle,
     make_fragment_scan_exp,
+)
+from ndscan.experiment.parameters import (
+    FloatParamHandle,
 )
 
 
@@ -15,7 +17,12 @@ class PointGeneratorFrag(ExpFragment):
         self.setattr_result("output", FloatChannel)
         self.output: FloatChannel
 
-        self.setattr_param("addition", FloatParam, description="added number", default=0.0)
+        self.setattr_param(
+            "addition",
+            FloatParam,
+            "addition",
+            0.5,
+        )
         self.addition: FloatParamHandle
 
     def run_once(self):
