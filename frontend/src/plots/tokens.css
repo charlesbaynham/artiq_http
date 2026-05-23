@@ -5,56 +5,7 @@
  */
 
 .plots-app {
-    /* Surface — light */
-    --p-bg: #fafaf7;
-    --p-panel: #ffffff;
-    --p-panel-alt: #f4f3ee;
-    --p-inset: #eeede6;
-    --p-border: #e6e3d8;
-    --p-border-hi: #cfcabc;
-    --p-grid: #ebe9e0;
-
-    /* Ink */
-    --p-ink: #1f1d18;
-    --p-ink70: rgba(31, 29, 24, 0.72);
-    --p-ink50: rgba(31, 29, 24, 0.52);
-    --p-ink30: rgba(31, 29, 24, 0.30);
-
-    /* Channel palette */
-    --p-c0: #1f1d18;
-    --p-c1: #e07a3c;
-    --p-c2: #5b7a8a;
-    --p-c3: #8c6f4a;
-    --p-c4: #5e8260;
-    --p-c5: #8a5a86;
-    --p-c6: #b88a2b;
-    --p-c7: #3f5a78;
-
-    --p-accent: #e07a3c;
-    --p-ok: #3f8a5a;
-    --p-warn: #c97a1b;
-    --p-err: #c84a3b;
-    --p-live: #3f8a5a;
-
-    --p-font-ui: "Inter", "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
-    --p-font-mono: "JetBrains Mono", "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-
-    --p-radius-sm: 4px;
-    --p-radius: 6px;
-    --p-radius-lg: 10px;
-
-    --p-row-h: 28px;
-
-    background: var(--p-bg);
-    color: var(--p-ink);
-    font-family: var(--p-font-ui);
-    font-size: 13px;
-    line-height: 1.4;
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-}
-
-.plots-app[data-theme="dark"] {
+    /* Surface — dark (default) */
     --p-bg: #0e0f10;
     --p-panel: #16191c;
     --p-panel-alt: #1b1f23;
@@ -63,11 +14,13 @@
     --p-border-hi: #3d444c;
     --p-grid: #22272c;
 
+    /* Ink */
     --p-ink: #e8e6df;
     --p-ink70: rgba(232, 230, 223, 0.72);
     --p-ink50: rgba(232, 230, 223, 0.52);
     --p-ink30: rgba(232, 230, 223, 0.28);
 
+    /* Channel palette */
     --p-c0: #e8e6df;
     --p-c1: #f08a4d;
     --p-c2: #7fb0c5;
@@ -82,7 +35,59 @@
     --p-warn: #e0a455;
     --p-err: #e76a59;
     --p-live: #6fbf86;
+
+    --p-font-ui: "Inter", "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --p-font-mono: "JetBrains Mono", "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --p-radius-sm: 4px;
+    --p-radius: 6px;
+    --p-radius-lg: 10px;
+
+    --p-row-h: 28px;
+
     color-scheme: dark;
+    background: var(--p-bg);
+    color: var(--p-ink);
+    font-family: var(--p-font-ui);
+    font-size: 13px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+@media (prefers-color-scheme: light) {
+    .plots-app {
+        /* Surface — light */
+        --p-bg: #fafaf7;
+        --p-panel: #ffffff;
+        --p-panel-alt: #f4f3ee;
+        --p-inset: #eeede6;
+        --p-border: #e6e3d8;
+        --p-border-hi: #cfcabc;
+        --p-grid: #ebe9e0;
+
+        --p-ink: #1f1d18;
+        --p-ink70: rgba(31, 29, 24, 0.72);
+        --p-ink50: rgba(31, 29, 24, 0.52);
+        --p-ink30: rgba(31, 29, 24, 0.30);
+
+        --p-c0: #1f1d18;
+        --p-c1: #e07a3c;
+        --p-c2: #5b7a8a;
+        --p-c3: #8c6f4a;
+        --p-c4: #5e8260;
+        --p-c5: #8a5a86;
+        --p-c6: #b88a2b;
+        --p-c7: #3f5a78;
+
+        --p-accent: #e07a3c;
+        --p-ok: #3f8a5a;
+        --p-warn: #c97a1b;
+        --p-err: #c84a3b;
+        --p-live: #3f8a5a;
+
+        color-scheme: light;
+    }
 }
 
 .plots-app *,
@@ -345,4 +350,12 @@
     .plots-app .p-rail-timeline {
         max-height: 220px;
     }
+}
+
+/* fullscreen route override */
+.plots-fullscreen-wrap .plots-app {
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    border: none;
 }

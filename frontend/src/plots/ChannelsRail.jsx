@@ -121,14 +121,7 @@ function ChannelRow({ c, isRadio, onClick }) {
   );
 }
 
-function ChannelsRail({
-  mode,
-  channels,
-  onToggle,
-  onPickMetric,
-  experiment,
-  saved = true,
-}) {
+function ChannelsRail({ mode, channels, onToggle, onPickMetric, experiment }) {
   const isRadio = mode === "2D";
   const onCount = channels.filter((c) => c.on).length;
   const [filter, setFilter] = useState("");
@@ -158,30 +151,6 @@ function ChannelsRail({
           gap: 6,
         }}
       >
-        {saved && experiment && (
-          <span
-            className="p-pill"
-            style={{
-              fontSize: 10,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-            title={`Channel visibility persisted for ${experiment}`}
-          >
-            <span style={{ marginRight: 2 }}>💾</span> saved for{" "}
-            <span
-              className="p-mono"
-              style={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                maxWidth: 130,
-              }}
-            >
-              {experiment}
-            </span>
-          </span>
-        )}
         <input
           className="p-search p-mono"
           placeholder="filter channels…"
@@ -235,7 +204,6 @@ ChannelsRail.propTypes = {
   onToggle: PropTypes.func,
   onPickMetric: PropTypes.func,
   experiment: PropTypes.string,
-  saved: PropTypes.bool,
 };
 
 export default ChannelsRail;

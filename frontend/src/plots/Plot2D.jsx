@@ -75,7 +75,7 @@ function Plot2D({ xs, ys, values, xLabel, yLabel, metric }) {
   const padL = 56,
     padR = 70,
     padT = 18,
-    padB = 38;
+    padB = 44;
   const innerW = size.w - padL - padR;
   const innerH = size.h - padT - padB;
 
@@ -168,162 +168,175 @@ function Plot2D({ xs, ys, values, xLabel, yLabel, metric }) {
 
   return (
     <div
-      ref={ref}
-      style={{ width: "100%", height: "100%", position: "relative" }}
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
     >
       <div
+        ref={ref}
         style={{
-          position: "absolute",
-          left: padL,
-          top: padT,
-          pointerEvents: "none",
+          flex: 1,
+          position: "relative",
+          minHeight: 0,
+          overflow: "hidden",
         }}
       >
-        <canvas ref={canvasRef} />
-      </div>
-      <svg
-        width={size.w}
-        height={size.h}
-        onMouseMove={handleMove}
-        onMouseLeave={handleLeave}
-        style={{ position: "relative", cursor: "crosshair" }}
-      >
-        <g stroke="var(--p-ink70)" strokeWidth="1" fill="none">
-          <line
-            x1={padL}
-            y1={padT + innerH}
-            x2={padL + innerW}
-            y2={padT + innerH}
-          />
-          <line x1={padL} y1={padT} x2={padL} y2={padT + innerH} />
-          <line
-            x1={padL + innerW}
-            y1={padT}
-            x2={padL + innerW}
-            y2={padT + innerH}
-          />
-          <line x1={padL} y1={padT} x2={padL + innerW} y2={padT} />
-        </g>
-        <g fontSize="10" fill="var(--p-ink70)" textAnchor="middle">
-          {xTicks.map((x) => (
-            <g key={x}>
-              <line
-                x1={sx(x)}
-                x2={sx(x)}
-                y1={padT + innerH}
-                y2={padT + innerH + 4}
-                stroke="var(--p-ink70)"
-                strokeWidth="1"
-              />
-              <text x={sx(x)} y={padT + innerH + 16}>
-                {formatNum(x)}
-              </text>
-            </g>
-          ))}
-        </g>
-        <g fontSize="10" fill="var(--p-ink70)" textAnchor="end">
-          {yTicks.map((y) => (
-            <g key={y}>
-              <line
-                x1={padL - 4}
-                x2={padL}
-                y1={sy(y)}
-                y2={sy(y)}
-                stroke="var(--p-ink70)"
-                strokeWidth="1"
-              />
-              <text x={padL - 8} y={sy(y) + 3}>
-                {formatNum(y)}
-              </text>
-            </g>
-          ))}
-        </g>
-
-        {cursor && (
-          <g stroke="var(--p-accent)" strokeWidth="1" strokeDasharray="3 3">
-            <line x1={cursorX} x2={cursorX} y1={padT} y2={padT + innerH} />
-            <line x1={padL} x2={padL + innerW} y1={cursorY} y2={cursorY} />
-            <circle
-              cx={cursorX}
-              cy={cursorY}
-              r="4"
-              fill="none"
-              strokeDasharray="0"
+        <div
+          style={{
+            position: "absolute",
+            left: padL,
+            top: padT,
+            pointerEvents: "none",
+          }}
+        >
+          <canvas ref={canvasRef} />
+        </div>
+        <svg
+          width={size.w}
+          height={size.h}
+          onMouseMove={handleMove}
+          onMouseLeave={handleLeave}
+          style={{ position: "absolute", top: 0, left: 0, cursor: "crosshair" }}
+        >
+          <g stroke="var(--p-ink70)" strokeWidth="1" fill="none">
+            <line
+              x1={padL}
+              y1={padT + innerH}
+              x2={padL + innerW}
+              y2={padT + innerH}
             />
+            <line x1={padL} y1={padT} x2={padL} y2={padT + innerH} />
+            <line
+              x1={padL + innerW}
+              y1={padT}
+              x2={padL + innerW}
+              y2={padT + innerH}
+            />
+            <line x1={padL} y1={padT} x2={padL + innerW} y2={padT} />
           </g>
-        )}
+          <g fontSize="10" fill="var(--p-ink70)" textAnchor="middle">
+            {xTicks.map((x) => (
+              <g key={x}>
+                <line
+                  x1={sx(x)}
+                  x2={sx(x)}
+                  y1={padT + innerH}
+                  y2={padT + innerH + 4}
+                  stroke="var(--p-ink70)"
+                  strokeWidth="1"
+                />
+                <text x={sx(x)} y={padT + innerH + 16}>
+                  {formatNum(x)}
+                </text>
+              </g>
+            ))}
+          </g>
+          <g fontSize="10" fill="var(--p-ink70)" textAnchor="end">
+            {yTicks.map((y) => (
+              <g key={y}>
+                <line
+                  x1={padL - 4}
+                  x2={padL}
+                  y1={sy(y)}
+                  y2={sy(y)}
+                  stroke="var(--p-ink70)"
+                  strokeWidth="1"
+                />
+                <text x={padL - 8} y={sy(y) + 3}>
+                  {formatNum(y)}
+                </text>
+              </g>
+            ))}
+          </g>
 
-        {/* colorbar */}
-        <g transform={`translate(${padL + innerW + 18}, ${padT})`}>
-          <ColorbarSVG height={innerH} />
-          <text x="34" y="6" fontSize="10" fill="var(--p-ink70)">
-            {formatNum(vRange[1])}
-          </text>
-          <text x="34" y={innerH - 2} fontSize="10" fill="var(--p-ink70)">
-            {formatNum(vRange[0])}
+          {cursor && (
+            <g stroke="var(--p-accent)" strokeWidth="1" strokeDasharray="3 3">
+              <line x1={cursorX} x2={cursorX} y1={padT} y2={padT + innerH} />
+              <line x1={padL} x2={padL + innerW} y1={cursorY} y2={cursorY} />
+              <circle
+                cx={cursorX}
+                cy={cursorY}
+                r="4"
+                fill="none"
+                strokeDasharray="0"
+              />
+            </g>
+          )}
+
+          {/* colorbar */}
+          <g transform={`translate(${padL + innerW + 18}, ${padT})`}>
+            <ColorbarSVG height={innerH} />
+            <text x="34" y="6" fontSize="10" fill="var(--p-ink70)">
+              {formatNum(vRange[1])}
+            </text>
+            <text x="34" y={innerH - 2} fontSize="10" fill="var(--p-ink70)">
+              {formatNum(vRange[0])}
+            </text>
+            <text
+              x="14"
+              y={innerH / 2}
+              fontSize="10"
+              fill="var(--p-ink50)"
+              textAnchor="middle"
+              transform={`rotate(-90, 14, ${innerH / 2})`}
+            >
+              {metric}
+            </text>
+          </g>
+
+          <text
+            x={padL + innerW / 2}
+            y={padT + innerH + 30}
+            textAnchor="middle"
+            fontSize="11"
+            fill="var(--p-ink70)"
+            fontFamily="var(--p-font-mono)"
+          >
+            {xLabel || "x"}
           </text>
           <text
-            x="14"
-            y={innerH / 2}
-            fontSize="10"
-            fill="var(--p-ink50)"
+            x={14}
+            y={padT + innerH / 2}
             textAnchor="middle"
-            transform={`rotate(-90, 14, ${innerH / 2})`}
+            fontSize="11"
+            fill="var(--p-ink70)"
+            fontFamily="var(--p-font-mono)"
+            transform={`rotate(-90, 14, ${padT + innerH / 2})`}
+          >
+            {yLabel || "y"}
+          </text>
+        </svg>
+
+        <div
+          style={{
+            position: "absolute",
+            top: 12,
+            right: 100,
+            background: "color-mix(in oklab, var(--p-panel) 92%, transparent)",
+            border: "1px solid var(--p-border)",
+            borderRadius: 6,
+            padding: "4px 8px",
+            fontSize: 11,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          <span className="p-lbl" style={{ fontSize: 9 }}>
+            metric
+          </span>
+          <span
+            className="p-mono"
+            style={{ color: "var(--p-accent)", fontWeight: 600 }}
           >
             {metric}
-          </text>
-        </g>
-
-        <text
-          x={padL + innerW / 2}
-          y={size.h - 8}
-          textAnchor="middle"
-          fontSize="11"
-          fill="var(--p-ink70)"
-          fontFamily="var(--p-font-mono)"
-        >
-          {xLabel || "x"}
-        </text>
-        <text
-          x={14}
-          y={padT + innerH / 2}
-          textAnchor="middle"
-          fontSize="11"
-          fill="var(--p-ink70)"
-          fontFamily="var(--p-font-mono)"
-          transform={`rotate(-90, 14, ${padT + innerH / 2})`}
-        >
-          {yLabel || "y"}
-        </text>
-      </svg>
-
-      <div
-        style={{
-          position: "absolute",
-          top: 12,
-          right: 100,
-          background: "color-mix(in oklab, var(--p-panel) 92%, transparent)",
-          border: "1px solid var(--p-border)",
-          borderRadius: 6,
-          padding: "4px 8px",
-          fontSize: 11,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          backdropFilter: "blur(4px)",
-        }}
-      >
-        <span className="p-lbl" style={{ fontSize: 9 }}>
-          metric
-        </span>
-        <span
-          className="p-mono"
-          style={{ color: "var(--p-accent)", fontWeight: 600 }}
-        >
-          {metric}
-        </span>
+          </span>
+        </div>
       </div>
-
       <CursorReadout2D
         cursor={cursor}
         metric={metric}
@@ -339,10 +352,8 @@ function CursorReadout2D({ cursor, metric, xLabel, yLabel }) {
     <div
       className="p-panel-soft"
       style={{
-        position: "absolute",
-        left: 8,
-        right: 8,
-        bottom: 8,
+        flex: "0 0 auto",
+        margin: "0 8px 8px",
         padding: "6px 10px",
         display: "flex",
         alignItems: "center",

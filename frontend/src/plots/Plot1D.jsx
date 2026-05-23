@@ -48,7 +48,7 @@ function Plot1D({ xs, xLabel, yLabel, channels, ghosts = [] }) {
   const padL = 56,
     padR = 18,
     padT = 18,
-    padB = 38;
+    padB = 44;
   const innerW = size.w - padL - padR;
   const innerH = size.h - padT - padB;
 
@@ -117,255 +117,268 @@ function Plot1D({ xs, xLabel, yLabel, channels, ghosts = [] }) {
 
   return (
     <div
-      ref={ref}
-      style={{ width: "100%", height: "100%", position: "relative" }}
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
     >
-      <svg
-        width={size.w}
-        height={size.h}
-        onMouseMove={handleMove}
-        onMouseLeave={handleLeave}
-        style={{ cursor: "crosshair" }}
-      >
-        {/* grid */}
-        <g>
-          {yTicks.map((y) => (
-            <line
-              key={"gy" + y}
-              x1={padL}
-              x2={padL + innerW}
-              y1={sy(y)}
-              y2={sy(y)}
-              stroke="var(--p-grid)"
-              strokeWidth="1"
-            />
-          ))}
-          {xTicks.map((x) => (
-            <line
-              key={"gx" + x}
-              x1={sx(x)}
-              x2={sx(x)}
-              y1={padT}
-              y2={padT + innerH}
-              stroke="var(--p-grid)"
-              strokeWidth="1"
-            />
-          ))}
-        </g>
-
-        {/* axes */}
-        <g stroke="var(--p-ink70)" strokeWidth="1">
-          <line
-            x1={padL}
-            y1={padT + innerH}
-            x2={padL + innerW}
-            y2={padT + innerH}
-          />
-          <line x1={padL} y1={padT} x2={padL} y2={padT + innerH} />
-        </g>
-        <g fontSize="10" fill="var(--p-ink70)" textAnchor="middle">
-          {xTicks.map((x) => (
-            <g key={"tx" + x}>
-              <line
-                x1={sx(x)}
-                x2={sx(x)}
-                y1={padT + innerH}
-                y2={padT + innerH + 4}
-                stroke="var(--p-ink70)"
-                strokeWidth="1"
-              />
-              <text x={sx(x)} y={padT + innerH + 16}>
-                {formatNum(x)}
-              </text>
-            </g>
-          ))}
-        </g>
-        <g fontSize="10" fill="var(--p-ink70)" textAnchor="end">
-          {yTicks.map((y) => (
-            <g key={"ty" + y}>
-              <line
-                x1={padL - 4}
-                x2={padL}
-                y1={sy(y)}
-                y2={sy(y)}
-                stroke="var(--p-ink70)"
-                strokeWidth="1"
-              />
-              <text x={padL - 8} y={sy(y) + 3}>
-                {formatNum(y)}
-              </text>
-            </g>
-          ))}
-        </g>
-
-        {/* ghost traces */}
-        {ghosts.map((g, gi) => {
-          const arr = g.values || [];
-          if (!arr.length) return null;
-          // Ghost xs may differ; here we assume they share the same axis grid.
-          const gxs = g.xs || xs;
-          const pts = arr
-            .map((v, i) => {
-              const xv = gxs[i];
-              if (!isFinite(v) || !isFinite(xv)) return null;
-              return `${sx(xv)},${sy(v)}`;
-            })
-            .filter(Boolean)
-            .join(" ");
-          return (
-            <polyline
-              key={"gh" + gi}
-              points={pts}
-              fill="none"
-              stroke="var(--p-ink50)"
-              strokeWidth="1.5"
-              strokeDasharray="4 3"
-              opacity="0.55"
-            />
-          );
-        })}
-
-        {/* active channel traces */}
-        {onChannels.map((c) => {
-          const arr = c.values;
-          const pts = arr
-            .map((v, i) => {
-              const xv = xs[i];
-              if (!isFinite(v) || !isFinite(xv)) return null;
-              return `${sx(xv)},${sy(v)}`;
-            })
-            .filter(Boolean)
-            .join(" ");
-          return (
-            <g key={c.key}>
-              <polyline
-                points={pts}
-                fill="none"
-                stroke={c.color}
-                strokeWidth="1.6"
-                opacity="0.85"
-              />
-              {arr.map((v, i) =>
-                isFinite(v) && isFinite(xs[i]) ? (
-                  <circle
-                    key={i}
-                    cx={sx(xs[i])}
-                    cy={sy(v)}
-                    r="2"
-                    fill={c.color}
-                  />
-                ) : null,
-              )}
-            </g>
-          );
-        })}
-
-        {/* cursor */}
-        {cursorX != null && (
-          <line
-            x1={cursorX}
-            x2={cursorX}
-            y1={padT}
-            y2={padT + innerH}
-            stroke="var(--p-accent)"
-            strokeWidth="1"
-            strokeDasharray="3 3"
-          />
-        )}
-
-        {/* axis labels */}
-        <text
-          x={padL + innerW / 2}
-          y={size.h - 8}
-          textAnchor="middle"
-          fontSize="11"
-          fill="var(--p-ink70)"
-          fontFamily="var(--p-font-mono)"
-        >
-          {xLabel || "x"}
-        </text>
-        <text
-          x={14}
-          y={padT + innerH / 2}
-          textAnchor="middle"
-          fontSize="11"
-          fill="var(--p-ink70)"
-          fontFamily="var(--p-font-mono)"
-          transform={`rotate(-90, 14, ${padT + innerH / 2})`}
-        >
-          {yLabel || "value"}
-        </text>
-      </svg>
-
-      {/* legend */}
       <div
+        ref={ref}
         style={{
-          position: "absolute",
-          top: 12,
-          right: 32,
-          background: "color-mix(in oklab, var(--p-panel) 92%, transparent)",
-          border: "1px solid var(--p-border)",
-          borderRadius: 6,
-          padding: "6px 8px",
-          fontSize: 11,
-          lineHeight: 1.5,
-          minWidth: 160,
-          backdropFilter: "blur(4px)",
-          maxWidth: 220,
+          flex: 1,
+          position: "relative",
+          minHeight: 0,
+          overflow: "hidden",
         }}
       >
-        {onChannels.map((c) => (
-          <div
-            key={c.key}
-            style={{ display: "flex", alignItems: "center", gap: 6 }}
-          >
-            <span
-              style={{
-                width: 18,
-                height: 2,
-                background: c.color,
-                borderRadius: 1,
-                flex: "0 0 auto",
-              }}
-            />
-            <span
-              className="p-mono"
-              style={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-              title={c.key}
-            >
-              {c.key}
-            </span>
-          </div>
-        ))}
-        {ghosts.map((g) => (
-          <div
-            key={g.rid + "-ghost"}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              opacity: 0.7,
-            }}
-          >
-            <span
-              style={{
-                width: 18,
-                height: 0,
-                borderTop: "1.5px dashed var(--p-ink50)",
-              }}
-            />
-            <span className="p-mono p-dim">ghost</span>
-            <span className="p-dim" style={{ marginLeft: "auto" }}>
-              #{g.rid}
-            </span>
-          </div>
-        ))}
-      </div>
+        <svg
+          width={size.w}
+          height={size.h}
+          onMouseMove={handleMove}
+          onMouseLeave={handleLeave}
+          style={{ position: "absolute", top: 0, left: 0, cursor: "crosshair" }}
+        >
+          {/* grid */}
+          <g>
+            {yTicks.map((y) => (
+              <line
+                key={"gy" + y}
+                x1={padL}
+                x2={padL + innerW}
+                y1={sy(y)}
+                y2={sy(y)}
+                stroke="var(--p-grid)"
+                strokeWidth="1"
+              />
+            ))}
+            {xTicks.map((x) => (
+              <line
+                key={"gx" + x}
+                x1={sx(x)}
+                x2={sx(x)}
+                y1={padT}
+                y2={padT + innerH}
+                stroke="var(--p-grid)"
+                strokeWidth="1"
+              />
+            ))}
+          </g>
 
+          {/* axes */}
+          <g stroke="var(--p-ink70)" strokeWidth="1">
+            <line
+              x1={padL}
+              y1={padT + innerH}
+              x2={padL + innerW}
+              y2={padT + innerH}
+            />
+            <line x1={padL} y1={padT} x2={padL} y2={padT + innerH} />
+          </g>
+          <g fontSize="10" fill="var(--p-ink70)" textAnchor="middle">
+            {xTicks.map((x) => (
+              <g key={"tx" + x}>
+                <line
+                  x1={sx(x)}
+                  x2={sx(x)}
+                  y1={padT + innerH}
+                  y2={padT + innerH + 4}
+                  stroke="var(--p-ink70)"
+                  strokeWidth="1"
+                />
+                <text x={sx(x)} y={padT + innerH + 16}>
+                  {formatNum(x)}
+                </text>
+              </g>
+            ))}
+          </g>
+          <g fontSize="10" fill="var(--p-ink70)" textAnchor="end">
+            {yTicks.map((y) => (
+              <g key={"ty" + y}>
+                <line
+                  x1={padL - 4}
+                  x2={padL}
+                  y1={sy(y)}
+                  y2={sy(y)}
+                  stroke="var(--p-ink70)"
+                  strokeWidth="1"
+                />
+                <text x={padL - 8} y={sy(y) + 3}>
+                  {formatNum(y)}
+                </text>
+              </g>
+            ))}
+          </g>
+
+          {/* ghost traces */}
+          {ghosts.map((g, gi) => {
+            const arr = g.values || [];
+            if (!arr.length) return null;
+            // Ghost xs may differ; here we assume they share the same axis grid.
+            const gxs = g.xs || xs;
+            const pts = arr
+              .map((v, i) => {
+                const xv = gxs[i];
+                if (!isFinite(v) || !isFinite(xv)) return null;
+                return `${sx(xv)},${sy(v)}`;
+              })
+              .filter(Boolean)
+              .join(" ");
+            return (
+              <polyline
+                key={"gh" + gi}
+                points={pts}
+                fill="none"
+                stroke="var(--p-ink50)"
+                strokeWidth="1.5"
+                strokeDasharray="4 3"
+                opacity="0.55"
+              />
+            );
+          })}
+
+          {/* active channel traces */}
+          {onChannels.map((c) => {
+            const arr = c.values;
+            const pts = arr
+              .map((v, i) => {
+                const xv = xs[i];
+                if (!isFinite(v) || !isFinite(xv)) return null;
+                return `${sx(xv)},${sy(v)}`;
+              })
+              .filter(Boolean)
+              .join(" ");
+            return (
+              <g key={c.key}>
+                <polyline
+                  points={pts}
+                  fill="none"
+                  stroke={c.color}
+                  strokeWidth="1.6"
+                  opacity="0.85"
+                />
+                {arr.map((v, i) =>
+                  isFinite(v) && isFinite(xs[i]) ? (
+                    <circle
+                      key={i}
+                      cx={sx(xs[i])}
+                      cy={sy(v)}
+                      r="2"
+                      fill={c.color}
+                    />
+                  ) : null,
+                )}
+              </g>
+            );
+          })}
+
+          {/* cursor */}
+          {cursorX != null && (
+            <line
+              x1={cursorX}
+              x2={cursorX}
+              y1={padT}
+              y2={padT + innerH}
+              stroke="var(--p-accent)"
+              strokeWidth="1"
+              strokeDasharray="3 3"
+            />
+          )}
+
+          {/* axis labels */}
+          <text
+            x={padL + innerW / 2}
+            y={padT + innerH + 30}
+            textAnchor="middle"
+            fontSize="11"
+            fill="var(--p-ink70)"
+            fontFamily="var(--p-font-mono)"
+          >
+            {xLabel || "x"}
+          </text>
+          <text
+            x={14}
+            y={padT + innerH / 2}
+            textAnchor="middle"
+            fontSize="11"
+            fill="var(--p-ink70)"
+            fontFamily="var(--p-font-mono)"
+            transform={`rotate(-90, 14, ${padT + innerH / 2})`}
+          >
+            {yLabel || "value"}
+          </text>
+        </svg>
+
+        {/* legend */}
+        <div
+          style={{
+            position: "absolute",
+            top: 12,
+            right: 32,
+            background: "color-mix(in oklab, var(--p-panel) 92%, transparent)",
+            border: "1px solid var(--p-border)",
+            borderRadius: 6,
+            padding: "6px 8px",
+            fontSize: 11,
+            lineHeight: 1.5,
+            minWidth: 160,
+            backdropFilter: "blur(4px)",
+            maxWidth: 220,
+          }}
+        >
+          {onChannels.map((c) => (
+            <div
+              key={c.key}
+              style={{ display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <span
+                style={{
+                  width: 18,
+                  height: 2,
+                  background: c.color,
+                  borderRadius: 1,
+                  flex: "0 0 auto",
+                }}
+              />
+              <span
+                className="p-mono"
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+                title={c.key}
+              >
+                {c.key}
+              </span>
+            </div>
+          ))}
+          {ghosts.map((g) => (
+            <div
+              key={g.rid + "-ghost"}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                opacity: 0.7,
+              }}
+            >
+              <span
+                style={{
+                  width: 18,
+                  height: 0,
+                  borderTop: "1.5px dashed var(--p-ink50)",
+                }}
+              />
+              <span className="p-mono p-dim">ghost</span>
+              <span className="p-dim" style={{ marginLeft: "auto" }}>
+                #{g.rid}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
       <CursorReadout
         cursor={cursor}
         xLabel={xLabel}
@@ -381,10 +394,8 @@ function CursorReadout({ cursor, xLabel, cursorReadouts, ghostReadouts }) {
     <div
       className="p-panel-soft"
       style={{
-        position: "absolute",
-        left: 8,
-        right: 8,
-        bottom: 8,
+        flex: "0 0 auto",
+        margin: "0 8px 8px",
         padding: "6px 10px",
         display: "flex",
         alignItems: "center",
