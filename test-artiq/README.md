@@ -18,6 +18,8 @@ This directory contains a Docker-based ARTIQ master setup for local testing and 
 
 2. **Start the environment**:
    ```bash
+   nix build .#docker --accept-flake-config
+   docker load < result
    docker compose up -d
    ```
 
