@@ -57,6 +57,7 @@ exclude = ["docs"]
 
 [tool.ruff.lint]
 extend-ignore = ["W291"]
+per-file-ignores = { "test-artiq/repository/*.py" = ["F403", "F405"] }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
