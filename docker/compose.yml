@@ -5,7 +5,6 @@ services:
       dockerfile: docker/Dockerfile.backend
     expose:
       - "8000"
-      - "8001"
     environment:
       - ARTIQ_HTTP_HOST=${ARTIQ_HTTP_HOST:-127.0.0.1}
       - ARTIQ_HTTP_PORT_NOTIFIERS=${ARTIQ_HTTP_PORT_NOTIFIERS:-3250}
@@ -36,8 +35,7 @@ services:
       - API_URL=http://backend:8000
       - MCP_URL=http://mcp:8001
     ports:
-      - "80:80"
-      - "443:443"
+      - "8000:80"
     depends_on:
       - backend
       - mcp
