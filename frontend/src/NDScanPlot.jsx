@@ -5,6 +5,7 @@ import Spinner from "react-bootstrap/Spinner";
 import Alert from "react-bootstrap/Alert";
 import Badge from "react-bootstrap/Badge";
 import { useSSEDataset, SSEState } from "./hooks/useSSEDataset";
+import { XCircleFill } from "react-bootstrap-icons";
 
 /**
  * Component to render NDScan visualizations (0D, 1D, 2D)
@@ -85,8 +86,12 @@ function NDScanPlot({ prefix }) {
     }
     if (connectionState === SSEState.ERROR) {
       return (
-        <Badge bg="danger" className="me-2" title={error || "Connection error"}>
-          ✕ Error
+        <Badge
+          bg="danger"
+          className="me-2 d-inline-flex align-items-center gap-1"
+          title={error || "Connection error"}
+        >
+          <XCircleFill aria-hidden="true" /> Error
         </Badge>
       );
     }

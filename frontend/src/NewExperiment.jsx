@@ -1,14 +1,8 @@
 import React from "react";
-import Form from "react-bootstrap/Form";
-import InputGroup from "react-bootstrap/InputGroup";
+import { Search, X } from "react-bootstrap-icons";
 
 import ExperimentTree from "./ExperimentTree";
 
-import { get_explist } from "./api/client";
-
-const TIMEOUT = 10000;
-
-// ... (buildTree remains same)
 function buildTree(experiments, searchTerm) {
   const tree = {};
   const lowerSearch = searchTerm.toLowerCase();
@@ -21,13 +15,11 @@ function buildTree(experiments, searchTerm) {
   );
 
   filtered.forEach((exp) => {
-    const parts = exp.file.split(/[/\\]/); // Handle both path separators
+    const parts = exp.file.split(/[/\\]/);
     let current = tree;
 
     parts.forEach((part, index) => {
       if (index === parts.length - 1) {
-        // It's the file name, but we want to group by file + class_name
-        // For simplicity, we'll put the experiment object here
         const key = `${part} : ${exp.class_name}`;
         current[key] = { experiment: exp };
       } else {
@@ -62,52 +54,51 @@ function NewExperiment({ explist, onSelect, selectedExperiment }) {
   };
 
   return (
-    <div>
-      <div className="experiment-browser-container border rounded p-3 bg-secondary bg-opacity-10">
-        <InputGroup className="mb-4">
-          <InputGroup.Text>🔍</InputGroup.Text>
-          <Form.Control
-            placeholder="Search experiments by name, class, or file..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setSearchTerm("");
-              }
-            }}
-          />
-          {searchTerm && (
-            <button
-              className="btn btn-outline-secondary"
-              onClick={() => setSearchTerm("")}
-            >
-              ✕
-            </button>
-          )}
-        </InputGroup>
+    <div className="experiment-browser">
+      <label className="experiment-search" aria-label="Search experiments">
+        <span className="experiment-search__icon" aria-hidden="true">
+          <Search size={14} />
+        </span>
+        <input
+          type="text"
+          className="experiment-search__input"
+          placeholder="Search experiments by name, class, or file"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setSearchTerm("");
+            }
+          }}
+        />
+        {searchTerm && (
+          <button
+            type="button"
+            className="experiment-search__clear"
+            onClick={() => setSearchTerm("")}
+            aria-label="Clear search"
+          >
+            <X size={18} />
+          </button>
+        )}
+      </label>
 
-        <div
-          className="experiment-tree-scroll"
-          style={{ maxHeight: "400px", overflowY: "auto" }}
-        >
-          {exps.length === 0 ? (
-            <div className="text-center p-5 text-muted">
-              Loading experiments...
-            </div>
-          ) : Object.keys(tree).length === 0 ? (
-            <div className="text-center p-5 text-muted">
-              No experiments match your search.
-            </div>
-          ) : (
-            <ExperimentTree
-              tree={tree}
-              repo_rev={repo_rev}
-              searchTerm={searchTerm}
-              onSelect={handleSelect}
-              selectedExperiment={selectedExperiment}
-            />
-          )}
-        </div>
+      <div className="experiment-tree-scroll">
+        {exps.length === 0 ? (
+          <div className="experiment-tree__empty">Loading experiments…</div>
+        ) : Object.keys(tree).length === 0 ? (
+          <div className="experiment-tree__empty">
+            No experiments match your search.
+          </div>
+        ) : (
+          <ExperimentTree
+            tree={tree}
+            repo_rev={repo_rev}
+            searchTerm={searchTerm}
+            onSelect={handleSelect}
+            selectedExperiment={selectedExperiment}
+          />
+        )}
       </div>
     </div>
   );

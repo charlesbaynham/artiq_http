@@ -7,6 +7,7 @@ import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Spinner from "react-bootstrap/Spinner";
 import Alert from "react-bootstrap/Alert";
+import { ArrowClockwise } from "react-bootstrap-icons";
 
 /**
  * Component to discover and display multiple NDScan plots
@@ -18,6 +19,9 @@ function NDScanPlotCollection() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Feature flag: gate the plots view behind VITE_SHOW_PLOTS
+  const showPlots = import.meta.env.VITE_SHOW_PLOTS === "true";
 
   const fetchPrefixes = async () => {
     try {
@@ -81,6 +85,20 @@ function NDScanPlotCollection() {
     setSearchParams({ scan: prefix });
   };
 
+  if (!showPlots) {
+    return (
+      <div className="empty-state">
+        <div className="empty-state__eyebrow">Coming soon!</div>
+        <p className="empty-state__message">
+          The plots view is currently under development.
+        </p>
+        <p className="empty-state__hint">
+          Enable VITE_SHOW_PLOTS at build time to preview this feature.
+        </p>
+      </div>
+    );
+  }
+
   if (loading && prefixes.length === 0) {
     return (
       <div className="text-center p-4">
@@ -95,18 +113,27 @@ function NDScanPlotCollection() {
       {error && <Alert variant="danger">{error}</Alert>}
 
       {prefixes.length === 0 ? (
-        <Alert variant="info">No NDScan datasets found in the store.</Alert>
+        <div className="empty-state">
+          <div className="empty-state__eyebrow">Idle</div>
+          <p className="empty-state__message">
+            No NDScans currently in the store.
+          </p>
+          <p className="empty-state__hint">
+            Plots will appear here once a scan starts publishing datasets.
+          </p>
+        </div>
       ) : (
         <Row>
           <Col md={4} lg={3}>
             <div className="d-flex justify-content-between align-items-center mb-2">
               <h6>Available Scans</h6>
               <button
-                className="btn btn-sm btn-link p-0"
+                className="btn btn-sm btn-link p-0 scan-refresh"
                 onClick={fetchPrefixes}
                 title="Refresh scan list"
+                aria-label="Refresh scan list"
               >
-                🔄
+                <ArrowClockwise aria-hidden="true" />
               </button>
             </div>
             <ListGroup

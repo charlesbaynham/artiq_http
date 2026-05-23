@@ -13,8 +13,41 @@ import DatasetExplorer from "./DatasetExplorer";
 import NDScanPlotCollection from "./NDScanPlotCollection";
 import ConnectionErrorModal from "./ConnectionErrorModal";
 import ErrorBoundary from "./ErrorBoundary";
+import Logs from "./Logs";
 import { get_health, get_explist } from "./api/client";
 import MobileNavigation from "./MobileNavigation";
+
+const PAGE_LABELS = {
+  running: "RUNNING",
+  datasets: "DATASETS",
+  plots: "PLOTS",
+  schedule: "SCHEDULE",
+  configure: "CONFIGURE",
+};
+
+function AppHeader({ currentPage, isOnline }) {
+  return (
+    <header className="app-topbar mobile-only" aria-label="ARTIQ control bar">
+      <div className="app-topbar__brand">
+        <span className="app-topbar__mark">ARTIQ</span>
+        <span className="app-topbar__section">
+          {PAGE_LABELS[currentPage] || ""}
+        </span>
+      </div>
+      <div
+        className={`app-topbar__status ${
+          isOnline ? "is-online" : "is-offline"
+        }`}
+        aria-live="polite"
+      >
+        <span className="app-topbar__dot" />
+        <span className="app-topbar__status-text">
+          {isOnline ? "ONLINE" : "OFFLINE"}
+        </span>
+      </div>
+    </header>
+  );
+}
 
 const HEALTH_CHECK_INTERVAL = 5000; // 5 seconds
 
@@ -34,6 +67,7 @@ function App() {
     if (pathname.startsWith("/schedule")) return "schedule";
     if (pathname.startsWith("/configure")) return "configure";
     if (pathname.startsWith("/running")) return "running";
+    if (pathname.startsWith("/logs")) return "logs";
     return "schedule"; // Default
   };
 
@@ -57,6 +91,7 @@ function App() {
       plots: "/plots",
       schedule: "/schedule",
       configure: "/configure",
+      logs: "/logs",
     };
     const route = routes[page] || "/schedule";
     navigate(route);
@@ -155,8 +190,12 @@ function App() {
         errorType={connectionError}
         show={connectionError !== null}
       />
+      <AppHeader
+        currentPage={currentPage}
+        isOnline={connectionError === null}
+      />
       <Container fluid className="p-3 p-md-4">
-        <h1 className="mb-4">ARTIQ HTTP interface</h1>
+        <h1 className="app-h1-desktop desktop-only">ARTIQ HTTP interface</h1>
 
         {/* Running Section */}
         <Row
@@ -241,6 +280,22 @@ function App() {
                   experiment={selectedExperiment}
                   repo_rev={repoRev}
                 />
+              </ErrorBoundary>
+            </CollapsibleSection>
+          </Col>
+        </Row>
+
+        {/* Logs Section */}
+        <Row
+          id="section-logs"
+          className={`pt-2 page-section ${
+            currentPage === "logs" ? "active" : ""
+          }`}
+        >
+          <Col>
+            <CollapsibleSection title="Logs" defaultExpanded={false}>
+              <ErrorBoundary>
+                <Logs currentPage={currentPage} />
               </ErrorBoundary>
             </CollapsibleSection>
           </Col>

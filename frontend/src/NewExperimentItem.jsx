@@ -34,11 +34,11 @@ function NewExperimentItem(props) {
   // Load initial state from localStorage or defaults
   const [argValues, setArgValues] = React.useState(() => {
     const stored = loadExperimentState(file, class_name);
-    return stored ? stored.argValues : defaultValues;
+    return stored?.argValues ?? defaultValues;
   });
   const [pipeline, setPipeline] = React.useState(() => {
     const stored = loadExperimentState(file, class_name);
-    return stored ? stored.pipeline : "main";
+    return stored?.pipeline ?? "main";
   });
 
   // Toast state for error messages
@@ -90,47 +90,39 @@ function NewExperimentItem(props) {
   };
 
   return (
-    <Card className="shadow-sm border-0">
-      <Card.Header className="bg-primary text-white py-3">
-        <div className="d-flex justify-content-between align-items-center">
-          <h5 className="mb-0">{class_name}</h5>
-          <small className="opacity-75">{file}</small>
+    <Card className="submission-card">
+      <Card.Header className="submission-card__header">
+        <div className="submission-card__head-meta">
+          <span className="submission-card__class">{class_name}</span>
+          <span className="submission-card__file">{file}</span>
         </div>
       </Card.Header>
-      <Card.Body className="p-4">
-        <Table striped bordered hover size="sm" className="mb-4">
+      <Card.Body className="submission-card__body">
+        <Table className="schedule-detail-table mb-4">
           <tbody>
             {table_row("Name", name)}
-            {table_row("Class name", class_name)}
+            {table_row("Class", class_name)}
             {table_row("File", file)}
           </tbody>
         </Table>
 
         {/* Regular experiment arguments */}
         {hasArguments && (
-          <div className="mt-4">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h6 className="mb-0 fw-bold">Arguments</h6>
+          <div className="submission-args">
+            <div className="submission-args__head">
+              <h6 className="submission-args__title">Arguments</h6>
               <Button
                 variant="outline-primary"
                 size="sm"
                 onClick={handleResetAll}
               >
-                Reset All to Defaults
+                Reset to defaults
               </Button>
             </div>
             {Object.entries(groupedArgs).map(([groupName, args]) => (
-              <Card
-                key={groupName}
-                className="mb-3 border-secondary shadow-none bg-secondary bg-opacity-10"
-              >
-                <Card.Header
-                  className="py-2 px-3 bg-secondary bg-opacity-25"
-                  style={{ fontSize: "0.9em", fontWeight: 600 }}
-                >
-                  {groupName}
-                </Card.Header>
-                <Card.Body className="py-3 px-3">
+              <div key={groupName} className="arg-group">
+                <div className="arg-group__title">{groupName}</div>
+                <div className="arg-group__body">
                   {args.map(({ name: argName, argData }) => (
                     <ArgumentRow
                       key={argName}
@@ -141,21 +133,21 @@ function NewExperimentItem(props) {
                       onReset={handleResetArg}
                     />
                   ))}
-                </Card.Body>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
         )}
 
         <Form.Group className="mt-4 mb-3">
-          <Form.Label className="fw-bold">Pipeline</Form.Label>
+          <Form.Label>Pipeline</Form.Label>
           <Form.Control
             type="text"
             value={pipeline}
             onChange={(e) => setPipeline(e.target.value)}
             placeholder="main"
           />
-          <Form.Text className="text-muted">
+          <Form.Text>
             Specify which pipeline to submit to (default: main)
           </Form.Text>
         </Form.Group>

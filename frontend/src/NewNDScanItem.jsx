@@ -3,6 +3,7 @@ import React from "react";
 import Accordion from "react-bootstrap/Accordion";
 import Table from "react-bootstrap/Table";
 import ButtonGroup from "react-bootstrap/ButtonGroup";
+import { Search, X } from "react-bootstrap-icons";
 import Button from "react-bootstrap/Button";
 import Card from "react-bootstrap/Card";
 import Toast from "react-bootstrap/Toast";
@@ -333,7 +334,9 @@ function NewNDScanItem(props) {
                 Add / Toggle Parameters
               </Form.Label>
               <InputGroup size="sm" className="mb-2">
-                <InputGroup.Text>🔍</InputGroup.Text>
+                <InputGroup.Text aria-hidden="true">
+                  <Search />
+                </InputGroup.Text>
                 <Form.Control
                   placeholder="Search available parameters by FQN or Description..."
                   value={paramSearchTerm}
@@ -539,11 +542,12 @@ function NewNDScanItem(props) {
                   <Button
                     variant="link"
                     size="sm"
-                    className="text-muted p-0 ms-2"
+                    className="text-muted p-0 ms-2 d-inline-flex align-items-center"
                     onClick={() => removeFQNFromVisibleParams(fqn)}
                     title="Hide parameter"
+                    aria-label="Hide parameter"
                   >
-                    ✕
+                    <X size={16} aria-hidden="true" />
                   </Button>
                 </div>
               );
