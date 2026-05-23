@@ -14,9 +14,16 @@ pytestmark = pytest.mark.realserver
 
 def test_get_explist(client):
     """Test GET /explist endpoint with real ARTIQ master"""
-    response = client.get("/api/explist")
-    assert response.status_code == 200
-    data = response.json()
+    # Poll until experiments are loaded - ARTIQ master may take time to scan
+    # the repository after startup, so the list may initially be empty.
+    data = {}
+    for _ in range(30):
+        response = client.get("/api/explist")
+        assert response.status_code == 200
+        data = response.json()
+        if data.get("experiments"):
+            break
+        time.sleep(1)
 
     assert "experiments" in data
     assert "scanning" in data
