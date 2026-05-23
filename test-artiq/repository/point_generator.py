@@ -4,6 +4,8 @@ import time
 from ndscan.experiment import (
     ExpFragment,
     FloatChannel,
+    FloatParam,
+    FloatParamHandle,
     make_fragment_scan_exp,
 )
 
@@ -13,10 +15,13 @@ class PointGeneratorFrag(ExpFragment):
         self.setattr_result("output", FloatChannel)
         self.output: FloatChannel
 
+        self.setattr_param("addition", FloatParam, description="added number", default=0.0)
+        self.addition: FloatParamHandle
+
     def run_once(self):
         random_int = random.randint(0, 100)
         time.sleep(0.5)  # Simulate some processing time
-        self.output.push(random_int)
+        self.output.push(random_int + self.addition.get())
 
 
 PointGenerator = make_fragment_scan_exp(PointGeneratorFrag)
