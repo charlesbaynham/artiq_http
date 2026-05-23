@@ -138,7 +138,7 @@ function Plot1D({ xs, xLabel, yLabel, channels, ghosts = [] }) {
           height={size.h}
           onMouseMove={handleMove}
           onMouseLeave={handleLeave}
-          style={{ cursor: "crosshair" }}
+          style={{ position: "absolute", top: 0, left: 0, cursor: "crosshair" }}
         >
           {/* grid */}
           <g>

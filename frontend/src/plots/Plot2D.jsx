@@ -199,7 +199,7 @@ function Plot2D({ xs, ys, values, xLabel, yLabel, metric }) {
           height={size.h}
           onMouseMove={handleMove}
           onMouseLeave={handleLeave}
-          style={{ position: "relative", cursor: "crosshair" }}
+          style={{ position: "absolute", top: 0, left: 0, cursor: "crosshair" }}
         >
           <g stroke="var(--p-ink70)" strokeWidth="1" fill="none">
             <line
