@@ -1,6 +1,37 @@
 import React, { useMemo, useState } from "react";
 import PropTypes from "prop-types";
 
+function GhostIcon({ on }) {
+  // on=true → filled ghost (overlay active), on=false → outline ghost (click to add)
+  return on ? (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      stroke="none"
+    >
+      <path d="M12 3C7.03 3 3 7.03 3 12v8l3-3 3 3 3-3 3 3 3-3 3 3v-8C21 7.03 16.97 3 12 3z" />
+      <circle cx="9" cy="11" r="1.5" fill="var(--p-panel)" />
+      <circle cx="15" cy="11" r="1.5" fill="var(--p-panel)" />
+    </svg>
+  ) : (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinejoin="round"
+    >
+      <path d="M12 3C7.03 3 3 7.03 3 12v8l3-3 3 3 3-3 3 3 3-3 3 3v-8C21 7.03 16.97 3 12 3z" />
+      <circle cx="9" cy="11" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="11" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 function TimelineRow({
   r,
   isActive,
@@ -89,39 +120,16 @@ function TimelineRow({
           paddingRight: 2,
         }}
       >
-        {canOverlay && !isActive ? (
+        {canOverlay && !isActive && r.dims === "1D" ? (
           <div
             onClick={(e) => {
               e.stopPropagation();
               onToggleGhost(r.prefix);
             }}
             style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
+            title={isGhost ? "remove ghost overlay" : "add ghost overlay"}
           >
-            {isGhost ? (
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            ) : (
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                <line x1="1" y1="1" x2="23" y2="23" />
-              </svg>
-            )}
+            <GhostIcon on={isGhost} />
           </div>
         ) : null}
       </div>
