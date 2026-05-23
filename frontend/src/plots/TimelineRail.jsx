@@ -1,7 +1,14 @@
 import React, { useMemo, useState } from "react";
 import PropTypes from "prop-types";
 
-function TimelineRow({ r, isActive, isGhost, canOverlay, onClick }) {
+function TimelineRow({
+  r,
+  isActive,
+  isGhost,
+  canOverlay,
+  onClick,
+  onToggleGhost,
+}) {
   const bg = isActive
     ? "color-mix(in oklab, var(--p-accent) 10%, transparent)"
     : isGhost
@@ -24,8 +31,7 @@ function TimelineRow({ r, isActive, isGhost, canOverlay, onClick }) {
         background: bg,
         borderLeft: borderL,
         borderRadius: 4,
-        cursor: isActive || !canOverlay ? "default" : "pointer",
-        opacity: !canOverlay && !isActive ? 0.65 : 1,
+        cursor: isActive ? "default" : "pointer",
         marginBottom: 1,
       }}
     >
@@ -83,44 +89,52 @@ function TimelineRow({ r, isActive, isGhost, canOverlay, onClick }) {
           paddingRight: 2,
         }}
       >
-        {isActive || !canOverlay ? (
-          ""
-        ) : isGhost ? (
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
+        {canOverlay && !isActive ? (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleGhost(r.prefix);
+            }}
+            style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
           >
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
-        ) : (
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-            <line x1="1" y1="1" x2="23" y2="23" />
-          </svg>
-        )}
+            {isGhost ? (
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            ) : (
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   );
 }
 
 function TimelineRail({
-  experiment,
   runs,
   activeRid,
   ghostPrefixes = [],
   onToggleGhost,
+  onPick,
   dims,
 }) {
   const [query, setQuery] = useState("");
@@ -134,6 +148,8 @@ function TimelineRail({
       `${r.rid ?? ""} ${r.prefix ?? ""}`.toLowerCase().includes(q),
     );
   }, [runs, query]);
+
+  const hasNonActiveRuns = runs.some((r) => r.rid !== activeRid);
 
   return (
     <div
@@ -154,27 +170,24 @@ function TimelineRail({
           gap: 6,
         }}
       >
-        {experiment && (
-          <div
-            className="p-mono p-dim"
-            style={{
-              fontSize: 10.5,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-            title={experiment}
-          >
-            of {experiment}
-          </div>
-        )}
+        <div
+          className="p-mono p-dim"
+          style={{
+            fontSize: 10.5,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          all runs
+        </div>
         <input
           className="p-search p-mono"
           placeholder="filter by RID / prefix"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        {canOverlay && (
+        {canOverlay && hasNonActiveRuns && (
           <div
             className="p-dim p-mono"
             style={{ fontSize: 10.5, padding: "0 2px" }}
@@ -210,9 +223,8 @@ function TimelineRail({
                 isActive={isActive}
                 isGhost={isGhost}
                 canOverlay={canOverlay}
-                onClick={() =>
-                  !isActive && canOverlay && onToggleGhost(r.prefix)
-                }
+                onClick={() => !isActive && onPick(r)}
+                onToggleGhost={onToggleGhost}
               />
             );
           })}
@@ -223,11 +235,11 @@ function TimelineRail({
 }
 
 TimelineRail.propTypes = {
-  experiment: PropTypes.string,
   runs: PropTypes.array.isRequired,
   activeRid: PropTypes.number,
   ghostPrefixes: PropTypes.array,
   onToggleGhost: PropTypes.func.isRequired,
+  onPick: PropTypes.func.isRequired,
   dims: PropTypes.string,
 };
 
