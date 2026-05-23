@@ -124,7 +124,15 @@ function Plot1D({ xs, xLabel, yLabel, channels, ghosts = [] }) {
         flexDirection: "column",
       }}
     >
-      <div ref={ref} style={{ flex: 1, position: "relative", minHeight: 0 }}>
+      <div
+        ref={ref}
+        style={{
+          flex: 1,
+          position: "relative",
+          minHeight: 0,
+          overflow: "hidden",
+        }}
+      >
         <svg
           width={size.w}
           height={size.h}

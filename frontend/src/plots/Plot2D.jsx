@@ -175,7 +175,15 @@ function Plot2D({ xs, ys, values, xLabel, yLabel, metric }) {
         flexDirection: "column",
       }}
     >
-      <div ref={ref} style={{ flex: 1, position: "relative", minHeight: 0 }}>
+      <div
+        ref={ref}
+        style={{
+          flex: 1,
+          position: "relative",
+          minHeight: 0,
+          overflow: "hidden",
+        }}
+      >
         <div
           style={{
             position: "absolute",
