@@ -120,11 +120,13 @@ export function useSSEDataset(prefix, options = {}) {
     });
 
     eventSource.addEventListener("heartbeat", () => {
-      // Heartbeat received, connection is alive
+      // Heartbeat received, connection is alive. Use functional setState so
+      // `connectionState` does not need to be a dep of `connect` (which would
+      // re-create the callback on every state change and thrash the effect).
       if (!mountedRef.current) return;
-      if (connectionState !== SSEState.CONNECTED) {
-        setConnectionState(SSEState.CONNECTED);
-      }
+      setConnectionState((prev) =>
+        prev === SSEState.CONNECTED ? prev : SSEState.CONNECTED,
+      );
     });
 
     eventSource.addEventListener("error", (event) => {
@@ -157,14 +159,7 @@ export function useSSEDataset(prefix, options = {}) {
       if (!mountedRef.current) return;
       // Connection opened, but waiting for init event to confirm
     };
-  }, [
-    prefix,
-    enabled,
-    reconnectDelay,
-    mergeUpdate,
-    handleDelete,
-    connectionState,
-  ]);
+  }, [prefix, enabled, reconnectDelay, mergeUpdate, handleDelete]);
 
   // Connect when prefix changes or component mounts
   useEffect(() => {

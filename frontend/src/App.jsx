@@ -17,6 +17,17 @@ import Logs from "./Logs";
 import { get_health, get_explist } from "./api/client";
 import MobileNavigation from "./MobileNavigation";
 
+function PlotFullscreen() {
+  return (
+    <div
+      className="plots-fullscreen-wrap"
+      style={{ width: "100vw", height: "100vh", overflow: "hidden" }}
+    >
+      <NDScanPlotCollection />
+    </div>
+  );
+}
+
 const PAGE_LABELS = {
   running: "RUNNING",
   datasets: "DATASETS",
@@ -183,6 +194,10 @@ function App() {
 
     return () => clearInterval(interval);
   }, []);
+
+  if (location.pathname === "/plots/fullscreen") {
+    return <PlotFullscreen />;
+  }
 
   return (
     <div className="app-container">
