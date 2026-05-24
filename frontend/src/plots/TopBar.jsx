@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import RunSwitcher from "./RunSwitcher";
@@ -13,7 +13,67 @@ function Wordmark() {
   );
 }
 
-function TopBar({ recentRuns, currentPrefix, onPick, progress, status }) {
+function CopyButton({ onCopy }) {
+  const [state, setState] = useState("idle"); // 'idle' | 'copying' | 'copied'
+
+  const handleClick = async () => {
+    if (state !== "idle") return;
+    setState("copying");
+    try {
+      await onCopy();
+      setState("copied");
+      setTimeout(() => setState("idle"), 1500);
+    } catch (err) {
+      console.error("Plot copy failed:", err);
+      setState("idle");
+    }
+  };
+
+  return (
+    <button
+      className="p-btn ghost icon"
+      title={state === "copied" ? "Copied!" : "Copy plot as PNG"}
+      aria-label="copy plot as PNG"
+      onClick={handleClick}
+      disabled={state === "copying"}
+      style={state === "copied" ? { color: "var(--p-ok)" } : undefined}
+    >
+      {state === "copied" ? (
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+        >
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      ) : (
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <rect x="9" y="2" width="6" height="4" rx="1" />
+          <path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-3" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+function TopBar({
+  recentRuns,
+  currentPrefix,
+  onPick,
+  progress,
+  status,
+  onCopy,
+}) {
   const navigate = useNavigate();
   return (
     <div className="p-topbar">
@@ -67,6 +127,8 @@ function TopBar({ recentRuns, currentPrefix, onPick, progress, status }) {
         </span>
       )}
 
+      {onCopy && <CopyButton onCopy={onCopy} />}
+
       <button
         className="p-btn ghost icon"
         title="fullscreen"
@@ -99,6 +161,11 @@ TopBar.propTypes = {
   onPick: PropTypes.func.isRequired,
   progress: PropTypes.string,
   status: PropTypes.string,
+  onCopy: PropTypes.func,
+};
+
+CopyButton.propTypes = {
+  onCopy: PropTypes.func.isRequired,
 };
 
 export default TopBar;
