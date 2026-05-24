@@ -8,6 +8,10 @@ A controller for ARTIQ which exposes ARTIQ's functionality as a RESTful API
 - **Database:** None
 - **Dev Environment:** Local (uv)
 
+## Note
+
+**CLAUDE.md is a symlink to this file.** When making changes, edit AGENTS.md directly.
+
 ## Quick Start
 
 See README.rst for instructions
