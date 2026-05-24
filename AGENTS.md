@@ -117,3 +117,4 @@ This project uses manual semantic versioning with hard-coded version strings. Th
 ## Agent documentation
 
 - Whenever changes are made, review the agent guidance and update it if required
+- Always include screenshots in PRs for frontend changes
