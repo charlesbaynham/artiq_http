@@ -392,7 +392,7 @@ function Plot1D({ xs, xLabel, yLabel, channels, ghosts = [] }) {
 function CursorReadout({ cursor, xLabel, cursorReadouts, ghostReadouts }) {
   return (
     <div
-      className="p-panel-soft"
+      className="p-panel-soft p-cursor-readout"
       style={{
         flex: "0 0 auto",
         margin: "0 8px 8px",
@@ -412,7 +412,7 @@ function CursorReadout({ cursor, xLabel, cursorReadouts, ghostReadouts }) {
           <span className="p-mono" style={{ minWidth: 110 }}>
             {(xLabel || "x").split(" /")[0]} = {formatNum(cursor.x)}
           </span>
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", flex: 1 }}>
+          <div className="p-cursor-values">
             {cursorReadouts.map((r) => (
               <span key={r.key} className="p-mono" style={{ color: r.color }}>
                 {r.key} = <b>{formatNum(r.value)}</b>

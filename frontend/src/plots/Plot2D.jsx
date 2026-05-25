@@ -350,7 +350,7 @@ function Plot2D({ xs, ys, values, xLabel, yLabel, metric }) {
 function CursorReadout2D({ cursor, metric, xLabel, yLabel }) {
   return (
     <div
-      className="p-panel-soft"
+      className="p-panel-soft p-cursor-readout"
       style={{
         flex: "0 0 auto",
         margin: "0 8px 8px",
@@ -371,10 +371,12 @@ function CursorReadout2D({ cursor, metric, xLabel, yLabel }) {
             {(xLabel || "x").split(" /")[0]} = {formatNum(cursor.x)} ·{" "}
             {(yLabel || "y").split(" /")[0]} = {formatNum(cursor.y)}
           </span>
-          <span className="p-mono" style={{ color: "var(--p-accent)" }}>
-            {metric} ={" "}
-            <b>{isFinite(cursor.value) ? formatNum(cursor.value) : "—"}</b>
-          </span>
+          <div className="p-cursor-values">
+            <span className="p-mono" style={{ color: "var(--p-accent)" }}>
+              {metric} ={" "}
+              <b>{isFinite(cursor.value) ? formatNum(cursor.value) : "—"}</b>
+            </span>
+          </div>
         </>
       ) : (
         <span className="p-dim" style={{ fontSize: 11.5 }}>

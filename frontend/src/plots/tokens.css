@@ -247,6 +247,25 @@
     gap: 8px;
 }
 
+.plots-app .p-center > .p-panel:last-child {
+    flex: 1 1 auto;
+    min-height: 320px;
+    overflow: auto;
+    resize: vertical;
+}
+
+.plots-app .p-cursor-readout {
+    overflow: auto;
+}
+
+.plots-app .p-cursor-values {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+}
+
 .plots-app .p-panel-h {
     display: flex;
     align-items: center;
@@ -343,12 +362,30 @@
 
 /* mobile collapse: stack rails below center */
 @media (max-width: 900px) {
+    .plots-app {
+        height: calc(100vh - 120px);
+        max-height: none;
+        min-height: 640px;
+    }
     .plots-app .p-work {
         grid-template-columns: 1fr;
     }
+    .plots-app .p-center {
+        min-height: 420px;
+    }
+    .plots-app .p-center > .p-panel:last-child {
+        min-height: 420px;
+        height: 62vh;
+    }
+    .plots-app .p-cursor-readout {
+        max-height: 64px;
+    }
+    .plots-app .p-cursor-values {
+        flex-wrap: nowrap;
+    }
     .plots-app .p-rail-channels,
     .plots-app .p-rail-timeline {
-        max-height: 220px;
+        max-height: 140px;
     }
 }
 
