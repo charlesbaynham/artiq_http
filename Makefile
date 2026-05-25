@@ -1,13 +1,17 @@
-.PHONY: install build test server
+.PHONY: install build test server dev mock
 
 install:
 	echo "Installing dependencies..."
 	uv sync --extra dev
 	cd frontend && npm install
 
-dev: install
+dev: install build
 	echo "Launching dev servers..."
 	exec ./dev.sh
+
+mock: install
+	echo "Launching dev servers in mock mode..."
+	exec ./dev.sh --mock
 
 build:
 	echo "Building the test docker image..."

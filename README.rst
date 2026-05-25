@@ -30,11 +30,20 @@ Usage
 
 .. code-block:: bash
 
+    # Run the full tmux dev environment
+    make dev
+
+    # Run the same dev environment in mock mode (no local ARTIQ Docker stack)
+    make mock
+
     # Run frontend development server in one shell
     cd frontend && npm run start
 
     # Run the backend in another shell
     uv run aqctl_artiq_http
+
+    # Run only the backend in mock mode
+    uv run aqctl_artiq_http --mock
 
 **Local Test Environment:**
 

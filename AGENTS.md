@@ -52,7 +52,15 @@ See README.rst for instructions
 
 ## Mock Backend (Frontend Development)
 
-For frontend work that doesn't need a real ARTIQ master, start the backend in mock mode:
+For frontend work that doesn't need a real ARTIQ master, prefer the Makefile entry point:
+
+```bash
+make mock
+```
+
+This runs `./dev.sh --mock`, which skips the local ARTIQ Docker stack and starts the backend with `--mock`.
+
+If you only need the backend process without the tmux dev environment, you can still run:
 
 ```bash
 uv run python -m artiq_http.main --mock
