@@ -59,16 +59,18 @@ def get_argparser():
 def main():
     args = get_argparser().parse_args()
 
-    if args.mock:
-        from artiq_http.config import config
-
-        config["mock"] = True
-
     # Configure logging
     logging.basicConfig(
         level=getattr(logging, args.log_level),
         format="%(levelname)s:%(name)s:%(message)s",
     )
+
+    if args.mock:
+        from artiq_http.config import config
+
+        logger.warning("Running in mock mode - no ARTIQ master will be contacted")
+
+        config["mock"] = True
 
     logger.info("Starting ARTIQ HTTP server on %s:%d", args.host, args.port)
     uvicorn.run(
