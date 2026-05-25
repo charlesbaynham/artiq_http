@@ -1,6 +1,6 @@
 {
   "name": "artiq-http",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "scripts": {
     "install": "cd frontend && npm install",
     "frontend": "cd frontend && npm start",
