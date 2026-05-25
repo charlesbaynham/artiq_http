@@ -315,7 +315,7 @@ function Plot1D({ xs, xLabel, yLabel, channels, ghosts = [] }) {
           style={{
             position: "absolute",
             top: 12,
-            right: 32,
+            right: 56,
             background: "color-mix(in oklab, var(--p-panel) 92%, transparent)",
             border: "1px solid var(--p-border)",
             borderRadius: 6,
