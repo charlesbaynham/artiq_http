@@ -4,7 +4,9 @@
 function resolveVars(str, cs) {
   return str.replace(/var\((--[^,)]+)(?:,[^)]*)?\)/g, (_, name) => {
     const val = cs.getPropertyValue(name).trim();
-    return val || "currentColor";
+    // Swap double quotes for single quotes so the resolved value doesn't
+    // break XML double-quoted attributes (e.g. font-family="...").
+    return (val || "currentColor").replace(/"/g, "'");
   });
 }
 
@@ -59,8 +61,11 @@ export async function copyPlotToClipboard({
   const FOOTER = 30;
   let plotW, plotH, drawPlot;
 
-  if (dims === "1D" || dims === "2D") {
-    const svgEl = containerEl.querySelector("svg");
+  let svgEl = containerEl.querySelector("svg");
+
+  // A 0D repeat scan with accumulated local history renders as a 1D plot.
+  // If an SVG is present, capture it using the vector path regardless of dims.
+  if (dims === "1D" || dims === "2D" || svgEl) {
     if (!svgEl) throw new Error("No SVG element found in plot container");
 
     plotW =
