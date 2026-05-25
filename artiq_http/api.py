@@ -109,9 +109,20 @@ class NumpyJSONResponse(JSONResponse):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan - startup and shutdown"""
-    # Startup
     from . import artiq_api
 
+    if config.get("mock"):
+        from .mock_backend import MockSubscriberManager
+
+        logger.info("Mock mode: starting mock backend")
+        mock_mgr = MockSubscriberManager()
+        artiq_api.persistent_subscriber.subscriber_manager = mock_mgr
+        await mock_mgr.start()
+        yield
+        await mock_mgr.stop()
+        return
+
+    # Startup
     logger.info("Starting persistent subscribers...")
     await artiq_api.persistent_subscriber.subscriber_manager.start()
 
@@ -291,6 +302,9 @@ async def cancel_experiment(rid: int, force: bool = False) -> None:
         rid (int): RID of the experiment to cancel
         force (bool): If True, forcibly close the experiment instead of requesting closure
     """
+    if config.get("mock"):
+        raise HTTPException(503, "Mock mode: experiment control not available")
+
     schedule = await api.notifiers.get_schedule()
 
     if rid not in schedule:
@@ -415,6 +429,9 @@ async def submit_and_wait(
     Returns:
         SubmitAndWaitResult with rid, status, and timed_out fields
     """
+    if config.get("mock"):
+        raise HTTPException(503, "Mock mode: experiment control not available")
+
     timeout = min(timeout, 300.0)
     try:
         rid = await api.control_schedule.submit_experiment(
@@ -446,6 +463,9 @@ async def submit_experiment(
     flush: bool = False,
     due_date: float = None,
 ) -> int:
+    if config.get("mock"):
+        raise HTTPException(503, "Mock mode: experiment control not available")
+
     try:
         return await api.control_schedule.submit_experiment(
             expid,
