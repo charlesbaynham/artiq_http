@@ -71,6 +71,8 @@ def main():
         logger.warning("Running in mock mode - no ARTIQ master will be contacted")
 
         config["mock"] = True
+        # Propagate to child processes so uvicorn --reload workers also see mock mode
+        os.environ["ARTIQ_HTTP_MOCK"] = "1"
 
     logger.info("Starting ARTIQ HTTP server on %s:%d", args.host, args.port)
     uvicorn.run(
