@@ -47,11 +47,22 @@ def get_argparser():
         default=False,
         help="Enable auto-reload on code changes",
     )
+    parser.add_argument(
+        "--mock",
+        action="store_true",
+        default=False,
+        help="Run with a mock backend (no ARTIQ master required)",
+    )
     return parser
 
 
 def main():
     args = get_argparser().parse_args()
+
+    if args.mock:
+        from artiq_http.config import config
+
+        config["mock"] = True
 
     # Configure logging
     logging.basicConfig(
