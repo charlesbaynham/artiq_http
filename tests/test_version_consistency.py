@@ -20,6 +20,6 @@ def test_runtime_and_package_versions_match():
 
     assert artiq_http.__version__ == pyproject_data["project"]["version"]
     assert artiq_http.__version__ == package_json_data["version"]
-    assert (
-        artiq_http.__version__ == plugin_data["version"]
-    ), f"Claude plugin version mismatch: {plugin_data.get('version')} != {artiq_http.__version__}"
+    assert artiq_http.__version__ == plugin_data["version"], (
+        f"Claude plugin version mismatch: {plugin_data.get('version')} != {artiq_http.__version__}"
+    )

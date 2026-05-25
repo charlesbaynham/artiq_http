@@ -10,9 +10,9 @@ MCP_URL = "http://localhost:8001"
 
 
 def print_section(title):
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  {title}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
 
 def print_result(name, success, details=""):
