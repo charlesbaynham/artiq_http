@@ -350,9 +350,7 @@ function PlotsApp() {
 
   useEffect(() => {
     const handleFsChange = () => {
-      setIsPlotFullscreen(
-        document.fullscreenElement === plotPanelRef.current,
-      );
+      setIsPlotFullscreen(document.fullscreenElement === plotPanelRef.current);
     };
     document.addEventListener("fullscreenchange", handleFsChange);
     return () =>
@@ -561,8 +559,12 @@ function PlotsApp() {
             />
             <button
               className="p-btn ghost icon"
-              title={isPlotFullscreen ? "Exit fullscreen" : "Fullscreen (plot only)"}
-              aria-label={isPlotFullscreen ? "exit fullscreen" : "open plot fullscreen"}
+              title={
+                isPlotFullscreen ? "Exit fullscreen" : "Fullscreen (plot only)"
+              }
+              aria-label={
+                isPlotFullscreen ? "exit fullscreen" : "open plot fullscreen"
+              }
               onClick={handlePlotFullscreen}
               style={{
                 position: "absolute",
