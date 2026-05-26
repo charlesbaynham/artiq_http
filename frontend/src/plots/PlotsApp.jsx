@@ -222,10 +222,10 @@ function PlotsApp() {
   // `active` object reference, so we key off the joined string to avoid
   // re-running downstream effects when the set of keys hasn't actually changed.
   const channelKeysSig = active?.channels
-    ? Object.keys(active.channels).sort().join("")
+    ? Object.keys(active.channels).sort().join("\0")
     : "";
   const channelKeys = useMemo(
-    () => (channelKeysSig ? channelKeysSig.split("") : []),
+    () => (channelKeysSig ? channelKeysSig.split("\0") : []),
     [channelKeysSig],
   );
 
