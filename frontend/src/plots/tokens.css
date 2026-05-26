@@ -406,3 +406,17 @@
     border-radius: 0;
     border: none;
 }
+
+/* native browser fullscreen for the plot panel */
+.p-panel:fullscreen {
+    background: var(--p-surface, #1a1a1a);
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+}
+
+.p-panel:fullscreen > * {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+}
