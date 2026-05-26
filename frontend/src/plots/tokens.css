@@ -365,17 +365,19 @@
     .plots-app {
         height: calc(100vh - 120px);
         max-height: none;
-        min-height: 640px;
+        min-height: 520px;
     }
     .plots-app .p-work {
         grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        overflow-y: auto;
     }
     .plots-app .p-center {
-        min-height: 420px;
+        min-height: 280px;
     }
     .plots-app .p-center > .p-panel:last-child {
-        min-height: 420px;
-        height: 62vh;
+        min-height: 0;
+        flex: 1;
     }
     .plots-app .p-cursor-readout {
         max-height: 64px;
@@ -383,9 +385,17 @@
     .plots-app .p-cursor-values {
         flex-wrap: nowrap;
     }
+    /* Allow rails to size to their content; cap with max-height for many channels */
     .plots-app .p-rail-channels,
     .plots-app .p-rail-timeline {
-        max-height: 140px;
+        max-height: 220px;
+    }
+    /* Prevent scroll area from expanding to fill parent height (which causes an empty gap).
+       !important is needed to override the inline flex: 1 style set in the JSX. */
+    .plots-app .p-rail-channels .p-scroll,
+    .plots-app .p-rail-timeline .p-scroll {
+        flex: 0 1 auto !important;
+        max-height: 160px;
     }
 }
 
