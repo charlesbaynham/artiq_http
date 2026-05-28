@@ -747,7 +747,7 @@ function PlotBody({
   }
 
   if (dims === "0D") {
-    if (timeseries0D && timeseries0D.xs.length > 0) {
+    if (timeseries0D && timeseries0D.xs.length > 1) {
       const channels = channelDescriptors.map((c) => ({
         ...c,
         values: timeseries0D.channelValues[c.key] || [],
