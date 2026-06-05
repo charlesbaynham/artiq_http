@@ -217,47 +217,29 @@ function Plot1D({ xs, xLabel, yLabel, channels, ghosts = [] }) {
             if (!arr.length) return null;
             // Ghost xs may differ; here we assume they share the same axis grid.
             const gxs = g.xs || xs;
-            const pts = arr
-              .map((v, i) => {
-                const xv = gxs[i];
-                if (!isFinite(v) || !isFinite(xv)) return null;
-                return `${sx(xv)},${sy(v)}`;
-              })
-              .filter(Boolean)
-              .join(" ");
             return (
-              <polyline
-                key={"gh" + gi}
-                points={pts}
-                fill="none"
-                stroke="var(--p-ink50)"
-                strokeWidth="1.5"
-                strokeDasharray="4 3"
-                opacity="0.55"
-              />
+              <g key={"gh" + gi}>
+                {arr.map((v, i) =>
+                  isFinite(v) && isFinite(gxs[i]) ? (
+                    <circle
+                      key={i}
+                      cx={sx(gxs[i])}
+                      cy={sy(v)}
+                      r="2"
+                      fill="var(--p-ink50)"
+                      opacity="0.55"
+                    />
+                  ) : null,
+                )}
+              </g>
             );
           })}
 
           {/* active channel traces */}
           {onChannels.map((c) => {
             const arr = c.values;
-            const pts = arr
-              .map((v, i) => {
-                const xv = xs[i];
-                if (!isFinite(v) || !isFinite(xv)) return null;
-                return `${sx(xv)},${sy(v)}`;
-              })
-              .filter(Boolean)
-              .join(" ");
             return (
               <g key={c.key}>
-                <polyline
-                  points={pts}
-                  fill="none"
-                  stroke={c.color}
-                  strokeWidth="1.6"
-                  opacity="0.85"
-                />
                 {arr.map((v, i) =>
                   isFinite(v) && isFinite(xs[i]) ? (
                     <circle

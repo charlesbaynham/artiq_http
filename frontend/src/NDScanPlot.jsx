@@ -181,7 +181,7 @@ function NDScanPlot({ prefix }) {
         x: xValues.slice(0, yValues.length), // Ensure x and y have same length
         y: yValues,
         type: "scatter",
-        mode: "lines+markers",
+        mode: "markers",
         name: ch,
       };
     });
