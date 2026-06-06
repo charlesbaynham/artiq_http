@@ -61,8 +61,8 @@ def format_sse_event(event: str, data: Any) -> str:
 
 
 def get_datasets_for_prefix(all_datasets: Dict, prefix: str) -> Dict:
-    """Extract datasets that match the given prefix"""
-    return {key: value for key, value in all_datasets.items() if key.startswith(prefix + ".")}
+    """Extract datasets that match the given prefix (exact match or prefix.subkey)"""
+    return {key: value for key, value in all_datasets.items() if key == prefix or key.startswith(prefix + ".")}
 
 
 async def stream_dataset_updates(prefix: str):
@@ -91,7 +91,7 @@ async def stream_dataset_updates(prefix: str):
         """Callback when datasets change"""
         key = _extract_key(mod)
 
-        if key and key.startswith(prefix + "."):
+        if key and (key == prefix or key.startswith(prefix + ".")):
             # This is a relevant change, queue it
             try:
                 update_queue.put_nowait(mod)
