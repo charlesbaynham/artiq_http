@@ -24,6 +24,7 @@ import {
   saveChannelVisibility,
 } from "./utils";
 import { copyPlotToClipboard } from "./copyPlot";
+import ImageSection from "./ImageSection";
 
 import "./tokens.css";
 
@@ -604,6 +605,7 @@ function PlotsApp() {
               )}
             </button>
           </div>
+          <ImageSection />
         </div>
 
         <TimelineRail
