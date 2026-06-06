@@ -221,6 +221,17 @@ Returns a dict with key `logs` containing the filtered entries. Each entry has `
 2. get_schedule()                      → poll until RID disappears from queue
 ```
 
+### Run experiment and collect logs + datasets
+
+```
+1. Record current time (e.g. time.time())
+2. submit_and_wait(file, cls, args)      → run experiment to completion
+3. get_logs(since=timestamp)             → retrieve only logs from this run
+4. get_dataset_values([...])             → read back results
+```
+
+This pattern isolates log output to a single experiment by filtering on the recorded start timestamp.
+
 ### Check system status before running
 
 ```
