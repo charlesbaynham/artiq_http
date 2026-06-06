@@ -48,6 +48,27 @@ _MOCK_EXPLIST = {
 }
 
 
+_IMAGE_SIZE = 64
+_IMAGE_KEY = "camera_image"
+
+
+def _generate_image() -> list:
+    """Generate a 64×64 grayscale image with a drifting Gaussian blob."""
+    t = time.time()
+    cx = _IMAGE_SIZE / 2 + 20 * math.sin(t * 0.3)
+    cy = _IMAGE_SIZE / 2 + 20 * math.cos(t * 0.2)
+    sigma = 8 + 4 * math.sin(t * 0.15)
+    rows = []
+    for row in range(_IMAGE_SIZE):
+        r = []
+        for col in range(_IMAGE_SIZE):
+            v = 220 * math.exp(-((row - cy) ** 2 + (col - cx) ** 2) / (2 * sigma**2))
+            v += random.gauss(0, 4)
+            r.append(max(0, min(255, int(v))))
+        rows.append(r)
+    return rows
+
+
 def _generate_point_values() -> Dict[str, float]:
     t = time.time()
     return {
@@ -137,6 +158,8 @@ class MockSubscriberManager:
         # Seed initial point values
         for ch, val in _generate_point_values().items():
             self._datasets_sub._data[f"{_PREFIX}.point.{ch}"] = [False, val, {}]
+        # Seed initial image
+        self._datasets_sub._data[_IMAGE_KEY] = [False, _generate_image(), {}]
 
         self._task = asyncio.create_task(self._update_loop())
         self._started = True
@@ -160,6 +183,7 @@ class MockSubscriberManager:
             await asyncio.sleep(0.5)
             for ch, val in _generate_point_values().items():
                 self._datasets_sub._set_and_notify(f"{_PREFIX}.point.{ch}", [False, val, {}])
+            self._datasets_sub._set_and_notify(_IMAGE_KEY, [False, _generate_image(), {}])
 
     # ── SubscriberManager interface ──────────────────────────────────────────
 
