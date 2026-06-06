@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict
@@ -236,23 +237,75 @@ async def get_dataset_values(names: str):
 
 
 @router.get("/logs")
-async def get_logs() -> api.models.LogList:
-    """Return the current buffered ARTIQ system log entries.
+async def get_logs(
+    source_regex: str | None = None,
+    message_regex: str | None = None,
+    min_level: int | None = None,
+    max_level: int | None = None,
+    since: float | None = None,
+    until: float | None = None,
+    limit: int | None = None,
+) -> api.models.LogList:
+    """Return the current buffered ARTIQ system log entries with optional filtering.
 
     Each entry is validated against :class:`LogEntry`; entries whose shape
     differs are returned as-is so the endpoint stays usable across ARTIQ
     version variations.
+
+    Query parameters:
+      source_regex:  Regex applied to the ``source`` field.
+      message_regex: Regex applied to the ``message`` field.
+      min_level:     Minimum ``level`` (inclusive).
+      max_level:     Maximum ``level`` (inclusive).
+      since:         Minimum ``timestamp`` (inclusive).
+      until:         Maximum ``timestamp`` (inclusive).
+      limit:         Maximum number of entries to return.
     """
+    compiled: dict[str, re.Pattern[str]] = {}
+    for name, pattern in (
+        ("source_regex", source_regex),
+        ("message_regex", message_regex),
+    ):
+        if pattern is not None:
+            try:
+                compiled[name] = re.compile(pattern)
+            except re.error as exc:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid regex for {name}: {exc}",
+                )
+
     raw_logs = await api.notifiers.get_logs()
     entries: list = []
     for entry in raw_logs:
         if not isinstance(entry, dict):
             continue
+
         try:
             validated = api.models.LogEntry.model_validate(entry)
-            entries.append(validated.model_dump())
+            entry = validated.model_dump()
         except pydantic.ValidationError:
-            entries.append(entry)
+            pass
+
+        # Apply field-based filters.
+        if min_level is not None and entry.get("level", float("-inf")) < min_level:
+            continue
+        if max_level is not None and entry.get("level", float("inf")) > max_level:
+            continue
+        if since is not None and entry.get("timestamp", float("inf")) < since:
+            continue
+        if until is not None and entry.get("timestamp", float("-inf")) > until:
+            continue
+        if "source_regex" in compiled and not compiled["source_regex"].search(str(entry.get("source", ""))):
+            continue
+        if "message_regex" in compiled and not compiled["message_regex"].search(str(entry.get("message", ""))):
+            continue
+
+        entries.append(entry)
+
+        if limit is not None and len(entries) >= limit:
+            break
+
     return api.models.LogList(logs=entries)
 
 

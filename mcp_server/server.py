@@ -269,6 +269,59 @@ async def get_dataset_values(names: list[str]) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Logs
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+async def get_logs(
+    source_regex: str | None = None,
+    message_regex: str | None = None,
+    min_level: int | None = None,
+    max_level: int | None = None,
+    since: float | None = None,
+    until: float | None = None,
+    limit: int | None = None,
+) -> dict[str, Any]:
+    """Get buffered ARTIQ system log entries with optional filtering.
+
+    Each entry has ``timestamp`` (float), ``source`` (str), ``level`` (int),
+    and ``message`` (str).
+
+    Args:
+        source_regex: Regex applied to the ``source`` field.
+        message_regex: Regex applied to the ``message`` field.
+        min_level: Minimum ``level`` (inclusive).
+        max_level: Maximum ``level`` (inclusive).
+        since: Minimum ``timestamp`` (inclusive).
+        until: Maximum ``timestamp`` (inclusive).
+        limit: Maximum number of entries to return.
+
+    Returns a dict with key ``logs`` containing the filtered entries.
+    """
+    params: dict[str, Any] = {}
+    if source_regex is not None:
+        params["source_regex"] = source_regex
+    if message_regex is not None:
+        params["message_regex"] = message_regex
+    if min_level is not None:
+        params["min_level"] = min_level
+    if max_level is not None:
+        params["max_level"] = max_level
+    if since is not None:
+        params["since"] = since
+    if until is not None:
+        params["until"] = until
+    if limit is not None:
+        params["limit"] = limit
+
+    async with _client() as c:
+        r = await c.get("/api/logs", params=params)
+        r.raise_for_status()
+        return r.json()
+
+
+# ---------------------------------------------------------------------------
 # Prompts
 # ---------------------------------------------------------------------------
 

@@ -9,7 +9,7 @@ MCP tools for controlling an ARTIQ quantum physics experiment system via its HTT
 
 ## Overview
 
-When this connector is enabled, 10 MCP tools, 3 prompts, and 3 resources are available directly — no code or SDK required. Use them to discover experiments, submit runs, wait for results, read datasets, and check server health.
+When this connector is enabled, 11 MCP tools, 3 prompts, and 3 resources are available directly — no code or SDK required. Use them to discover experiments, submit runs, wait for results, read datasets, and check server health.
 
 The MCP server runs remotely (e.g. in a Docker Compose stack alongside the ARTIQ master and `artiq_http` backend) and exposes an HTTP interface. During plugin setup you provide the URL of your MCP server instance (e.g. `http://mylab.example.com/mcp`). The MCP server connects to the `artiq_http` backend over the internal Docker network at `http://backend:8000`.
 
@@ -182,6 +182,24 @@ Get the current values of one or more ARTIQ datasets.
 | `names` | list[str] | Dataset key names to retrieve |
 
 Returns a dict mapping each name to its current value. Names that do not exist are silently omitted.
+
+---
+
+### `get_logs(source_regex?, message_regex?, min_level?, max_level?, since?, until?, limit?)`
+
+Get buffered ARTIQ system log entries with optional filtering.
+
+| Arg | Type | Default | Description |
+|---|---|---|---|
+| `source_regex` | str \| null | null | Regex applied to the `source` field |
+| `message_regex` | str \| null | null | Regex applied to the `message` field |
+| `min_level` | int \| null | null | Minimum `level` (inclusive) |
+| `max_level` | int \| null | null | Maximum `level` (inclusive) |
+| `since` | float \| null | null | Minimum `timestamp` (inclusive) |
+| `until` | float \| null | null | Maximum `timestamp` (inclusive) |
+| `limit` | int \| null | null | Maximum number of entries to return |
+
+Returns a dict with key `logs` containing the filtered entries. Each entry has `timestamp`, `source`, `level`, and `message`.
 
 ---
 
