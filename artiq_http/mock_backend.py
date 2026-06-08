@@ -49,19 +49,67 @@ _MOCK_EXPLIST = {
 
 
 _IMAGE_SIZE = 64
-_IMAGE_KEY = "camera_image"
+
+# Several mock camera images with distinct sizes and patterns so the Plots
+# image view can be exercised with multiple images at once.
+_IMAGE_SPECS = [
+    {"key": "camera_image", "size": 64, "kind": "blob"},
+    {"key": "mot_fluorescence_image", "size": 64, "kind": "blob"},
+    {"key": "ion_chain_image", "size": 96, "kind": "chain"},
+    {"key": "background_image", "size": 48, "kind": "noise"},
+    {"key": "absorption_image", "size": 80, "kind": "rings"},
+]
+_IMAGE_KEY = _IMAGE_SPECS[0]["key"]
 
 
-def _generate_image() -> list:
-    """Generate a 64×64 grayscale image with a drifting Gaussian blob."""
-    t = time.time()
-    cx = _IMAGE_SIZE / 2 + 20 * math.sin(t * 0.3)
-    cy = _IMAGE_SIZE / 2 + 20 * math.cos(t * 0.2)
-    sigma = 8 + 4 * math.sin(t * 0.15)
+def _generate_image(size: int = _IMAGE_SIZE, kind: str = "blob", seed: float = 0.0) -> list:
+    """Generate a `size`×`size` grayscale image with a time-varying pattern."""
+    t = time.time() + seed
     rows = []
-    for row in range(_IMAGE_SIZE):
+    if kind == "chain":
+        # A horizontal row of evenly spaced bright spots (mock ion chain).
+        n_ions = 5
+        cy = size / 2 + 3 * math.sin(t * 0.4)
+        sigma = 4.0
+        centres = [size * (i + 1) / (n_ions + 1) for i in range(n_ions)]
+        for row in range(size):
+            r = []
+            for col in range(size):
+                v = 0.0
+                for cx in centres:
+                    v += 200 * math.exp(-((row - cy) ** 2 + (col - cx) ** 2) / (2 * sigma**2))
+                v += random.gauss(0, 3)
+                r.append(max(0, min(255, int(v))))
+            rows.append(r)
+        return rows
+    if kind == "rings":
+        # Concentric rings (mock absorption image).
+        cx = cy = size / 2
+        for row in range(size):
+            r = []
+            for col in range(size):
+                rad = math.hypot(row - cy, col - cx)
+                v = 128 + 100 * math.cos(rad * 0.8 - t * 1.5)
+                v += random.gauss(0, 5)
+                r.append(max(0, min(255, int(v))))
+            rows.append(r)
+        return rows
+    if kind == "noise":
+        # Mostly background noise with a faint drift (mock dark frame).
+        base = 30 + 10 * math.sin(t * 0.2)
+        for _row in range(size):
+            r = []
+            for _col in range(size):
+                r.append(max(0, min(255, int(base + random.gauss(0, 8)))))
+            rows.append(r)
+        return rows
+    # Default: a drifting Gaussian blob.
+    cx = size / 2 + (size * 0.3) * math.sin(t * 0.3)
+    cy = size / 2 + (size * 0.3) * math.cos(t * 0.2)
+    sigma = size / 8 + (size / 16) * math.sin(t * 0.15)
+    for row in range(size):
         r = []
-        for col in range(_IMAGE_SIZE):
+        for col in range(size):
             v = 220 * math.exp(-((row - cy) ** 2 + (col - cx) ** 2) / (2 * sigma**2))
             v += random.gauss(0, 4)
             r.append(max(0, min(255, int(v))))
@@ -158,8 +206,13 @@ class MockSubscriberManager:
         # Seed initial point values
         for ch, val in _generate_point_values().items():
             self._datasets_sub._data[f"{_PREFIX}.point.{ch}"] = [False, val, {}]
-        # Seed initial image
-        self._datasets_sub._data[_IMAGE_KEY] = [False, _generate_image(), {}]
+        # Seed initial images
+        for i, spec in enumerate(_IMAGE_SPECS):
+            self._datasets_sub._data[spec["key"]] = [
+                False,
+                _generate_image(spec["size"], spec["kind"], seed=i * 1.7),
+                {},
+            ]
 
         self._task = asyncio.create_task(self._update_loop())
         self._started = True
@@ -183,7 +236,11 @@ class MockSubscriberManager:
             await asyncio.sleep(0.5)
             for ch, val in _generate_point_values().items():
                 self._datasets_sub._set_and_notify(f"{_PREFIX}.point.{ch}", [False, val, {}])
-            self._datasets_sub._set_and_notify(_IMAGE_KEY, [False, _generate_image(), {}])
+            for i, spec in enumerate(_IMAGE_SPECS):
+                self._datasets_sub._set_and_notify(
+                    spec["key"],
+                    [False, _generate_image(spec["size"], spec["kind"], seed=i * 1.7), {}],
+                )
 
     # ── SubscriberManager interface ──────────────────────────────────────────
 
