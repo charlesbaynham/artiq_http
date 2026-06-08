@@ -1,8 +1,8 @@
 # device_db.py
 from artiq.coredevice.comm_kernel import CommKernelDummy
 
-
 if not hasattr(CommKernelDummy, "close"):
+
     def _close(self):
         return None
 
