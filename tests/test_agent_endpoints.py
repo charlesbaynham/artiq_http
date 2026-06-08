@@ -319,6 +319,54 @@ def test_submit_and_wait_clamps_timeout(mock_submit, mock_schedule, mock_sleep):
     assert response.status_code == 200
     data = response.json()
     assert data["rid"] == 77
-    # With RID gone on first poll, it should complete immediately regardless of clamped timeout
+    # With the RID never appearing, it should complete after the appearance
+    # grace period regardless of the clamped timeout.
     assert data["status"] == "completed"
     assert data["timed_out"] is False
+
+
+@patch("artiq_http.api.asyncio.sleep", new_callable=AsyncMock)
+@patch("artiq_http.api.api.notifiers.get_schedule", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_and_wait_waits_for_subscriber_lag(mock_submit, mock_schedule, mock_sleep):
+    """submit-and-wait must not return early due to schedule subscriber lag.
+
+    The schedule is mirrored from the ARTIQ master by an asynchronous
+    subscriber, so the freshly submitted RID may be absent from the very first
+    snapshot taken right after submit() returns. The endpoint must wait for the
+    RID to appear and only report 'completed' once it has actually left the
+    schedule again - not treat the initial absence as completion.
+    """
+    mock_submit.return_value = 42
+    running_entry = {
+        42: {
+            "pipeline": "main",
+            "priority": 0,
+            "status": "running",
+            "due_date": None,
+            "flush": False,
+            "repo_msg": None,
+            "expid": {
+                "log_level": 30,
+                "file": "test.py",
+                "class_name": "Test",
+                "arguments": {},
+                "repo_rev": None,
+            },
+        }
+    }
+    mock_schedule.side_effect = [
+        {},  # poll 1: subscriber lag - RID not registered yet
+        running_entry,  # poll 2: experiment now visible, running
+        running_entry,  # poll 3: still running
+        {},  # poll 4: finished -> genuinely completed
+    ]
+    response = client.post("/api/schedule/submit-and-wait?timeout=60", json=EXPID_PAYLOAD)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["rid"] == 42
+    assert data["status"] == "completed"
+    assert data["timed_out"] is False
+    # It must have observed the experiment running before reporting completion,
+    # rather than returning on the first (lagging) empty snapshot.
+    assert mock_schedule.call_count >= 4

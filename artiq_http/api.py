@@ -497,13 +497,32 @@ async def submit_and_wait(
     except ValueError as e:
         raise HTTPException(422, str(e))
 
+    # The schedule is mirrored from the ARTIQ master by an asynchronous
+    # subscriber, so immediately after submit() returns the new RID may not yet
+    # be present in our local snapshot. If we treated that initial absence as
+    # completion we would return early while the experiment is still queued or
+    # running (the bug this method exists to avoid). Instead we first wait for
+    # the RID to *appear* in the schedule, and only then treat its later
+    # disappearance as completion.
+    #
+    # An experiment that finishes very quickly might come and go before we ever
+    # observe it. To avoid blocking forever in that case, if the RID never shows
+    # up within a short grace period we assume it already completed.
+    appear_grace = min(5.0, timeout)
+    poll_interval = 1.0
+
     elapsed = 0.0
+    seen_in_schedule = False
     while elapsed < timeout:
         schedule = await api.notifiers.get_schedule()
-        if rid not in schedule:
+        if rid in schedule:
+            seen_in_schedule = True
+        elif seen_in_schedule or elapsed >= appear_grace:
+            # Either we observed it running and it has now left the schedule, or
+            # it never appeared within the grace period (fast experiment).
             return api.models.SubmitAndWaitResult(rid=rid, status="completed", timed_out=False)
-        await asyncio.sleep(1)
-        elapsed += 1.0
+        await asyncio.sleep(poll_interval)
+        elapsed += poll_interval
 
     return api.models.SubmitAndWaitResult(rid=rid, status="timeout", timed_out=True)
 
