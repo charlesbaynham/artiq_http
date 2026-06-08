@@ -544,9 +544,7 @@ async def _wait_for_rid_completion(rid: int, timeout: float) -> api.models.Submi
             # disappearance might be success OR a crash — disambiguate via logs.
             error = await _rid_failure_from_logs(rid)
             if error is not None:
-                return api.models.SubmitAndWaitResult(
-                    rid=rid, status="failed", timed_out=False, error=error
-                )
+                return api.models.SubmitAndWaitResult(rid=rid, status="failed", timed_out=False, error=error)
             return api.models.SubmitAndWaitResult(rid=rid, status="completed", timed_out=False)
         await asyncio.sleep(poll_interval)
         elapsed += poll_interval

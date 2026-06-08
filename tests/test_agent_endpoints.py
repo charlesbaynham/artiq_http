@@ -395,9 +395,7 @@ def _make_ndscan_params(scan_axes, overrides=None, num_repeats=1):
         if isinstance(ax.get("range"), dict):
             ax["range"] = {"randomise_order": False, **ax["range"]}
         wire_axes.append(ax)
-    wire_overrides = {
-        fqn: [{"path": "", "value": v}] for fqn, v in (overrides or {}).items()
-    }
+    wire_overrides = {fqn: [{"path": "", "value": v}] for fqn, v in (overrides or {}).items()}
     data = {
         "overrides": wire_overrides,
         "scan": {
@@ -692,9 +690,7 @@ def test_submit_ndscan_listscan_empty_values(mock_submit, mock_get_explist):
         "file": "ndscan_exp.py",
         "class_name": "NDScanExp",
         "arguments": {
-            "ndscan_params": _make_ndscan_params(
-                [{"fqn": "test.frequency", "type": "list", "range": {"values": []}}]
-            )
+            "ndscan_params": _make_ndscan_params([{"fqn": "test.frequency", "type": "list", "range": {"values": []}}])
         },
         "repo_rev": None,
     }
