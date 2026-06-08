@@ -62,8 +62,22 @@ _IMAGE_SPECS = [
 _IMAGE_KEY = _IMAGE_SPECS[0]["key"]
 
 
+def _to_artiq_order(rows: list) -> list:
+    """Transpose a row-major (``[y][x]``) image into ARTIQ's col-major order.
+
+    Real ARTIQ image datasets are stored in pyqtgraph's convention where the
+    first array axis is x (horizontal) and the second is y (vertical). The
+    frontend renders with that same convention, so the mock emits transposed
+    arrays to stay faithful to real data.
+    """
+    return [list(col) for col in zip(*rows)]
+
+
 def _generate_image(size: int = _IMAGE_SIZE, kind: str = "blob", seed: float = 0.0) -> list:
-    """Generate a `size`×`size` grayscale image with a time-varying pattern."""
+    """Generate a `size`×`size` grayscale image with a time-varying pattern.
+
+    Returned in ARTIQ's col-major ``[x][y]`` order (see `_to_artiq_order`).
+    """
     t = time.time() + seed
     rows = []
     if kind == "chain":
@@ -81,7 +95,7 @@ def _generate_image(size: int = _IMAGE_SIZE, kind: str = "blob", seed: float = 0
                 v += random.gauss(0, 3)
                 r.append(max(0, min(255, int(v))))
             rows.append(r)
-        return rows
+        return _to_artiq_order(rows)
     if kind == "rings":
         # Concentric rings (mock absorption image).
         cx = cy = size / 2
@@ -93,7 +107,7 @@ def _generate_image(size: int = _IMAGE_SIZE, kind: str = "blob", seed: float = 0
                 v += random.gauss(0, 5)
                 r.append(max(0, min(255, int(v))))
             rows.append(r)
-        return rows
+        return _to_artiq_order(rows)
     if kind == "noise":
         # Mostly background noise with a faint drift (mock dark frame).
         base = 30 + 10 * math.sin(t * 0.2)
@@ -102,7 +116,7 @@ def _generate_image(size: int = _IMAGE_SIZE, kind: str = "blob", seed: float = 0
             for _col in range(size):
                 r.append(max(0, min(255, int(base + random.gauss(0, 8)))))
             rows.append(r)
-        return rows
+        return _to_artiq_order(rows)
     # Default: a drifting Gaussian blob.
     cx = size / 2 + (size * 0.3) * math.sin(t * 0.3)
     cy = size / 2 + (size * 0.3) * math.cos(t * 0.2)
@@ -114,7 +128,7 @@ def _generate_image(size: int = _IMAGE_SIZE, kind: str = "blob", seed: float = 0
             v += random.gauss(0, 4)
             r.append(max(0, min(255, int(v))))
         rows.append(r)
-    return rows
+    return _to_artiq_order(rows)
 
 
 def _generate_point_values() -> Dict[str, float]:

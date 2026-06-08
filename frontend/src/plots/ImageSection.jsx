@@ -31,10 +31,12 @@ function saveSelected(set) {
   }
 }
 
-// Aspect ratio (cols/rows) of a 2D pixel array, or null if not yet known.
+// Aspect ratio (width/height) of a 2D pixel array, or null if not yet known.
+// Matches PlotImage's ARTIQ col-major convention: first axis is x (width),
+// second axis is y (height).
 function pixelAspect(pixels) {
   if (!pixels || !pixels.length || !pixels[0]?.length) return null;
-  return pixels[0].length / pixels.length;
+  return pixels.length / pixels[0].length;
 }
 
 // A live image tile in the responsive grid. Owns its own SSE subscription so

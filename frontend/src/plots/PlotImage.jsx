@@ -4,53 +4,60 @@ import PropTypes from "prop-types";
 // Render a 2D array of monochrome pixel values onto a canvas that fills its
 // parent. Auto-normalizes contrast (min→0, max→255). The parent controls the
 // size and aspect ratio; the canvas scales to fit with crisp pixelation.
+//
+// ARTIQ stores image datasets in pyqtgraph's col-major convention (see
+// artiq/applets/image.py, which feeds the array straight into
+// pyqtgraph.ImageView): the FIRST array axis is the horizontal (x) axis and
+// the SECOND axis is vertical (y). We honour that here by treating
+// `pixels[x][y]`, which transposes the array back to the orientation ARTIQ's
+// own dashboard shows.
 function PlotImage({ pixels, name }) {
   const canvasRef = useRef(null);
 
-  const { rows, cols, vMin, vMax } = useMemo(() => {
+  const { nx, ny, vMin, vMax } = useMemo(() => {
     if (!pixels || !pixels.length || !pixels[0]?.length) {
-      return { rows: 0, cols: 0, vMin: 0, vMax: 1 };
+      return { nx: 0, ny: 0, vMin: 0, vMax: 1 };
     }
     let mn = Infinity,
       mx = -Infinity;
-    for (const row of pixels) {
-      for (const v of row) {
+    for (const col of pixels) {
+      for (const v of col) {
         if (v < mn) mn = v;
         if (v > mx) mx = v;
       }
     }
     if (mn === mx) mx = mn + 1;
-    return { rows: pixels.length, cols: pixels[0].length, vMin: mn, vMax: mx };
+    // First axis → x (width), second axis → y (height).
+    return { nx: pixels.length, ny: pixels[0].length, vMin: mn, vMax: mx };
   }, [pixels]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !pixels || rows === 0 || cols === 0) return;
+    if (!canvas || !pixels || nx === 0 || ny === 0) return;
 
-    canvas.width = cols;
-    canvas.height = rows;
+    canvas.width = nx;
+    canvas.height = ny;
 
     const ctx = canvas.getContext("2d");
-    const imageData = ctx.createImageData(cols, rows);
+    const imageData = ctx.createImageData(nx, ny);
     const d = imageData.data;
     const range = vMax - vMin;
 
-    let idx = 0;
-    for (let r = 0; r < rows; r++) {
-      const row = pixels[r];
-      for (let c = 0; c < cols; c++) {
-        const g = Math.round(((row[c] - vMin) / range) * 255);
+    for (let x = 0; x < nx; x++) {
+      const col = pixels[x];
+      for (let y = 0; y < ny; y++) {
+        const g = Math.round(((col[y] - vMin) / range) * 255);
+        const idx = (y * nx + x) * 4;
         d[idx] = g;
         d[idx + 1] = g;
         d[idx + 2] = g;
         d[idx + 3] = 255;
-        idx += 4;
       }
     }
     ctx.putImageData(imageData, 0, 0);
-  }, [pixels, rows, cols, vMin, vMax]);
+  }, [pixels, nx, ny, vMin, vMax]);
 
-  if (!pixels || rows === 0) {
+  if (!pixels || nx === 0) {
     return <div className="p-img-empty">no data</div>;
   }
 
