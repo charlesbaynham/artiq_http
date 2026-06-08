@@ -86,8 +86,7 @@ async def test_build_ndscan_params_returns_pyon_string(mock_get_explist):
     result = await build_ndscan_params(
         file="ndscan_exp.py",
         class_name="NDScanExp",
-        axes=[{"fqn": "test.frequency", "type": "linear",
-               "range": {"start": 0.0, "stop": 100.0, "num_points": 10}}],
+        axes=[{"fqn": "test.frequency", "type": "linear", "range": {"start": 0.0, "stop": 100.0, "num_points": 10}}],
     )
 
     # A string that decodes to a dict — this is what ndscan's PYONValue
@@ -146,8 +145,13 @@ async def test_build_ndscan_params_centre_span(mock_get_explist):
     result = await build_ndscan_params(
         file="ndscan_exp.py",
         class_name="NDScanExp",
-        axes=[{"fqn": "test.frequency", "type": "centre_span",
-               "range": {"centre": 0.0, "half_span": 16060.0, "num_points": 15}}],
+        axes=[
+            {
+                "fqn": "test.frequency",
+                "type": "centre_span",
+                "range": {"centre": 0.0, "half_span": 16060.0, "num_points": 15},
+            }
+        ],
     )
     axis = json.loads(result)["scan"]["axes"][0]
     assert axis["type"] == "centre_span"
@@ -177,8 +181,9 @@ async def test_build_ndscan_params_invalid_type(mock_get_explist):
         await build_ndscan_params(
             file="ndscan_exp.py",
             class_name="NDScanExp",
-            axes=[{"fqn": "test.frequency", "type": "LinearScan",
-                   "range": {"start": 0.0, "stop": 1.0, "num_points": 5}}],
+            axes=[
+                {"fqn": "test.frequency", "type": "LinearScan", "range": {"start": 0.0, "stop": 1.0, "num_points": 5}}
+            ],
         )
 
 

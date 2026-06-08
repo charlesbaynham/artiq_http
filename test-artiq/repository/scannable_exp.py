@@ -8,12 +8,20 @@ The fragment runs entirely on the host (no core device required) and finishes
 quickly, so scans submitted in the test suite complete within a few seconds.
 """
 
+from artiq.coredevice.comm_kernel import CommKernelDummy
 from ndscan.experiment import (
     ExpFragment,
     FloatParam,
     IntParam,
     make_fragment_scan_exp,
 )
+
+if not hasattr(CommKernelDummy, "close"):
+
+    def _close(self):
+        return None
+
+    CommKernelDummy.close = _close
 
 
 class ScannableFrag(ExpFragment):

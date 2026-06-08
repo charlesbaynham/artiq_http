@@ -484,10 +484,16 @@ async def _rid_failure_from_logs(rid: int) -> str | None:
 
     A run that dies in the prepare or run stage is *deleted* from the schedule,
     which is indistinguishable from successful completion by schedule-presence
-    alone. ARTIQ does, however, log the failure — the master emits
-    "...deleting RID <rid>" and the worker logs "Terminating with exception..."
-    under source "worker(<rid>,...)". We scan the buffered logs for those so a
-    crash is reported as a failure rather than a completion.
+    alone. ARTIQ does, however, log the failure at ERROR level — the scheduler
+    emits "...got worker exception ..., deleting RID <rid>" and the worker logs
+    "Terminating with exception..." under source "worker(<rid>,...)". We scan the
+    buffered logs for those so a crash is reported as a failure rather than a
+    completion.
+
+    The level gate is essential: a *normal* completion also deletes the RID and
+    the scheduler logs "deleting RID <rid>..." for it, but at DEBUG level. Only
+    an ERROR-level log signals an actual failure, so matching the "deleting RID"
+    marker without the level check would misreport every clean run as failed.
     """
     try:
         logs = await api.notifiers.get_logs()
@@ -502,8 +508,10 @@ async def _rid_failure_from_logs(rid: int) -> str | None:
         message = str(entry.get("message", ""))
         source = str(entry.get("source", ""))
         level = entry.get("level", 0) or 0
+        if level < logging.ERROR:
+            continue
         is_delete = delete_marker in message
-        is_worker_error = worker_src in source and level >= logging.ERROR
+        is_worker_error = worker_src in source
         if is_delete or is_worker_error:
             return message.strip().splitlines()[0][:500]
     return None
@@ -544,9 +552,7 @@ async def _wait_for_rid_completion(rid: int, timeout: float) -> api.models.Submi
             # disappearance might be success OR a crash — disambiguate via logs.
             error = await _rid_failure_from_logs(rid)
             if error is not None:
-                return api.models.SubmitAndWaitResult(
-                    rid=rid, status="failed", timed_out=False, error=error
-                )
+                return api.models.SubmitAndWaitResult(rid=rid, status="failed", timed_out=False, error=error)
             return api.models.SubmitAndWaitResult(rid=rid, status="completed", timed_out=False)
         await asyncio.sleep(poll_interval)
         elapsed += poll_interval

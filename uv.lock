@@ -115,7 +115,7 @@ wheels = [
 
 [[package]]
 name = "artiq-http"
-version = "0.14.1"
+version = "0.14.2"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi", extra = ["standard"] },

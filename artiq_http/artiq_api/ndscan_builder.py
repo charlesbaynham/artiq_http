@@ -57,10 +57,7 @@ def _build_axis(axis: dict) -> dict:
 
     gtype = axis.get("type")
     if gtype not in SUPPORTED_GENERATORS:
-        raise ValueError(
-            f"invalid scan type '{gtype}'. "
-            f"Must be one of: {', '.join(sorted(SUPPORTED_GENERATORS))}"
-        )
+        raise ValueError(f"invalid scan type '{gtype}'. Must be one of: {', '.join(sorted(SUPPORTED_GENERATORS))}")
 
     range_in = axis.get("range")
     if not isinstance(range_in, dict):
@@ -69,9 +66,7 @@ def _build_axis(axis: dict) -> dict:
     required = SUPPORTED_GENERATORS[gtype]
     missing = [k for k in required if k not in range_in]
     if missing:
-        raise ValueError(
-            f"scan axis '{fqn}' ({gtype}) range missing keys: {', '.join(missing)}"
-        )
+        raise ValueError(f"scan axis '{fqn}' ({gtype}) range missing keys: {', '.join(missing)}")
 
     # Every ndscan generator's __init__ takes randomise_order as a required
     # positional; default it so callers don't have to specify it.
@@ -128,10 +123,7 @@ async def build_ndscan_params(
     if not schemata:
         raise ValueError(f"Experiment {file}/{class_name} has no ndscan schemata")
 
-    overrides = {
-        fqn: [{"path": "", "value": value}]
-        for fqn, value in (fixed_params or {}).items()
-    }
+    overrides = {fqn: [{"path": "", "value": value}] for fqn, value in (fixed_params or {}).items()}
 
     params_data = {
         "overrides": overrides,
