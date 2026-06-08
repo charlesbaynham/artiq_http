@@ -952,3 +952,44 @@ def test_submit_scan_and_wait_reports_failure(
     assert data["status"] == "failed"
     assert data["timed_out"] is False
     assert "deleting RID 88" in data["error"]
+
+
+@patch("artiq_http.api.asyncio.sleep", new_callable=AsyncMock)
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.notifiers.get_logs", new_callable=AsyncMock)
+@patch("artiq_http.api.api.notifiers.get_schedule", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_scan_and_wait_ignores_debug_deletion(
+    mock_submit, mock_schedule, mock_logs, mock_builder_explist, mock_api_explist, mock_sleep
+):
+    """A normal completion logs "deleting RID <rid>..." at DEBUG and is NOT a failure.
+
+    Regression guard: the scheduler emits a DEBUG "deleting RID <rid>..." line for
+    *every* run, including clean ones. Matching that marker regardless of level
+    misreported every successful scan as failed; only an ERROR-level log counts.
+    """
+    mock_submit.return_value = 88
+    explist = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    mock_builder_explist.return_value = explist
+    mock_api_explist.return_value = explist
+    mock_schedule.return_value = {}  # RID gone because it finished cleanly
+    mock_logs.return_value = [
+        {
+            "timestamp": 1.0,
+            "source": "master",
+            "level": 10,  # DEBUG — normal scheduler bookkeeping, not a failure
+            "message": "artiq.master.scheduler:deleting RID 88...",
+        }
+    ]
+    response = client.post("/api/scan/submit-and-wait", json=SCAN_REQUEST_1D)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["rid"] == 88
+    assert data["status"] == "completed"
+    assert data["timed_out"] is False
+    assert data["error"] is None
