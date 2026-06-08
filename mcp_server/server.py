@@ -191,7 +191,8 @@ async def submit_and_wait(
         timeout_seconds: Max seconds to wait before returning regardless (default: 60, max: 300).
 
     Returns:
-        Dict with 'rid' (int), 'status' (str, e.g. "completed"/"timeout"), 'timed_out' (bool).
+        Dict with 'rid' (int), 'status' (str: "completed"/"failed"/"timeout"),
+        'timed_out' (bool), and 'error' (str|None — set when status is "failed").
     """
     expid = {"file": file, "class_name": class_name, "arguments": arguments}
     params = {
@@ -231,13 +232,16 @@ async def submit_1d_scan(
         class_name: Python class name of the experiment, e.g. "RabiFlop".
         axis_fqn: Fully-qualified parameter name of the scan axis,
             e.g. "my_exp.frequency".  Must exist in the experiment's ndscan schemata.
-        scan_type: One of "LinearScan", "RandomScan", "ExpScan", "ListScan"
-            (case-sensitive).
+        scan_type: ndscan generator name — one of "linear", "centre_span",
+            "list" (case-sensitive).
         scan_range: Range specification dict.
-            For LinearScan / RandomScan / ExpScan:
+            For "linear":
                 {"start": <float>, "stop": <float>, "num_points": <int>}
-            For ListScan:
+            For "centre_span":
+                {"centre": <float>, "half_span": <float>, "num_points": <int>}
+            For "list":
                 {"values": [<float>, ...]}
+            An optional "randomise_order": <bool> may be added to any range.
             Values must be in SI units as declared by the experiment parameter schema.
         fixed_params: Optional dict of {fqn: value} for parameters to hold
             fixed at a specific value during the scan.  Must not overlap with axis_fqn.
@@ -286,11 +290,11 @@ async def submit_multi_axis_scan(
         class_name: Python class name of the experiment, e.g. "RabiFlop".
         axes: List of axis dicts.  Each dict must have:
             - "fqn" (str): Fully-qualified parameter name.
-            - "type" (str): One of "LinearScan", "RandomScan", "ExpScan",
-              "ListScan" (case-sensitive).
-            - "range" (dict): For LinearScan/RandomScan/ExpScan:
-                {"start": <float>, "stop": <float>, "num_points": <int>}.
-              For ListScan: {"values": [<float>, ...]}.
+            - "type" (str): ndscan generator name — one of "linear",
+              "centre_span", "list" (case-sensitive).
+            - "range" (dict): For "linear": {"start", "stop", "num_points"}.
+              For "centre_span": {"centre", "half_span", "num_points"}.
+              For "list": {"values": [<float>, ...]}. Optional "randomise_order".
             Values must be in SI units as declared by the experiment schema.
         fixed_params: Optional dict of {fqn: value} for parameters to hold
             fixed during the scan.  Must not overlap with any axis fqn.
