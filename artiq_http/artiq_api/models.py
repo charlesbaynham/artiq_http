@@ -52,8 +52,13 @@ class ExperimentArginfo(BaseModel):
 
 class SubmitAndWaitResult(BaseModel):
     rid: int
+    #: "completed" — the run left the schedule and no failure was logged for it.
+    #: "failed" — a worker exception / RID deletion was found in the logs.
+    #: "timeout" — the run was still in the schedule when *timeout* elapsed.
     status: str
     timed_out: bool
+    #: First line of the logged error when ``status == "failed"``, else None.
+    error: Optional[str] = None
 
 
 class LogEntry(BaseModel):
@@ -77,25 +82,29 @@ class LogList(BaseModel):
 class ScanAxis(BaseModel):
     """A single scan axis for a high-level scan submission.
 
-    ``type`` must be one of: ``LinearScan``, ``RandomScan``, ``ExpScan``, ``ListScan``.
+    ``type`` is an ndscan scan-generator name: ``linear``, ``centre_span``, or
+    ``list``.
 
-    For ``LinearScan``, ``RandomScan``, and ``ExpScan`` the ``range`` dict must
-    contain ``start`` (float), ``stop`` (float), and ``num_points`` (int).
+    * ``linear``: ``range`` = {'start': float, 'stop': float, 'num_points': int}.
+    * ``centre_span``: ``range`` = {'centre': float, 'half_span': float,
+      'num_points': int}.
+    * ``list``: ``range`` = {'values': [float, ...]}.
 
-    For ``ListScan`` the ``range`` dict must contain ``values`` (list of float).
+    An optional ``randomise_order`` (bool, default False) may be added to any
+    ``range``.
     """
 
     fqn: str = Field(..., description="Fully-qualified parameter name, e.g. 'my_exp.frequency'")
     type: str = Field(
         ...,
-        description="Scan type: one of LinearScan, RandomScan, ExpScan, ListScan",
+        description="ndscan generator name: one of linear, centre_span, list",
     )
     range: Dict[str, Any] = Field(
         ...,
         description=(
-            "Range specification. For LinearScan/RandomScan/ExpScan: "
-            "{'start': float, 'stop': float, 'num_points': int}. "
-            "For ListScan: {'values': [float, ...]}."
+            "Range specification. For linear: {'start', 'stop', 'num_points'}. "
+            "For centre_span: {'centre', 'half_span', 'num_points'}. "
+            "For list: {'values': [...]}. Optional 'randomise_order' (bool)."
         ),
     )
 

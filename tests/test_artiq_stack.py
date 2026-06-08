@@ -146,6 +146,34 @@ def _fqn_ending_in(schemata, suffix):
     raise AssertionError(f"no schema FQN ending in '{suffix}' found in {list(schemata)}")
 
 
+def _dataset_value(datasets, key):
+    """Unwrap a dataset value from the ``[persist, value, metadata]`` envelope."""
+    entry = datasets.get(key)
+    if isinstance(entry, list) and len(entry) >= 2:
+        return entry[1]
+    return entry
+
+
+def _poll_scan_points(client, rid, expected_points, attempts=40):
+    """Poll /api/datasets until the ndscan run for *rid* has produced points.
+
+    Returns (axis_0_values, completed_flag). Asserting on these — rather than on
+    "the RID left the schedule" — is what actually proves the scan ran: a run
+    that crashes in prepare also leaves the schedule but produces no points.
+    """
+    axis_key = f"ndscan.rid_{rid}.points.axis_0"
+    done_key = f"ndscan.rid_{rid}.completed"
+    axis = done = None
+    for _ in range(attempts):
+        datasets = client.get("/api/datasets").json()
+        axis = _dataset_value(datasets, axis_key)
+        done = _dataset_value(datasets, done_key)
+        if axis is not None and len(axis) >= expected_points:
+            break
+        time.sleep(0.5)
+    return axis, done
+
+
 def test_scannable_exp_present(client):
     """The scannable ndscan experiment is discovered by the real master."""
     response = client.get("/api/explist")
@@ -163,7 +191,13 @@ def test_scannable_exp_exposes_schemata(client):
 
 
 def test_submit_1d_scan(client):
-    """POST /api/scan with a 1D LinearScan submits and returns an integer RID."""
+    """POST /api/scan with a 1D linear scan submits, runs, and produces points.
+
+    A returned RID only proves the scheduler accepted the submission — the run
+    can still die in the prepare stage (which is exactly how the original
+    ndscan_params format bug manifested). So we also confirm the scan actually
+    produced the expected number of points.
+    """
     schemata = _scannable_schemata(client)
     fqn = _fqn_ending_in(schemata, ".frequency")
 
@@ -173,7 +207,7 @@ def test_submit_1d_scan(client):
         "axes": [
             {
                 "fqn": fqn,
-                "type": "LinearScan",
+                "type": "linear",
                 "range": {"start": 1.0, "stop": 5.0, "num_points": 5},
             }
         ],
@@ -183,6 +217,11 @@ def test_submit_1d_scan(client):
     rid = response.json()
     assert isinstance(rid, int)
     assert rid >= 0
+
+    axis, completed = _poll_scan_points(client, rid, expected_points=5)
+    assert axis is not None, f"scan RID {rid} produced no points (did it crash in prepare?)"
+    assert len(axis) == 5, f"expected 5 points, got {len(axis)}: {axis}"
+    assert completed is True
 
 
 def test_submit_multi_axis_scan(client):
@@ -195,8 +234,8 @@ def test_submit_multi_axis_scan(client):
         "file": SCANNABLE_FILE,
         "class_name": SCANNABLE_CLASS,
         "axes": [
-            {"fqn": freq, "type": "LinearScan", "range": {"start": 1.0, "stop": 3.0, "num_points": 3}},
-            {"fqn": amp, "type": "LinearScan", "range": {"start": 0.1, "stop": 0.3, "num_points": 3}},
+            {"fqn": freq, "type": "linear", "range": {"start": 1.0, "stop": 3.0, "num_points": 3}},
+            {"fqn": amp, "type": "linear", "range": {"start": 0.1, "stop": 0.3, "num_points": 3}},
         ],
     }
     response = client.post("/api/scan", json=req)
@@ -215,7 +254,7 @@ def test_submit_scan_and_wait_completes(client):
         "axes": [
             {
                 "fqn": fqn,
-                "type": "LinearScan",
+                "type": "linear",
                 "range": {"start": 1.0, "stop": 4.0, "num_points": 4},
             }
         ],
@@ -224,8 +263,17 @@ def test_submit_scan_and_wait_completes(client):
     assert response.status_code == 200, response.text
     result = response.json()
     assert result["rid"] >= 0
-    assert result["status"] == "completed"
+    # status=="completed" now means "left the schedule without a logged failure"
+    # — a prepare/run crash would come back as "failed".
+    assert result["status"] == "completed", f"scan did not complete cleanly: {result}"
     assert result["timed_out"] is False
+    assert result.get("error") is None
+
+    # And confirm the run genuinely produced data, not just vanished.
+    axis, completed = _poll_scan_points(client, result["rid"], expected_points=4)
+    assert axis is not None, "submit-and-wait reported completed but produced no points"
+    assert len(axis) == 4
+    assert completed is True
 
 
 def test_submit_scan_unknown_experiment(client):
@@ -233,7 +281,7 @@ def test_submit_scan_unknown_experiment(client):
     req = {
         "file": "does_not_exist.py",
         "class_name": "NoSuchExperiment",
-        "axes": [{"fqn": "x.y", "type": "LinearScan", "range": {"start": 0.0, "stop": 1.0, "num_points": 2}}],
+        "axes": [{"fqn": "x.y", "type": "linear", "range": {"start": 0.0, "stop": 1.0, "num_points": 2}}],
     }
     response = client.post("/api/scan", json=req)
     assert response.status_code == 404, response.text
@@ -247,7 +295,7 @@ def test_submit_scan_unknown_fqn(client):
         "axes": [
             {
                 "fqn": "scannable_exp.ScannableFrag.does_not_exist",
-                "type": "LinearScan",
+                "type": "linear",
                 "range": {"start": 0.0, "stop": 1.0, "num_points": 2},
             }
         ],

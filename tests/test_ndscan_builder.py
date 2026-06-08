@@ -1,4 +1,10 @@
-"""Tests for artiq_http.artiq_api.ndscan_builder."""
+"""Tests for artiq_http.artiq_api.ndscan_builder.
+
+The builder emits the ndscan_params *argument value* — a PYON/JSON string in
+ndscan's real decoded wire format (minimal {overrides, scan}). These tests
+assert that wire format, because that is what ARTIQ's PYONValue processor and
+ndscan's ArgumentInterface actually consume.
+"""
 
 import json
 from unittest.mock import AsyncMock, patch
@@ -73,14 +79,32 @@ EXPLIST_EMPTY = ExperimentList(
 
 
 @patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
-async def test_build_ndscan_params_success(mock_get_explist):
-    """Build ndscan_params with axes, overrides, and num_repeats."""
+async def test_build_ndscan_params_returns_pyon_string(mock_get_explist):
+    """The builder returns the encoded string value, not the arginfo triple."""
+    mock_get_explist.return_value = EXPLIST_WITH_NDSCAN
+
+    result = await build_ndscan_params(
+        file="ndscan_exp.py",
+        class_name="NDScanExp",
+        axes=[{"fqn": "test.frequency", "type": "linear",
+               "range": {"start": 0.0, "stop": 100.0, "num_points": 10}}],
+    )
+
+    # A string that decodes to a dict — this is what ndscan's PYONValue
+    # processor expects (a list/triple would raise TypeError in pyon.decode).
+    assert isinstance(result, str)
+    assert isinstance(json.loads(result), dict)
+
+
+@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
+async def test_build_ndscan_params_wire_format(mock_get_explist):
+    """Overrides are wrapped, axes carry path + randomise_order, types are real."""
     mock_get_explist.return_value = EXPLIST_WITH_NDSCAN
 
     axes = [
         {
             "fqn": "test.frequency",
-            "type": "LinearScan",
+            "type": "linear",
             "range": {"start": 0.0, "stop": 100.0, "num_points": 10},
         }
     ]
@@ -93,43 +117,43 @@ async def test_build_ndscan_params_success(mock_get_explist):
         fixed_params=fixed_params,
         num_repeats=5,
     )
+    params = json.loads(result)
 
-    # ARTIQ list-of-dicts wrapper
-    assert isinstance(result, list)
-    assert len(result) == 3
-    assert result[0]["ty"] == "PYONValue"
-    assert isinstance(result[0]["default"], str)
-    assert result[1] is None
-    assert result[2] is None
+    # Minimal proven form: only overrides + scan are consumed by ndscan.
+    assert set(params.keys()) == {"overrides", "scan"}
 
-    # Parse the JSON payload
-    params_data = json.loads(result[0]["default"])
+    # overrides: {fqn: [{"path": "", "value": v}]} — NOT a bare scalar.
+    assert params["overrides"] == {"test.amplitude": [{"path": "", "value": 0.8}]}
 
-    # Top-level keys
-    assert set(params_data.keys()) == {
-        "instances",
-        "schemata",
-        "always_shown",
-        "overrides",
-        "scan",
-    }
+    # scan.axes carry the required "path" and a defaulted randomise_order.
+    axis = params["scan"]["axes"][0]
+    assert axis["type"] == "linear"
+    assert axis["fqn"] == "test.frequency"
+    assert axis["path"] == ""
+    assert axis["range"]["randomise_order"] is False
+    assert axis["range"]["num_points"] == 10
 
-    # instances preserved from original
-    assert params_data["instances"] == {"": ["test.frequency", "test.amplitude"]}
+    assert params["scan"]["num_repeats"] == 5
+    assert params["scan"]["no_axes_mode"] == "single"
+    assert params["scan"]["randomise_order_globally"] is False
 
-    # schemata preserved from original
-    assert "test.frequency" in params_data["schemata"]
-    assert params_data["schemata"]["test.frequency"]["type"] == "float"
 
-    # always_shown preserved from original
-    assert params_data["always_shown"] == []
+@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
+async def test_build_ndscan_params_centre_span(mock_get_explist):
+    """centre_span axes pass centre/half_span through verbatim."""
+    mock_get_explist.return_value = EXPLIST_WITH_NDSCAN
 
-    # overrides = fixed_params
-    assert params_data["overrides"] == {"test.amplitude": 0.8}
-
-    # scan.axes and scan.num_repeats
-    assert params_data["scan"]["axes"] == axes
-    assert params_data["scan"]["num_repeats"] == 5
+    result = await build_ndscan_params(
+        file="ndscan_exp.py",
+        class_name="NDScanExp",
+        axes=[{"fqn": "test.frequency", "type": "centre_span",
+               "range": {"centre": 0.0, "half_span": 16060.0, "num_points": 15}}],
+    )
+    axis = json.loads(result)["scan"]["axes"][0]
+    assert axis["type"] == "centre_span"
+    assert axis["range"]["centre"] == 0.0
+    assert axis["range"]["half_span"] == 16060.0
+    assert axis["range"]["randomise_order"] is False
 
 
 @patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
@@ -137,16 +161,25 @@ async def test_build_ndscan_params_defaults(mock_get_explist):
     """Build ndscan_params with minimal arguments (defaults)."""
     mock_get_explist.return_value = EXPLIST_WITH_NDSCAN
 
-    result = await build_ndscan_params(
-        file="ndscan_exp.py",
-        class_name="NDScanExp",
-        axes=[],
-    )
+    result = await build_ndscan_params(file="ndscan_exp.py", class_name="NDScanExp", axes=[])
+    params = json.loads(result)
+    assert params["overrides"] == {}
+    assert params["scan"]["axes"] == []
+    assert params["scan"]["num_repeats"] == 1
 
-    params_data = json.loads(result[0]["default"])
-    assert params_data["overrides"] == {}
-    assert params_data["scan"]["axes"] == []
-    assert params_data["scan"]["num_repeats"] == 1
+
+@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
+async def test_build_ndscan_params_invalid_type(mock_get_explist):
+    """An unknown generator name is rejected at build time."""
+    mock_get_explist.return_value = EXPLIST_WITH_NDSCAN
+
+    with pytest.raises(ValueError, match="invalid scan type"):
+        await build_ndscan_params(
+            file="ndscan_exp.py",
+            class_name="NDScanExp",
+            axes=[{"fqn": "test.frequency", "type": "LinearScan",
+                   "range": {"start": 0.0, "stop": 1.0, "num_points": 5}}],
+        )
 
 
 @patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
@@ -155,11 +188,7 @@ async def test_build_ndscan_params_experiment_not_found(mock_get_explist):
     mock_get_explist.return_value = EXPLIST_EMPTY
 
     with pytest.raises(ValueError, match="not found in explist"):
-        await build_ndscan_params(
-            file="missing.py",
-            class_name="MissingExp",
-            axes=[],
-        )
+        await build_ndscan_params(file="missing.py", class_name="MissingExp", axes=[])
 
 
 @patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
@@ -181,70 +210,4 @@ async def test_build_ndscan_params_no_schemata(mock_get_explist):
     )
 
     with pytest.raises(ValueError, match="no ndscan schemata"):
-        await build_ndscan_params(
-            file="simple.py",
-            class_name="SimpleExp",
-            axes=[],
-        )
-
-
-@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
-async def test_build_ndscan_params_preserves_always_shown(mock_get_explist):
-    """always_shown from original ndscan_params is preserved."""
-    arginfo_with_always_shown = {
-        "ndscan_params": [
-            {
-                "ty": "PYONValue",
-                "default": json.dumps(
-                    {
-                        "instances": {"": ["test.frequency"]},
-                        "schemata": {
-                            "test.frequency": {
-                                "fqn": "test.frequency",
-                                "type": "float",
-                                "default": "100.0",
-                                "spec": {"is_scannable": True},
-                            }
-                        },
-                        "always_shown": [
-                            {
-                                "__jsonclass__": [
-                                    "tuple",
-                                    [["test.frequency", ""]],
-                                ]
-                            }
-                        ],
-                        "overrides": {},
-                        "scan": {"axes": [], "num_repeats": 1},
-                    }
-                ),
-            },
-            None,
-            None,
-        ]
-    }
-
-    mock_get_explist.return_value = ExperimentList(
-        current_rev="abc123",
-        scanning=False,
-        experiments=[
-            ExperimentEntry(
-                name="NDScan Exp",
-                file="ndscan_exp.py",
-                class_name="NDScanExp",
-                arginfo=arginfo_with_always_shown,
-                argument_ui=None,
-                scheduler_defaults={},
-            )
-        ],
-    )
-
-    result = await build_ndscan_params(
-        file="ndscan_exp.py",
-        class_name="NDScanExp",
-        axes=[],
-    )
-
-    params_data = json.loads(result[0]["default"])
-    assert len(params_data["always_shown"]) == 1
-    assert params_data["always_shown"][0]["__jsonclass__"][0] == "tuple"
+        await build_ndscan_params(file="simple.py", class_name="SimpleExp", axes=[])
