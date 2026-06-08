@@ -479,6 +479,36 @@ async def _validate_expid_ndscan(expid: api.models.ExpID) -> None:
         raise HTTPException(422, error)
 
 
+async def _rid_failure_from_logs(rid: int) -> str | None:
+    """Return the first line of a logged failure for *rid*, or None.
+
+    A run that dies in the prepare or run stage is *deleted* from the schedule,
+    which is indistinguishable from successful completion by schedule-presence
+    alone. ARTIQ does, however, log the failure — the master emits
+    "...deleting RID <rid>" and the worker logs "Terminating with exception..."
+    under source "worker(<rid>,...)". We scan the buffered logs for those so a
+    crash is reported as a failure rather than a completion.
+    """
+    try:
+        logs = await api.notifiers.get_logs()
+    except Exception:
+        # Logs unavailable (e.g. subscriber not connected) — can't prove a
+        # failure, so don't manufacture one.
+        return None
+
+    worker_src = f"worker({rid},"
+    delete_marker = f"deleting RID {rid}"
+    for entry in logs:
+        message = str(entry.get("message", ""))
+        source = str(entry.get("source", ""))
+        level = entry.get("level", 0) or 0
+        is_delete = delete_marker in message
+        is_worker_error = worker_src in source and level >= logging.ERROR
+        if is_delete or is_worker_error:
+            return message.strip().splitlines()[0][:500]
+    return None
+
+
 async def _wait_for_rid_completion(rid: int, timeout: float) -> api.models.SubmitAndWaitResult:
     """Poll the schedule until *rid* completes or *timeout* elapses.
 
@@ -492,7 +522,12 @@ async def _wait_for_rid_completion(rid: int, timeout: float) -> api.models.Submi
 
     An experiment that finishes very quickly might come and go before we ever
     observe it. To avoid blocking until the timeout in that case, if the RID
-    never shows up within a short grace period we assume it already completed.
+    never shows up within a short grace period we assume it already finished.
+
+    "Left the schedule" alone does NOT mean success: an experiment that crashes
+    in the prepare/run stage is also removed from the schedule. Before reporting
+    completion we therefore check the logs for a failure of this RID and report
+    ``status="failed"`` (with the error) if one is found.
     """
     appear_grace = min(5.0, timeout)
     poll_interval = 1.0
@@ -505,7 +540,13 @@ async def _wait_for_rid_completion(rid: int, timeout: float) -> api.models.Submi
             seen_in_schedule = True
         elif seen_in_schedule or elapsed >= appear_grace:
             # Either we observed it running and it has now left the schedule, or
-            # it never appeared within the grace period (fast experiment).
+            # it never appeared within the grace period (fast experiment). The
+            # disappearance might be success OR a crash — disambiguate via logs.
+            error = await _rid_failure_from_logs(rid)
+            if error is not None:
+                return api.models.SubmitAndWaitResult(
+                    rid=rid, status="failed", timed_out=False, error=error
+                )
             return api.models.SubmitAndWaitResult(rid=rid, status="completed", timed_out=False)
         await asyncio.sleep(poll_interval)
         elapsed += poll_interval

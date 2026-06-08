@@ -2,6 +2,14 @@
 
 Simple, stateless validation functions.  No classes, no inheritance — just
 plain functions that return an error string or None.
+
+This validates ndscan's *real* decoded wire format (the same one
+``ndscan.experiment.entry_point`` consumes), not an invented schema:
+
+* ``ndscan_params`` is the PYON/JSON string value of the argument (we also
+  tolerate the ``[spec, None, None]`` arginfo triple for convenience).
+* ``scan.axes[i]`` uses an ndscan generator name and carries a ``path``.
+* ``overrides`` maps ``fqn -> [{"path": ..., "value": ...}]``.
 """
 
 from __future__ import annotations
@@ -9,26 +17,41 @@ from __future__ import annotations
 import json
 from typing import Any
 
-VALID_SCAN_TYPES = {"LinearScan", "RandomScan", "ExpScan", "ListScan"}
+# ndscan scan-generator names the high-level scan API supports
+# (see ndscan.experiment.scan_generator.GENERATORS).
+VALID_SCAN_TYPES = {"linear", "centre_span", "list"}
+
+# Required range keys per generator (besides the common, defaulted
+# ``randomise_order``).
+_RANGE_KEYS = {
+    "linear": ("start", "stop", "num_points"),
+    "centre_span": ("centre", "half_span", "num_points"),
+    "list": ("values",),
+}
 
 
 def _get_ndscan_json(arguments: dict) -> tuple[str | None, str | None]:
     """Extract the raw ndscan_params JSON string from *arguments*.
 
-    Returns (json_string, error_string).  Exactly one of the two is non-None.
+    Accepts either the argument *value* (a PYON/JSON string, the normal case) or
+    the arginfo descriptor triple ``[{"default": <str>}, None, None]``.
+
+    Returns (json_string, error_string).  Exactly one of the two is non-None,
+    except when ndscan_params is absent (both None).
     """
     ndscan_params = arguments.get("ndscan_params")
     if ndscan_params is None:
         return None, None
-    if not isinstance(ndscan_params, (list, tuple)) or len(ndscan_params) == 0:
-        return None, "ndscan_params must be a non-empty list"
-    spec = ndscan_params[0]
-    if not isinstance(spec, dict):
-        return None, "ndscan_params[0] must be a dict"
-    default_json = spec.get("default")
-    if not default_json or not isinstance(default_json, str):
-        return None, "ndscan_params[0] must contain a 'default' string"
-    return default_json, None
+    if isinstance(ndscan_params, str):
+        return ndscan_params, None
+    # Tolerate the arginfo-style triple [{..., "default": <json str>}, None, None]
+    if isinstance(ndscan_params, (list, tuple)) and ndscan_params:
+        spec = ndscan_params[0]
+        if isinstance(spec, dict):
+            default_json = spec.get("default")
+            if isinstance(default_json, str):
+                return default_json, None
+    return None, "ndscan_params must be a PYON/JSON string (or [spec, None, None] triple)"
 
 
 def _fqn_exists(fqn: str, schemata: dict) -> bool:
@@ -36,8 +59,8 @@ def _fqn_exists(fqn: str, schemata: dict) -> bool:
     return fqn in schemata and isinstance(schemata[fqn], dict)
 
 
-def _validate_axis(axis: dict, schemata: dict, axis_idx: int) -> str | None:
-    """Validate a single scan axis.  Return error string or None."""
+def _validate_axis(axis: dict, canonical_fqns: set, axis_idx: int) -> str | None:
+    """Validate a single scan axis in ndscan wire format.  Return error or None."""
     if not isinstance(axis, dict):
         return f"scan.axes[{axis_idx}] is not a dict"
 
@@ -45,8 +68,11 @@ def _validate_axis(axis: dict, schemata: dict, axis_idx: int) -> str | None:
     if not fqn or not isinstance(fqn, str):
         return f"scan.axes[{axis_idx}]: missing or invalid 'fqn'"
 
-    if not _fqn_exists(fqn, schemata):
+    if canonical_fqns and fqn not in canonical_fqns:
         return f"scan.axes[{axis_idx}]: unknown parameter '{fqn}'"
+
+    if "path" not in axis:
+        return f"scan.axes[{axis_idx}]: missing 'path'"
 
     scan_type = axis.get("type")
     if not scan_type or scan_type not in VALID_SCAN_TYPES:
@@ -59,39 +85,44 @@ def _validate_axis(axis: dict, schemata: dict, axis_idx: int) -> str | None:
     if not isinstance(range_data, dict):
         return f"scan.axes[{axis_idx}]: missing or invalid 'range'"
 
-    # ListScan uses 'values' instead of start/stop/num_points
-    if scan_type == "ListScan":
+    missing = [k for k in _RANGE_KEYS[scan_type] if k not in range_data]
+    if missing:
+        return f"scan.axes[{axis_idx}]: range missing {', '.join(missing)}"
+
+    if scan_type == "list":
         values = range_data.get("values")
-        if not isinstance(values, list):
-            return f"scan.axes[{axis_idx}]: ListScan requires 'range.values' list"
-        if len(values) == 0:
-            return f"scan.axes[{axis_idx}]: ListScan values must not be empty"
+        if not isinstance(values, list) or len(values) == 0:
+            return f"scan.axes[{axis_idx}]: list scan requires a non-empty 'values' list"
         return None
 
-    # Numeric scans: start, stop, num_points
-    start = range_data.get("start")
-    stop = range_data.get("stop")
-    num_points = range_data.get("num_points")
-
-    if start is None:
-        return f"scan.axes[{axis_idx}]: range missing 'start'"
-    if stop is None:
-        return f"scan.axes[{axis_idx}]: range missing 'stop'"
-    if num_points is None:
-        return f"scan.axes[{axis_idx}]: range missing 'num_points'"
-
+    # linear / centre_span: numeric range with a positive point count.
     try:
-        start_f = float(start)
-        stop_f = float(stop)
-        num_points_i = int(num_points)
+        num_points = int(range_data["num_points"])
+        for k in _RANGE_KEYS[scan_type][:-1]:  # the numeric endpoints/centre/span
+            float(range_data[k])
     except (ValueError, TypeError):
         return f"scan.axes[{axis_idx}]: range values must be numeric"
 
-    if start_f >= stop_f:
-        return f"scan.axes[{axis_idx}]: start ({start_f}) must be less than stop ({stop_f})"
-    if num_points_i <= 0:
-        return f"scan.axes[{axis_idx}]: num_points ({num_points_i}) must be greater than 0"
+    if num_points <= 0:
+        return f"scan.axes[{axis_idx}]: num_points ({num_points}) must be greater than 0"
+    if scan_type == "linear" and num_points < 2:
+        return f"scan.axes[{axis_idx}]: linear scan needs num_points >= 2"
+    if scan_type == "linear" and float(range_data["start"]) == float(range_data["stop"]):
+        return f"scan.axes[{axis_idx}]: linear scan start and stop must differ"
 
+    return None
+
+
+def _validate_overrides(overrides: Any) -> str | None:
+    """Validate the ``overrides`` mapping: {fqn: [{"path","value"}, ...]}."""
+    if not isinstance(overrides, dict):
+        return "ndscan_params 'overrides' must be a dict"
+    for fqn, specs in overrides.items():
+        if not isinstance(specs, list) or not specs:
+            return f"override for '{fqn}' must be a non-empty list of path/value specs"
+        for spec in specs:
+            if not isinstance(spec, dict) or "path" not in spec or "value" not in spec:
+                return f"override for '{fqn}' must contain dicts with 'path' and 'value'"
     return None
 
 
@@ -100,13 +131,13 @@ def validate_ndscan_params(arguments: dict, arginfo: dict | None) -> str | None:
 
     Args:
         arguments: The ``expid.arguments`` dict, which may contain
-            ``ndscan_params`` in the ARTIQ list-of-dicts format.
-        arginfo: The experiment's arginfo from the explist.  Used to look up
-            the canonical ndscan schemata so we can verify FQNs.
+            ``ndscan_params`` (as the PYON/JSON string value).
+        arginfo: The experiment's arginfo from the explist.  Used to look up the
+            canonical ndscan schemata so we can verify FQNs.
 
     Returns:
-        An error string if validation fails, or ``None`` if the params are
-        valid (or no ndscan_params are present).
+        An error string if validation fails, or ``None`` if the params are valid
+        (or no ndscan_params are present).
     """
     json_string, error = _get_ndscan_json(arguments)
     if error:
@@ -114,7 +145,6 @@ def validate_ndscan_params(arguments: dict, arginfo: dict | None) -> str | None:
     if json_string is None:
         return None
 
-    # Parse JSON
     try:
         params_data: dict[str, Any] = json.loads(json_string)
     except json.JSONDecodeError as e:
@@ -123,20 +153,8 @@ def validate_ndscan_params(arguments: dict, arginfo: dict | None) -> str | None:
     if not isinstance(params_data, dict):
         return "ndscan_params JSON must parse to a dict"
 
-    # Required top-level keys
-    for key in ("instances", "schemata", "scan"):
-        if key not in params_data:
-            return f"ndscan_params missing required key '{key}'"
-
-    schemata = params_data.get("schemata", {})
-    if not isinstance(schemata, dict):
-        return "ndscan_params 'schemata' must be a dict"
-
-    # If arginfo is provided, cross-check against the canonical schemata
-    canonical_fqns: set[str] = set()
-    if arginfo is not None:
-        canonical_schemata = _extract_schemata_from_arginfo(arginfo)
-        canonical_fqns = set(canonical_schemata.keys())
+    if "scan" not in params_data:
+        return "ndscan_params missing required key 'scan'"
 
     scan = params_data.get("scan", {})
     if not isinstance(scan, dict):
@@ -146,29 +164,29 @@ def validate_ndscan_params(arguments: dict, arginfo: dict | None) -> str | None:
     if not isinstance(axes, list):
         return "ndscan_params 'scan.axes' must be a list"
 
+    canonical_fqns: set[str] = set()
+    if arginfo is not None:
+        canonical_fqns = set(_extract_schemata_from_arginfo(arginfo).keys())
+
     scanned_fqns: set[str] = set()
     for idx, axis in enumerate(axes):
-        err = _validate_axis(axis, schemata, idx)
+        err = _validate_axis(axis, canonical_fqns, idx)
         if err:
             return err
         scanned_fqns.add(axis["fqn"])
 
-    # Cross-check FQNs against canonical schemata if available
-    if canonical_fqns:
-        for fqn in scanned_fqns:
-            if fqn not in canonical_fqns:
-                return f"scan axis references unknown parameter '{fqn}' (not in experiment schemata)"
-
-    # Check for overlap between scanned and fixed (override) parameters
     overrides = params_data.get("overrides", {})
-    if not isinstance(overrides, dict):
-        return "ndscan_params 'overrides' must be a dict"
+    err = _validate_overrides(overrides)
+    if err:
+        return err
 
-    for fqn in scanned_fqns:
-        if fqn in overrides:
+    # Overridden FQNs must exist, and must not also be scanned.
+    for fqn in overrides:
+        if canonical_fqns and fqn not in canonical_fqns:
+            return f"override references unknown parameter '{fqn}'"
+        if fqn in scanned_fqns:
             return f"parameter '{fqn}' is both scanned and fixed (in overrides)"
 
-    # num_repeats sanity
     num_repeats = scan.get("num_repeats", 1)
     if not isinstance(num_repeats, int) or num_repeats < 1:
         return f"scan.num_repeats ({num_repeats}) must be an integer >= 1"

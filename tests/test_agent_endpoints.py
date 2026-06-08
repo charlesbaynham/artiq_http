@@ -380,28 +380,32 @@ def test_submit_and_wait_waits_for_subscriber_lag(mock_submit, mock_schedule, mo
 
 
 def _make_ndscan_params(scan_axes, overrides=None, num_repeats=1):
-    """Build an ndscan_params JSON string for testing."""
+    """Build an ndscan_params value for testing, in ndscan's real wire format.
+
+    Each axis is given the required ``path`` and a default ``randomise_order``,
+    and flat ``{fqn: value}`` overrides are wrapped into ``{fqn: [{"path","value"}]}``.
+    Returned as the arginfo-style triple (the validator tolerates both that and a
+    bare string). Axes are otherwise passed through verbatim so tests can inject
+    deliberately-bad ``type``/``range`` values.
+    """
+    wire_axes = []
+    for ax in scan_axes:
+        ax = dict(ax)
+        ax.setdefault("path", "")
+        if isinstance(ax.get("range"), dict):
+            ax["range"] = {"randomise_order": False, **ax["range"]}
+        wire_axes.append(ax)
+    wire_overrides = {
+        fqn: [{"path": "", "value": v}] for fqn, v in (overrides or {}).items()
+    }
     data = {
-        "instances": {"": ["test.frequency", "test.amplitude"]},
-        "schemata": {
-            "test.frequency": {
-                "fqn": "test.frequency",
-                "description": "Frequency",
-                "type": "float",
-                "default": "100.0",
-                "spec": {"is_scannable": True, "unit": "MHz"},
-            },
-            "test.amplitude": {
-                "fqn": "test.amplitude",
-                "description": "Amplitude",
-                "type": "float",
-                "default": "0.5",
-                "spec": {"is_scannable": True, "unit": "V"},
-            },
+        "overrides": wire_overrides,
+        "scan": {
+            "axes": wire_axes,
+            "num_repeats": num_repeats,
+            "no_axes_mode": "single",
+            "randomise_order_globally": False,
         },
-        "always_shown": [],
-        "overrides": overrides or {},
-        "scan": {"axes": scan_axes, "num_repeats": num_repeats},
     }
     return [{"ty": "PYONValue", "default": json.dumps(data)}, None, None]
 
@@ -425,7 +429,7 @@ def test_submit_ndscan_valid(mock_submit, mock_get_explist):
                 [
                     {
                         "fqn": "test.frequency",
-                        "type": "LinearScan",
+                        "type": "linear",
                         "range": {"start": 0.0, "stop": 100.0, "num_points": 10},
                     }
                 ]
@@ -523,7 +527,7 @@ def test_submit_ndscan_unknown_fqn(mock_submit, mock_get_explist):
                 [
                     {
                         "fqn": "test.unknown",
-                        "type": "LinearScan",
+                        "type": "linear",
                         "range": {"start": 0.0, "stop": 100.0, "num_points": 10},
                     }
                 ]
@@ -554,7 +558,7 @@ def test_submit_ndscan_overlap(mock_submit, mock_get_explist):
                 [
                     {
                         "fqn": "test.frequency",
-                        "type": "LinearScan",
+                        "type": "linear",
                         "range": {"start": 0.0, "stop": 100.0, "num_points": 10},
                     }
                 ],
@@ -570,8 +574,11 @@ def test_submit_ndscan_overlap(mock_submit, mock_get_explist):
 
 @patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
 @patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
-def test_submit_ndscan_start_ge_stop(mock_submit, mock_get_explist):
-    """start >= stop returns 422."""
+def test_submit_ndscan_start_eq_stop(mock_submit, mock_get_explist):
+    """A degenerate linear scan (start == stop) returns 422.
+
+    Note start > stop is *legal* in ndscan (linspace just descends), so only the
+    equal case is rejected as degenerate."""
     mock_get_explist.return_value = ExperimentList(
         current_rev="abc123",
         scanning=False,
@@ -586,7 +593,7 @@ def test_submit_ndscan_start_ge_stop(mock_submit, mock_get_explist):
                 [
                     {
                         "fqn": "test.frequency",
-                        "type": "LinearScan",
+                        "type": "linear",
                         "range": {"start": 100.0, "stop": 100.0, "num_points": 10},
                     }
                 ]
@@ -596,7 +603,7 @@ def test_submit_ndscan_start_ge_stop(mock_submit, mock_get_explist):
     }
     response = client.post("/api/schedule", json=payload)
     assert response.status_code == 422
-    assert "must be less than stop" in response.json()["detail"]
+    assert "must differ" in response.json()["detail"]
 
 
 @patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
@@ -617,7 +624,7 @@ def test_submit_ndscan_num_points_zero(mock_submit, mock_get_explist):
                 [
                     {
                         "fqn": "test.frequency",
-                        "type": "LinearScan",
+                        "type": "linear",
                         "range": {"start": 0.0, "stop": 100.0, "num_points": 0},
                     }
                 ]
@@ -649,7 +656,7 @@ def test_submit_non_ndscan_unaffected(mock_submit):
 @patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
 @patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
 def test_submit_ndscan_listscan_valid(mock_submit, mock_get_explist):
-    """ListScan with valid values list passes."""
+    """A list scan with a valid values list passes."""
     mock_submit.return_value = 1
     mock_get_explist.return_value = ExperimentList(
         current_rev="abc123",
@@ -662,7 +669,7 @@ def test_submit_ndscan_listscan_valid(mock_submit, mock_get_explist):
         "class_name": "NDScanExp",
         "arguments": {
             "ndscan_params": _make_ndscan_params(
-                [{"fqn": "test.frequency", "type": "ListScan", "range": {"values": [1.0, 2.0, 3.0]}}]
+                [{"fqn": "test.frequency", "type": "list", "range": {"values": [1.0, 2.0, 3.0]}}]
             )
         },
         "repo_rev": None,
@@ -674,7 +681,7 @@ def test_submit_ndscan_listscan_valid(mock_submit, mock_get_explist):
 @patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
 @patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
 def test_submit_ndscan_listscan_empty_values(mock_submit, mock_get_explist):
-    """ListScan with empty values returns 422."""
+    """A list scan with empty values returns 422."""
     mock_get_explist.return_value = ExperimentList(
         current_rev="abc123",
         scanning=False,
@@ -686,14 +693,14 @@ def test_submit_ndscan_listscan_empty_values(mock_submit, mock_get_explist):
         "class_name": "NDScanExp",
         "arguments": {
             "ndscan_params": _make_ndscan_params(
-                [{"fqn": "test.frequency", "type": "ListScan", "range": {"values": []}}]
+                [{"fqn": "test.frequency", "type": "list", "range": {"values": []}}]
             )
         },
         "repo_rev": None,
     }
     response = client.post("/api/schedule", json=payload)
     assert response.status_code == 422
-    assert "must not be empty" in response.json()["detail"]
+    assert "non-empty" in response.json()["detail"]
 
 
 @patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
@@ -714,8 +721,8 @@ def test_submit_and_wait_ndscan_validation(mock_submit, mock_get_explist):
                 [
                     {
                         "fqn": "test.frequency",
-                        "type": "LinearScan",
-                        "range": {"start": 100.0, "stop": 50.0, "num_points": 10},
+                        "type": "linear",
+                        "range": {"start": 0.0, "stop": 100.0, "num_points": 0},
                     }
                 ]
             )
@@ -724,7 +731,7 @@ def test_submit_and_wait_ndscan_validation(mock_submit, mock_get_explist):
     }
     response = client.post("/api/schedule/submit-and-wait", json=payload)
     assert response.status_code == 422
-    assert "must be less than stop" in response.json()["detail"]
+    assert "must be greater than 0" in response.json()["detail"]
 
 
 # ---------------------------------------------------------------------------
@@ -737,7 +744,7 @@ SCAN_REQUEST_1D = {
     "axes": [
         {
             "fqn": "test.frequency",
-            "type": "LinearScan",
+            "type": "linear",
             "range": {"start": 0.0, "stop": 100.0, "num_points": 10},
         }
     ],
@@ -751,12 +758,12 @@ SCAN_REQUEST_MULTI = {
     "axes": [
         {
             "fqn": "test.frequency",
-            "type": "LinearScan",
+            "type": "linear",
             "range": {"start": 0.0, "stop": 100.0, "num_points": 10},
         },
         {
             "fqn": "test.amplitude",
-            "type": "LinearScan",
+            "type": "linear",
             "range": {"start": 0.1, "stop": 1.0, "num_points": 5},
         },
     ],
@@ -817,7 +824,7 @@ def test_submit_scan_listscan_valid(mock_submit, mock_builder_explist, mock_api_
     payload = {
         "file": "ndscan_exp.py",
         "class_name": "NDScanExp",
-        "axes": [{"fqn": "test.frequency", "type": "ListScan", "range": {"values": [10.0, 20.0, 30.0]}}],
+        "axes": [{"fqn": "test.frequency", "type": "list", "range": {"values": [10.0, 20.0, 30.0]}}],
     }
     response = client.post("/api/scan", json=payload)
     assert response.status_code == 200
@@ -836,7 +843,7 @@ def test_submit_scan_unknown_experiment(mock_submit, mock_builder_explist):
     payload = {
         "file": "missing.py",
         "class_name": "Missing",
-        "axes": [{"fqn": "x.y", "type": "LinearScan", "range": {"start": 0.0, "stop": 1.0, "num_points": 5}}],
+        "axes": [{"fqn": "x.y", "type": "linear", "range": {"start": 0.0, "stop": 1.0, "num_points": 5}}],
     }
     response = client.post("/api/scan", json=payload)
     assert response.status_code == 404
@@ -854,7 +861,7 @@ def test_submit_scan_no_ndscan_schemata(mock_submit, mock_builder_explist):
     payload = {
         "file": "simple_exp.py",
         "class_name": "SimpleExp",
-        "axes": [{"fqn": "x.y", "type": "LinearScan", "range": {"start": 0.0, "stop": 1.0, "num_points": 5}}],
+        "axes": [{"fqn": "x.y", "type": "linear", "range": {"start": 0.0, "stop": 1.0, "num_points": 5}}],
     }
     response = client.post("/api/scan", json=payload)
     assert response.status_code == 422
@@ -885,10 +892,13 @@ def test_submit_scan_invalid_scan_type(mock_submit, mock_builder_explist, mock_a
 @patch("artiq_http.api.asyncio.sleep", new_callable=AsyncMock)
 @patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
 @patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.notifiers.get_logs", new_callable=AsyncMock)
 @patch("artiq_http.api.api.notifiers.get_schedule", new_callable=AsyncMock)
 @patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
-def test_submit_scan_and_wait_completes(mock_submit, mock_schedule, mock_builder_explist, mock_api_explist, mock_sleep):
-    """POST /api/scan/submit-and-wait returns completed status when RID leaves schedule."""
+def test_submit_scan_and_wait_completes(
+    mock_submit, mock_schedule, mock_logs, mock_builder_explist, mock_api_explist, mock_sleep
+):
+    """submit-and-wait reports completed when the RID leaves the schedule cleanly."""
     mock_submit.return_value = 88
     explist = ExperimentList(
         current_rev="abc123",
@@ -898,9 +908,51 @@ def test_submit_scan_and_wait_completes(mock_submit, mock_schedule, mock_builder
     mock_builder_explist.return_value = explist
     mock_api_explist.return_value = explist
     mock_schedule.return_value = {}  # RID gone immediately
+    mock_logs.return_value = []  # no failure logged
     response = client.post("/api/scan/submit-and-wait", json=SCAN_REQUEST_1D)
     assert response.status_code == 200
     data = response.json()
     assert data["rid"] == 88
     assert data["status"] == "completed"
     assert data["timed_out"] is False
+    assert data["error"] is None
+
+
+@patch("artiq_http.api.asyncio.sleep", new_callable=AsyncMock)
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.notifiers.get_logs", new_callable=AsyncMock)
+@patch("artiq_http.api.api.notifiers.get_schedule", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_scan_and_wait_reports_failure(
+    mock_submit, mock_schedule, mock_logs, mock_builder_explist, mock_api_explist, mock_sleep
+):
+    """A RID that vanishes because it CRASHED in prepare is reported as failed.
+
+    This is the regression guard for the original bug: "left the schedule" was
+    treated as success, so a prepare-stage crash looked completed.
+    """
+    mock_submit.return_value = 88
+    explist = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    mock_builder_explist.return_value = explist
+    mock_api_explist.return_value = explist
+    mock_schedule.return_value = {}  # RID gone — but because it died, not finished
+    mock_logs.return_value = [
+        {
+            "timestamp": 1.0,
+            "source": "master",
+            "level": 40,
+            "message": "artiq.master.scheduler:got worker exception in prepare stage, deleting RID 88",
+        }
+    ]
+    response = client.post("/api/scan/submit-and-wait", json=SCAN_REQUEST_1D)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["rid"] == 88
+    assert data["status"] == "failed"
+    assert data["timed_out"] is False
+    assert "deleting RID 88" in data["error"]

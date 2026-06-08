@@ -1,6 +1,27 @@
-"""Build canonical ndscan_params from high-level scan input.
+"""Build a canonical ndscan_params *argument value* from high-level scan input.
 
 Simple, stateless builder.  No classes — just plain functions.
+
+The output is the PYON/JSON string that is submitted as the value of the
+``ndscan_params`` experiment argument.  ndscan declares that argument as a
+``PYONValue``, so ARTIQ feeds the value straight into ``pyon.decode`` — meaning
+the value MUST be the encoded string, not the ``[spec, None, None]`` arginfo
+descriptor triple (that triple is how an argument is *described*, not how its
+value is *supplied*).
+
+Only ``overrides`` and ``scan`` are read from the params at run time
+(``ndscan.experiment.entry_point.ArgumentInterface.make_override_stores`` /
+``make_scan_spec``); the experiment's ``schemata``/``instances`` are rebuilt
+from the fragment code, so we deliberately emit the minimal proven form rather
+than reconstructing them here.
+
+Wire format (what ndscan actually decodes):
+
+* ``overrides``: ``{fqn: [{"path": "", "value": <v>}]}`` — a *list* of
+  path/value specs per FQN, not a bare scalar.
+* ``scan.axes[i]``: ``{"type": <generator>, "range": {...}, "fqn": <fqn>,
+  "path": ""}`` where ``type`` is an ndscan generator name and ``range`` is the
+  generator's constructor kwargs (every generator requires ``randomise_order``).
 """
 
 from __future__ import annotations
@@ -11,6 +32,54 @@ from typing import Any
 from .ndscan_validation import _extract_schemata_from_arginfo
 from .notifiers import get_explist
 
+# ndscan scan-generator names (see ndscan.experiment.scan_generator.GENERATORS).
+# These are the generators the high-level scan API exposes; the values map to
+# the constructor kwargs each one requires (beyond ``randomise_order``, which is
+# common to all and defaulted to False when the caller omits it).
+SUPPORTED_GENERATORS = {
+    "linear": ("start", "stop", "num_points"),
+    "centre_span": ("centre", "half_span", "num_points"),
+    "list": ("values",),
+}
+
+
+def _build_axis(axis: dict) -> dict:
+    """Normalise one high-level axis dict into ndscan wire format.
+
+    Adds the required ``path`` key and a default ``randomise_order`` and checks
+    that ``type`` is a supported ndscan generator with the keys it needs.  The
+    range is otherwise passed through verbatim (its values are the generator's
+    constructor arguments).
+    """
+    fqn = axis.get("fqn")
+    if not fqn or not isinstance(fqn, str):
+        raise ValueError("scan axis missing 'fqn'")
+
+    gtype = axis.get("type")
+    if gtype not in SUPPORTED_GENERATORS:
+        raise ValueError(
+            f"invalid scan type '{gtype}'. "
+            f"Must be one of: {', '.join(sorted(SUPPORTED_GENERATORS))}"
+        )
+
+    range_in = axis.get("range")
+    if not isinstance(range_in, dict):
+        raise ValueError(f"scan axis '{fqn}' missing or invalid 'range'")
+
+    required = SUPPORTED_GENERATORS[gtype]
+    missing = [k for k in required if k not in range_in]
+    if missing:
+        raise ValueError(
+            f"scan axis '{fqn}' ({gtype}) range missing keys: {', '.join(missing)}"
+        )
+
+    # Every ndscan generator's __init__ takes randomise_order as a required
+    # positional; default it so callers don't have to specify it.
+    range_out = dict(range_in)
+    range_out.setdefault("randomise_order", False)
+
+    return {"type": gtype, "range": range_out, "fqn": fqn, "path": ""}
+
 
 async def build_ndscan_params(
     file: str,
@@ -18,30 +87,29 @@ async def build_ndscan_params(
     axes: list[dict],
     fixed_params: dict[str, Any] | None = None,
     num_repeats: int = 1,
-) -> list:
-    """Build canonical ndscan_params from high-level scan input.
+) -> str:
+    """Build the ``ndscan_params`` argument value (a PYON/JSON string).
 
-    Fetches the experiment's arginfo from the explist, extracts the canonical
-    schemata, and assembles a complete ndscan_params dict in the ARTIQ
-    list-of-dicts format.
+    Fetches the experiment's arginfo to confirm it is an ndscan experiment, then
+    assembles the minimal ``{overrides, scan}`` params dict in ndscan's decoded
+    wire format and returns it JSON-encoded (valid PYON for primitive content).
 
     Args:
         file: Experiment file path (e.g. "scans/rabi.py").
         class_name: Experiment class name (e.g. "RabiFlop").
-        axes: List of scan-axis dicts, each with ``fqn``, ``type``, and
-            ``range`` keys.
-        fixed_params: Dict mapping FQN to override value.  These become the
-            ``overrides`` in ndscan_params.
+        axes: List of high-level scan-axis dicts, each with ``fqn``, ``type``
+            (ndscan generator name), and ``range`` keys.
+        fixed_params: Dict mapping FQN to a fixed override value.  Each becomes
+            ``{fqn: [{"path": "", "value": value}]}`` in ``overrides``.
         num_repeats: Number of repeat runs (default: 1).
 
     Returns:
-        The ndscan_params in ARTIQ list-of-dicts format::
-
-            [{"ty": "PYONValue", "default": json_string}, None, None]
+        The ndscan_params value as a JSON string, ready to submit as
+        ``arguments={"ndscan_params": <this string>}``.
 
     Raises:
-        ValueError: If the experiment is not found in the explist, or if it
-            does not have ndscan_params in its arginfo.
+        ValueError: If the experiment is not found in the explist, does not have
+            ndscan schemata, or an axis is malformed.
     """
     explist = await get_explist()
 
@@ -54,43 +122,25 @@ async def build_ndscan_params(
     if arginfo is None:
         raise ValueError(f"Experiment {file}/{class_name} not found in explist")
 
-    # Extract canonical schemata from arginfo
+    # Confirm this is an ndscan experiment (has scannable schemata).  We don't
+    # embed the schemata in the value — ndscan rebuilds them from the fragment.
     schemata = _extract_schemata_from_arginfo(arginfo)
     if not schemata:
         raise ValueError(f"Experiment {file}/{class_name} has no ndscan schemata")
 
-    # Extract instances and always_shown from the original ndscan_params
-    instances: dict[str, list[str]] = {}
-    always_shown: list = []
+    overrides = {
+        fqn: [{"path": "", "value": value}]
+        for fqn, value in (fixed_params or {}).items()
+    }
 
-    ndscan_params_raw = arginfo.get("ndscan_params")
-    if ndscan_params_raw and isinstance(ndscan_params_raw, (list, tuple)):
-        try:
-            spec = ndscan_params_raw[0]
-            if isinstance(spec, dict):
-                default_json = spec.get("default")
-                if default_json and isinstance(default_json, str):
-                    original_data = json.loads(default_json)
-                    if isinstance(original_data, dict):
-                        instances = original_data.get("instances", {})
-                        always_shown = original_data.get("always_shown", [])
-        except (json.JSONDecodeError, IndexError, KeyError, TypeError):
-            pass
-
-    # Build the ndscan_params dict
     params_data = {
-        "instances": instances,
-        "schemata": schemata,
-        "always_shown": always_shown,
-        "overrides": fixed_params or {},
+        "overrides": overrides,
         "scan": {
-            "axes": axes,
+            "axes": [_build_axis(ax) for ax in axes],
             "num_repeats": num_repeats,
+            "no_axes_mode": "single",
+            "randomise_order_globally": False,
         },
     }
 
-    return [
-        {"ty": "PYONValue", "default": json.dumps(params_data)},
-        None,
-        None,
-    ]
+    return json.dumps(params_data)
