@@ -5,11 +5,19 @@ from pathlib import Path
 import pytest
 
 from artiq_http.artiq_api.models import ExpID
+from artiq_http.artiq_api.ndscan_validation import _extract_schemata_from_arginfo
 
 LOG_DIR = Path(__file__).parent / "logs"
 
 # Mark all tests in this module as requiring a real ARTIQ server
 pytestmark = pytest.mark.realserver
+
+# The scannable ndscan experiment baked into the test-artiq repository.
+# ARTIQ discovers experiments via ``inspect.getmembers``, so the registered
+# class_name is the *module attribute name* the scan experiment is bound to
+# (``ScannableScan``), not the fragment class name.
+SCANNABLE_FILE = "scannable_exp.py"
+SCANNABLE_CLASS = "ScannableScan"
 
 
 def test_get_explist(client):
@@ -112,3 +120,137 @@ def test_explist_search(client):
     data = response.json()
     assert "experiments" in data
     assert isinstance(data["experiments"], list)
+
+
+# ---------------------------------------------------------------------------
+# High-level scan submission (POST /api/scan) against the real ARTIQ master
+# ---------------------------------------------------------------------------
+
+
+def _scannable_schemata(client):
+    """Fetch the live arginfo for the scannable experiment and return its
+    ndscan schemata (a dict keyed by fully-qualified parameter name)."""
+    response = client.get(f"/api/explist/{SCANNABLE_FILE}/{SCANNABLE_CLASS}/arginfo")
+    assert response.status_code == 200, response.text
+    arginfo = response.json()["arginfo"]
+    schemata = _extract_schemata_from_arginfo(arginfo)
+    assert schemata, "scannable_exp.py should expose ndscan schemata"
+    return schemata
+
+
+def _fqn_ending_in(schemata, suffix):
+    """Return the FQN in *schemata* ending with *suffix* (e.g. '.frequency')."""
+    for fqn in schemata:
+        if fqn.endswith(suffix):
+            return fqn
+    raise AssertionError(f"no schema FQN ending in '{suffix}' found in {list(schemata)}")
+
+
+def test_scannable_exp_present(client):
+    """The scannable ndscan experiment is discovered by the real master."""
+    response = client.get("/api/explist")
+    assert response.status_code == 200
+    exp_names = [exp["file"] for exp in response.json()["experiments"]]
+    assert SCANNABLE_FILE in exp_names
+
+
+def test_scannable_exp_exposes_schemata(client):
+    """The scannable experiment exposes its scannable parameters as schemata."""
+    schemata = _scannable_schemata(client)
+    # Both float parameters should be scannable and therefore present.
+    _fqn_ending_in(schemata, ".frequency")
+    _fqn_ending_in(schemata, ".amplitude")
+
+
+def test_submit_1d_scan(client):
+    """POST /api/scan with a 1D LinearScan submits and returns an integer RID."""
+    schemata = _scannable_schemata(client)
+    fqn = _fqn_ending_in(schemata, ".frequency")
+
+    req = {
+        "file": SCANNABLE_FILE,
+        "class_name": SCANNABLE_CLASS,
+        "axes": [
+            {
+                "fqn": fqn,
+                "type": "LinearScan",
+                "range": {"start": 1.0, "stop": 5.0, "num_points": 5},
+            }
+        ],
+    }
+    response = client.post("/api/scan", json=req)
+    assert response.status_code == 200, response.text
+    rid = response.json()
+    assert isinstance(rid, int)
+    assert rid >= 0
+
+
+def test_submit_multi_axis_scan(client):
+    """POST /api/scan with two scan axes submits successfully."""
+    schemata = _scannable_schemata(client)
+    freq = _fqn_ending_in(schemata, ".frequency")
+    amp = _fqn_ending_in(schemata, ".amplitude")
+
+    req = {
+        "file": SCANNABLE_FILE,
+        "class_name": SCANNABLE_CLASS,
+        "axes": [
+            {"fqn": freq, "type": "LinearScan", "range": {"start": 1.0, "stop": 3.0, "num_points": 3}},
+            {"fqn": amp, "type": "LinearScan", "range": {"start": 0.1, "stop": 0.3, "num_points": 3}},
+        ],
+    }
+    response = client.post("/api/scan", json=req)
+    assert response.status_code == 200, response.text
+    assert isinstance(response.json(), int)
+
+
+def test_submit_scan_and_wait_completes(client):
+    """POST /api/scan/submit-and-wait runs a host-only scan to completion."""
+    schemata = _scannable_schemata(client)
+    fqn = _fqn_ending_in(schemata, ".frequency")
+
+    req = {
+        "file": SCANNABLE_FILE,
+        "class_name": SCANNABLE_CLASS,
+        "axes": [
+            {
+                "fqn": fqn,
+                "type": "LinearScan",
+                "range": {"start": 1.0, "stop": 4.0, "num_points": 4},
+            }
+        ],
+    }
+    response = client.post("/api/scan/submit-and-wait?timeout=120", json=req)
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert result["rid"] >= 0
+    assert result["status"] == "completed"
+    assert result["timed_out"] is False
+
+
+def test_submit_scan_unknown_experiment(client):
+    """POST /api/scan for a non-existent experiment returns 404."""
+    req = {
+        "file": "does_not_exist.py",
+        "class_name": "NoSuchExperiment",
+        "axes": [{"fqn": "x.y", "type": "LinearScan", "range": {"start": 0.0, "stop": 1.0, "num_points": 2}}],
+    }
+    response = client.post("/api/scan", json=req)
+    assert response.status_code == 404, response.text
+
+
+def test_submit_scan_unknown_fqn(client):
+    """POST /api/scan referencing a parameter the experiment lacks returns 422."""
+    req = {
+        "file": SCANNABLE_FILE,
+        "class_name": SCANNABLE_CLASS,
+        "axes": [
+            {
+                "fqn": "scannable_exp.ScannableFrag.does_not_exist",
+                "type": "LinearScan",
+                "range": {"start": 0.0, "stop": 1.0, "num_points": 2},
+            }
+        ],
+    }
+    response = client.post("/api/scan", json=req)
+    assert response.status_code == 422, response.text
