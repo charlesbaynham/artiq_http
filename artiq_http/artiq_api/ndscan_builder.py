@@ -57,7 +57,7 @@ def _build_axis(axis: dict) -> dict:
 
     gtype = axis.get("type")
     if gtype not in SUPPORTED_GENERATORS:
-        raise ValueError(f"invalid scan type '{gtype}'. " f"Must be one of: {', '.join(sorted(SUPPORTED_GENERATORS))}")
+        raise ValueError(f"invalid scan type '{gtype}'. Must be one of: {', '.join(sorted(SUPPORTED_GENERATORS))}")
 
     range_in = axis.get("range")
     if not isinstance(range_in, dict):
