@@ -71,6 +71,10 @@ The mock serves a live 0D repeat single-point NDScan (`ndscan.rid_1`) with four 
 
 The mock backend lives in `artiq_http/mock_backend.py`. It replaces the global `subscriber_manager` singleton at startup, so all API paths behave normally.
 
+## Reference repos
+
+This projects relies on interfacing with the ARTIQ and ndscan packages, even though they are not direct dependencies. To facilitate development, this project includes reference clones of both packages in `.claude/deps/` (updated by a Claude Code hook on startup). These are read-only and should be consulted for reference only.
+
 ## Local ARTIQ Testing
 
 After any major change to the backend or experiment discovery logic, you **must** verify the changes against the local ARTIQ test environment:

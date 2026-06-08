@@ -7,6 +7,10 @@ artiq_http
 
 A work in progress...
 
+ndscan scan submission is supported via ``POST /api/scan`` and the MCP tools
+``submit_1d_scan`` / ``submit_multi_axis_scan``.  See `docs/usage.rst` for
+the full API contract, valid scan types, and error codes.
+
 Installation
 ------------
 
