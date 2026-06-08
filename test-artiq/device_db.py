@@ -6,7 +6,6 @@ if not hasattr(CommKernelDummy, "close"):
     def _close(self):
         return None
 
-
     CommKernelDummy.close = _close
 
 
