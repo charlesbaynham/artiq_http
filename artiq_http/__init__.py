@@ -2,4 +2,4 @@
 
 __author__ = "Charles Baynham <charles.baynham@gmail.com>"
 __all__ = []
-__version__ = "0.13.0"
+__version__ = "0.14.0"

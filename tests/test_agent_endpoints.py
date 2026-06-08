@@ -5,10 +5,12 @@
 - POST /api/schedule/submit-and-wait
 """
 
+import json
 from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
+from artiq_http.artiq_api.models import ExperimentEntry, ExperimentList
 from artiq_http.main import fastapi_app
 
 client = TestClient(fastapi_app)
@@ -320,5 +322,537 @@ def test_submit_and_wait_clamps_timeout(mock_submit, mock_schedule, mock_sleep):
     data = response.json()
     assert data["rid"] == 77
     # With RID gone on first poll, it should complete immediately regardless of clamped timeout
+    assert data["status"] == "completed"
+    assert data["timed_out"] is False
+
+
+# ---------------------------------------------------------------------------
+# NDScan validation tests
+# ---------------------------------------------------------------------------
+
+
+def _make_ndscan_params(scan_axes, overrides=None, num_repeats=1):
+    """Build an ndscan_params JSON string for testing."""
+    data = {
+        "instances": {"": ["test.frequency", "test.amplitude"]},
+        "schemata": {
+            "test.frequency": {
+                "fqn": "test.frequency",
+                "description": "Frequency",
+                "type": "float",
+                "default": "100.0",
+                "spec": {"is_scannable": True, "unit": "MHz"},
+            },
+            "test.amplitude": {
+                "fqn": "test.amplitude",
+                "description": "Amplitude",
+                "type": "float",
+                "default": "0.5",
+                "spec": {"is_scannable": True, "unit": "V"},
+            },
+        },
+        "always_shown": [],
+        "overrides": overrides or {},
+        "scan": {"axes": scan_axes, "num_repeats": num_repeats},
+    }
+    return [{"ty": "PYONValue", "default": json.dumps(data)}, None, None]
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_ndscan_valid(mock_submit, mock_get_explist):
+    """Valid ndscan_params passes validation and submits."""
+    mock_submit.return_value = 1
+    mock_get_explist.return_value = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    payload = {
+        "log_level": 30,
+        "file": "ndscan_exp.py",
+        "class_name": "NDScanExp",
+        "arguments": {
+            "ndscan_params": _make_ndscan_params(
+                [
+                    {
+                        "fqn": "test.frequency",
+                        "type": "LinearScan",
+                        "range": {"start": 0.0, "stop": 100.0, "num_points": 10},
+                    }
+                ]
+            )
+        },
+        "repo_rev": None,
+    }
+    response = client.post("/api/schedule", json=payload)
+    assert response.status_code == 200
+    assert response.json() == 1
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_ndscan_invalid_json(mock_submit, mock_get_explist):
+    """Malformed JSON in ndscan_params returns 422."""
+    mock_get_explist.return_value = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    payload = {
+        "log_level": 30,
+        "file": "ndscan_exp.py",
+        "class_name": "NDScanExp",
+        "arguments": {"ndscan_params": [{"ty": "PYONValue", "default": "not json"}, None, None]},
+        "repo_rev": None,
+    }
+    response = client.post("/api/schedule", json=payload)
+    assert response.status_code == 422
+    assert "JSON parse error" in response.json()["detail"]
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_ndscan_missing_required_keys(mock_submit, mock_get_explist):
+    """Missing required keys in ndscan_params returns 422."""
+    mock_get_explist.return_value = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    payload = {
+        "log_level": 30,
+        "file": "ndscan_exp.py",
+        "class_name": "NDScanExp",
+        "arguments": {"ndscan_params": [{"ty": "PYONValue", "default": "{}"}, None, None]},
+        "repo_rev": None,
+    }
+    response = client.post("/api/schedule", json=payload)
+    assert response.status_code == 422
+    assert "missing required key" in response.json()["detail"]
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_ndscan_unknown_scan_type(mock_submit, mock_get_explist):
+    """Unknown scan type returns 422."""
+    mock_get_explist.return_value = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    payload = {
+        "log_level": 30,
+        "file": "ndscan_exp.py",
+        "class_name": "NDScanExp",
+        "arguments": {
+            "ndscan_params": _make_ndscan_params(
+                [{"fqn": "test.frequency", "type": "BadScan", "range": {"start": 0.0, "stop": 100.0, "num_points": 10}}]
+            )
+        },
+        "repo_rev": None,
+    }
+    response = client.post("/api/schedule", json=payload)
+    assert response.status_code == 422
+    assert "invalid scan type" in response.json()["detail"]
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_ndscan_unknown_fqn(mock_submit, mock_get_explist):
+    """Scan axis referencing unknown FQN returns 422."""
+    mock_get_explist.return_value = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    payload = {
+        "log_level": 30,
+        "file": "ndscan_exp.py",
+        "class_name": "NDScanExp",
+        "arguments": {
+            "ndscan_params": _make_ndscan_params(
+                [
+                    {
+                        "fqn": "test.unknown",
+                        "type": "LinearScan",
+                        "range": {"start": 0.0, "stop": 100.0, "num_points": 10},
+                    }
+                ]
+            )
+        },
+        "repo_rev": None,
+    }
+    response = client.post("/api/schedule", json=payload)
+    assert response.status_code == 422
+    assert "unknown parameter" in response.json()["detail"]
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_ndscan_overlap(mock_submit, mock_get_explist):
+    """Parameter both scanned and in overrides returns 422."""
+    mock_get_explist.return_value = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    payload = {
+        "log_level": 30,
+        "file": "ndscan_exp.py",
+        "class_name": "NDScanExp",
+        "arguments": {
+            "ndscan_params": _make_ndscan_params(
+                [
+                    {
+                        "fqn": "test.frequency",
+                        "type": "LinearScan",
+                        "range": {"start": 0.0, "stop": 100.0, "num_points": 10},
+                    }
+                ],
+                overrides={"test.frequency": 50.0},
+            )
+        },
+        "repo_rev": None,
+    }
+    response = client.post("/api/schedule", json=payload)
+    assert response.status_code == 422
+    assert "both scanned and fixed" in response.json()["detail"]
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_ndscan_start_ge_stop(mock_submit, mock_get_explist):
+    """start >= stop returns 422."""
+    mock_get_explist.return_value = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    payload = {
+        "log_level": 30,
+        "file": "ndscan_exp.py",
+        "class_name": "NDScanExp",
+        "arguments": {
+            "ndscan_params": _make_ndscan_params(
+                [
+                    {
+                        "fqn": "test.frequency",
+                        "type": "LinearScan",
+                        "range": {"start": 100.0, "stop": 100.0, "num_points": 10},
+                    }
+                ]
+            )
+        },
+        "repo_rev": None,
+    }
+    response = client.post("/api/schedule", json=payload)
+    assert response.status_code == 422
+    assert "must be less than stop" in response.json()["detail"]
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_ndscan_num_points_zero(mock_submit, mock_get_explist):
+    """num_points <= 0 returns 422."""
+    mock_get_explist.return_value = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    payload = {
+        "log_level": 30,
+        "file": "ndscan_exp.py",
+        "class_name": "NDScanExp",
+        "arguments": {
+            "ndscan_params": _make_ndscan_params(
+                [
+                    {
+                        "fqn": "test.frequency",
+                        "type": "LinearScan",
+                        "range": {"start": 0.0, "stop": 100.0, "num_points": 0},
+                    }
+                ]
+            )
+        },
+        "repo_rev": None,
+    }
+    response = client.post("/api/schedule", json=payload)
+    assert response.status_code == 422
+    assert "must be greater than 0" in response.json()["detail"]
+
+
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_non_ndscan_unaffected(mock_submit):
+    """Non-ndscan experiments submit without ndscan validation."""
+    mock_submit.return_value = 42
+    payload = {
+        "log_level": 30,
+        "file": "simple_exp.py",
+        "class_name": "SimpleExp",
+        "arguments": {"count": 5},
+        "repo_rev": None,
+    }
+    response = client.post("/api/schedule", json=payload)
+    assert response.status_code == 200
+    assert response.json() == 42
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_ndscan_listscan_valid(mock_submit, mock_get_explist):
+    """ListScan with valid values list passes."""
+    mock_submit.return_value = 1
+    mock_get_explist.return_value = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    payload = {
+        "log_level": 30,
+        "file": "ndscan_exp.py",
+        "class_name": "NDScanExp",
+        "arguments": {
+            "ndscan_params": _make_ndscan_params(
+                [{"fqn": "test.frequency", "type": "ListScan", "range": {"values": [1.0, 2.0, 3.0]}}]
+            )
+        },
+        "repo_rev": None,
+    }
+    response = client.post("/api/schedule", json=payload)
+    assert response.status_code == 200
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_ndscan_listscan_empty_values(mock_submit, mock_get_explist):
+    """ListScan with empty values returns 422."""
+    mock_get_explist.return_value = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    payload = {
+        "log_level": 30,
+        "file": "ndscan_exp.py",
+        "class_name": "NDScanExp",
+        "arguments": {
+            "ndscan_params": _make_ndscan_params(
+                [{"fqn": "test.frequency", "type": "ListScan", "range": {"values": []}}]
+            )
+        },
+        "repo_rev": None,
+    }
+    response = client.post("/api/schedule", json=payload)
+    assert response.status_code == 422
+    assert "must not be empty" in response.json()["detail"]
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_and_wait_ndscan_validation(mock_submit, mock_get_explist):
+    """submit-and-wait also runs ndscan validation."""
+    mock_get_explist.return_value = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    payload = {
+        "log_level": 30,
+        "file": "ndscan_exp.py",
+        "class_name": "NDScanExp",
+        "arguments": {
+            "ndscan_params": _make_ndscan_params(
+                [
+                    {
+                        "fqn": "test.frequency",
+                        "type": "LinearScan",
+                        "range": {"start": 100.0, "stop": 50.0, "num_points": 10},
+                    }
+                ]
+            )
+        },
+        "repo_rev": None,
+    }
+    response = client.post("/api/schedule/submit-and-wait", json=payload)
+    assert response.status_code == 422
+    assert "must be less than stop" in response.json()["detail"]
+
+
+# ---------------------------------------------------------------------------
+# POST /api/scan — high-level scan submission
+# ---------------------------------------------------------------------------
+
+SCAN_REQUEST_1D = {
+    "file": "ndscan_exp.py",
+    "class_name": "NDScanExp",
+    "axes": [
+        {
+            "fqn": "test.frequency",
+            "type": "LinearScan",
+            "range": {"start": 0.0, "stop": 100.0, "num_points": 10},
+        }
+    ],
+    "fixed_params": {"test.amplitude": 0.5},
+    "num_repeats": 1,
+}
+
+SCAN_REQUEST_MULTI = {
+    "file": "ndscan_exp.py",
+    "class_name": "NDScanExp",
+    "axes": [
+        {
+            "fqn": "test.frequency",
+            "type": "LinearScan",
+            "range": {"start": 0.0, "stop": 100.0, "num_points": 10},
+        },
+        {
+            "fqn": "test.amplitude",
+            "type": "LinearScan",
+            "range": {"start": 0.1, "stop": 1.0, "num_points": 5},
+        },
+    ],
+    "num_repeats": 2,
+}
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_scan_1d_valid(mock_submit, mock_builder_explist, mock_api_explist):
+    """POST /api/scan with a valid 1D LinearScan returns 200 and a RID."""
+    mock_submit.return_value = 55
+    explist = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    mock_builder_explist.return_value = explist
+    mock_api_explist.return_value = explist
+    response = client.post("/api/scan", json=SCAN_REQUEST_1D)
+    assert response.status_code == 200
+    assert response.json() == 55
+    mock_submit.assert_called_once()
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_scan_multi_axis_valid(mock_submit, mock_builder_explist, mock_api_explist):
+    """POST /api/scan with a valid multi-axis scan returns 200 and a RID."""
+    mock_submit.return_value = 56
+    explist = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    mock_builder_explist.return_value = explist
+    mock_api_explist.return_value = explist
+    response = client.post("/api/scan", json=SCAN_REQUEST_MULTI)
+    assert response.status_code == 200
+    assert response.json() == 56
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_scan_listscan_valid(mock_submit, mock_builder_explist, mock_api_explist):
+    """POST /api/scan with a valid ListScan returns 200."""
+    mock_submit.return_value = 57
+    explist = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    mock_builder_explist.return_value = explist
+    mock_api_explist.return_value = explist
+    payload = {
+        "file": "ndscan_exp.py",
+        "class_name": "NDScanExp",
+        "axes": [{"fqn": "test.frequency", "type": "ListScan", "range": {"values": [10.0, 20.0, 30.0]}}],
+    }
+    response = client.post("/api/scan", json=payload)
+    assert response.status_code == 200
+    assert response.json() == 57
+
+
+@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_scan_unknown_experiment(mock_submit, mock_builder_explist):
+    """POST /api/scan with an unknown experiment returns 404."""
+    mock_builder_explist.return_value = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[],
+    )
+    payload = {
+        "file": "missing.py",
+        "class_name": "Missing",
+        "axes": [{"fqn": "x.y", "type": "LinearScan", "range": {"start": 0.0, "stop": 1.0, "num_points": 5}}],
+    }
+    response = client.post("/api/scan", json=payload)
+    assert response.status_code == 404
+
+
+@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_scan_no_ndscan_schemata(mock_submit, mock_builder_explist):
+    """POST /api/scan with a non-ndscan experiment returns 422."""
+    mock_builder_explist.return_value = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**EXPERIMENT_ENTRY)],
+    )
+    payload = {
+        "file": "simple_exp.py",
+        "class_name": "SimpleExp",
+        "axes": [{"fqn": "x.y", "type": "LinearScan", "range": {"start": 0.0, "stop": 1.0, "num_points": 5}}],
+    }
+    response = client.post("/api/scan", json=payload)
+    assert response.status_code == 422
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_scan_invalid_scan_type(mock_submit, mock_builder_explist, mock_api_explist):
+    """POST /api/scan with an invalid scan type returns 422 after builder+validation."""
+    explist = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    mock_builder_explist.return_value = explist
+    mock_api_explist.return_value = explist
+    payload = {
+        "file": "ndscan_exp.py",
+        "class_name": "NDScanExp",
+        "axes": [{"fqn": "test.frequency", "type": "BadScan", "range": {"start": 0.0, "stop": 100.0, "num_points": 5}}],
+    }
+    response = client.post("/api/scan", json=payload)
+    assert response.status_code == 422
+    assert "invalid scan type" in response.json()["detail"]
+
+
+@patch("artiq_http.api.asyncio.sleep", new_callable=AsyncMock)
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.notifiers.get_schedule", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_scan_and_wait_completes(mock_submit, mock_schedule, mock_builder_explist, mock_api_explist, mock_sleep):
+    """POST /api/scan/submit-and-wait returns completed status when RID leaves schedule."""
+    mock_submit.return_value = 88
+    explist = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**NDSCAN_EXPERIMENT_ENTRY)],
+    )
+    mock_builder_explist.return_value = explist
+    mock_api_explist.return_value = explist
+    mock_schedule.return_value = {}  # RID gone immediately
+    response = client.post("/api/scan/submit-and-wait", json=SCAN_REQUEST_1D)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["rid"] == 88
     assert data["status"] == "completed"
     assert data["timed_out"] is False
