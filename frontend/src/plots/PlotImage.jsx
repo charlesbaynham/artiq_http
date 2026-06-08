@@ -1,25 +1,14 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import PropTypes from "prop-types";
 
-// Render a 2D array of monochrome pixel values onto a canvas.
-// `compact` mode produces a fixed thumbnail; normal mode fills its container.
-function PlotImage({ name, pixels, compact = false }) {
-  const containerRef = useRef(null);
+// Render a 2D array of monochrome pixel values onto a canvas that fills its
+// parent. Auto-normalizes contrast (min→0, max→255). The parent controls the
+// size and aspect ratio; the canvas scales to fit with crisp pixelation.
+function PlotImage({ pixels, name }) {
   const canvasRef = useRef(null);
-  const [size, setSize] = useState({ w: 200, h: 200 });
-
-  useEffect(() => {
-    if (compact || !containerRef.current) return;
-    const ro = new ResizeObserver(([e]) => {
-      const cr = e.contentRect;
-      setSize({ w: Math.max(64, cr.width), h: Math.max(64, cr.height) });
-    });
-    ro.observe(containerRef.current);
-    return () => ro.disconnect();
-  }, [compact]);
 
   const { rows, cols, vMin, vMax } = useMemo(() => {
-    if (!pixels || !pixels.length || !pixels[0].length) {
+    if (!pixels || !pixels.length || !pixels[0]?.length) {
       return { rows: 0, cols: 0, vMin: 0, vMax: 1 };
     }
     let mn = Infinity,
@@ -61,105 +50,22 @@ function PlotImage({ name, pixels, compact = false }) {
     ctx.putImageData(imageData, 0, 0);
   }, [pixels, rows, cols, vMin, vMax]);
 
-  if (compact) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 4,
-          width: 96,
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            width: 88,
-            height: 88,
-            background: "var(--p-inset)",
-            border: "1px solid var(--p-border)",
-            borderRadius: "var(--p-radius-sm)",
-            overflow: "hidden",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {pixels && rows > 0 ? (
-            <canvas
-              ref={canvasRef}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "contain",
-                imageRendering: "pixelated",
-              }}
-            />
-          ) : (
-            <span style={{ color: "var(--p-ink30)", fontSize: 10 }}>
-              no data
-            </span>
-          )}
-        </div>
-        <span
-          className="p-mono"
-          style={{
-            fontSize: 10,
-            color: "var(--p-ink50)",
-            maxWidth: 92,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            textAlign: "center",
-          }}
-          title={name}
-        >
-          {name}
-        </span>
-      </div>
-    );
+  if (!pixels || rows === 0) {
+    return <div className="p-img-empty">no data</div>;
   }
 
   return (
-    <div
-      ref={containerRef}
-      style={{ width: "100%", height: "100%", position: "relative" }}
-    >
-      {pixels && rows > 0 ? (
-        <canvas
-          ref={canvasRef}
-          style={{
-            width: size.w,
-            height: size.h,
-            objectFit: "contain",
-            imageRendering: "pixelated",
-            display: "block",
-          }}
-        />
-      ) : (
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "var(--p-ink30)",
-            fontSize: 12,
-          }}
-        >
-          no data
-        </div>
-      )}
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="p-img-canvas"
+      aria-label={name ? `${name} image` : "image"}
+    />
   );
 }
 
 PlotImage.propTypes = {
-  name: PropTypes.string.isRequired,
   pixels: PropTypes.array,
-  compact: PropTypes.bool,
+  name: PropTypes.string,
 };
 
 export default PlotImage;

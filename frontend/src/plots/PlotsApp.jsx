@@ -539,7 +539,7 @@ function PlotsApp() {
           />
           <div
             ref={plotPanelRef}
-            className="p-panel"
+            className="p-panel p-plot-panel"
             style={{
               flex: 1,
               padding: 0,

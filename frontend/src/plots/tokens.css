@@ -5,418 +5,625 @@
  */
 
 .plots-app {
-    /* Surface — dark (default) */
-    --p-bg: #0e0f10;
-    --p-panel: #16191c;
-    --p-panel-alt: #1b1f23;
-    --p-inset: #0b0d0e;
-    --p-border: #2a2f35;
-    --p-border-hi: #3d444c;
-    --p-grid: #22272c;
+  /* Surface — dark (default) */
+  --p-bg: #0e0f10;
+  --p-panel: #16191c;
+  --p-panel-alt: #1b1f23;
+  --p-inset: #0b0d0e;
+  --p-border: #2a2f35;
+  --p-border-hi: #3d444c;
+  --p-grid: #22272c;
 
-    /* Ink */
-    --p-ink: #e8e6df;
-    --p-ink70: rgba(232, 230, 223, 0.72);
-    --p-ink50: rgba(232, 230, 223, 0.52);
-    --p-ink30: rgba(232, 230, 223, 0.28);
+  /* Ink */
+  --p-ink: #e8e6df;
+  --p-ink70: rgba(232, 230, 223, 0.72);
+  --p-ink50: rgba(232, 230, 223, 0.52);
+  --p-ink30: rgba(232, 230, 223, 0.28);
 
-    /* Channel palette */
-    --p-c0: #e8e6df;
-    --p-c1: #f08a4d;
-    --p-c2: #7fb0c5;
-    --p-c3: #cba377;
-    --p-c4: #8cc28a;
-    --p-c5: #c79fc1;
-    --p-c6: #e0bb5e;
-    --p-c7: #8bb0d8;
+  /* Channel palette */
+  --p-c0: #e8e6df;
+  --p-c1: #f08a4d;
+  --p-c2: #7fb0c5;
+  --p-c3: #cba377;
+  --p-c4: #8cc28a;
+  --p-c5: #c79fc1;
+  --p-c6: #e0bb5e;
+  --p-c7: #8bb0d8;
 
-    --p-accent: #f08a4d;
-    --p-ok: #6fbf86;
-    --p-warn: #e0a455;
-    --p-err: #e76a59;
-    --p-live: #6fbf86;
+  --p-accent: #f08a4d;
+  --p-ok: #6fbf86;
+  --p-warn: #e0a455;
+  --p-err: #e76a59;
+  --p-live: #6fbf86;
 
-    --p-font-ui: "Inter", "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
-    --p-font-mono: "JetBrains Mono", "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --p-font-ui:
+    "Inter", "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --p-font-mono:
+    "JetBrains Mono", "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas,
+    monospace;
 
-    --p-radius-sm: 4px;
-    --p-radius: 6px;
-    --p-radius-lg: 10px;
+  --p-radius-sm: 4px;
+  --p-radius: 6px;
+  --p-radius-lg: 10px;
 
-    --p-row-h: 28px;
+  --p-row-h: 28px;
 
-    color-scheme: dark;
-    background: var(--p-bg);
-    color: var(--p-ink);
-    font-family: var(--p-font-ui);
-    font-size: 13px;
-    line-height: 1.4;
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
+  color-scheme: dark;
+  background: var(--p-bg);
+  color: var(--p-ink);
+  font-family: var(--p-font-ui);
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 @media (prefers-color-scheme: light) {
-    .plots-app {
-        /* Surface — light */
-        --p-bg: #fafaf7;
-        --p-panel: #ffffff;
-        --p-panel-alt: #f4f3ee;
-        --p-inset: #eeede6;
-        --p-border: #e6e3d8;
-        --p-border-hi: #cfcabc;
-        --p-grid: #ebe9e0;
+  .plots-app {
+    /* Surface — light */
+    --p-bg: #fafaf7;
+    --p-panel: #ffffff;
+    --p-panel-alt: #f4f3ee;
+    --p-inset: #eeede6;
+    --p-border: #e6e3d8;
+    --p-border-hi: #cfcabc;
+    --p-grid: #ebe9e0;
 
-        --p-ink: #1f1d18;
-        --p-ink70: rgba(31, 29, 24, 0.72);
-        --p-ink50: rgba(31, 29, 24, 0.52);
-        --p-ink30: rgba(31, 29, 24, 0.30);
+    --p-ink: #1f1d18;
+    --p-ink70: rgba(31, 29, 24, 0.72);
+    --p-ink50: rgba(31, 29, 24, 0.52);
+    --p-ink30: rgba(31, 29, 24, 0.3);
 
-        --p-c0: #1f1d18;
-        --p-c1: #e07a3c;
-        --p-c2: #5b7a8a;
-        --p-c3: #8c6f4a;
-        --p-c4: #5e8260;
-        --p-c5: #8a5a86;
-        --p-c6: #b88a2b;
-        --p-c7: #3f5a78;
+    --p-c0: #1f1d18;
+    --p-c1: #e07a3c;
+    --p-c2: #5b7a8a;
+    --p-c3: #8c6f4a;
+    --p-c4: #5e8260;
+    --p-c5: #8a5a86;
+    --p-c6: #b88a2b;
+    --p-c7: #3f5a78;
 
-        --p-accent: #e07a3c;
-        --p-ok: #3f8a5a;
-        --p-warn: #c97a1b;
-        --p-err: #c84a3b;
-        --p-live: #3f8a5a;
+    --p-accent: #e07a3c;
+    --p-ok: #3f8a5a;
+    --p-warn: #c97a1b;
+    --p-err: #c84a3b;
+    --p-live: #3f8a5a;
 
-        color-scheme: light;
-    }
+    color-scheme: light;
+  }
 }
 
 .plots-app *,
 .plots-app *::before,
 .plots-app *::after {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 /* utility shared classes — namespaced to .plots-app to avoid clashes */
 .plots-app .p-mono {
-    font-family: var(--p-font-mono);
-    font-variant-numeric: tabular-nums;
+  font-family: var(--p-font-mono);
+  font-variant-numeric: tabular-nums;
 }
 .plots-app .p-tnum {
-    font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums;
 }
 .plots-app .p-dim {
-    color: var(--p-ink50);
+  color: var(--p-ink50);
 }
 .plots-app .p-dim2 {
-    color: var(--p-ink30);
+  color: var(--p-ink30);
 }
 .plots-app .p-lbl {
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--p-ink50);
-    white-space: nowrap;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--p-ink50);
+  white-space: nowrap;
 }
 .plots-app .p-panel {
-    background: var(--p-panel);
-    border: 1px solid var(--p-border);
-    border-radius: var(--p-radius);
+  background: var(--p-panel);
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius);
 }
 .plots-app .p-panel-soft {
-    background: var(--p-panel-alt);
-    border: 1px solid var(--p-border);
-    border-radius: var(--p-radius);
+  background: var(--p-panel-alt);
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius);
 }
 
 .plots-app .p-btn {
-    font-family: var(--p-font-ui);
-    font-size: 12px;
-    font-weight: 500;
-    height: 26px;
-    padding: 0 10px;
-    border-radius: var(--p-radius-sm);
-    background: var(--p-panel);
-    color: var(--p-ink);
-    border: 1px solid var(--p-border);
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    transition: background 0.12s, border-color 0.12s;
-    white-space: nowrap;
-    flex-shrink: 0;
+  font-family: var(--p-font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--p-radius-sm);
+  background: var(--p-panel);
+  color: var(--p-ink);
+  border: 1px solid var(--p-border);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .plots-app .p-btn:hover {
-    border-color: var(--p-border-hi);
-    background: var(--p-inset);
+  border-color: var(--p-border-hi);
+  background: var(--p-inset);
 }
 .plots-app .p-btn.active {
-    background: var(--p-accent);
-    color: #fff;
-    border-color: var(--p-accent);
+  background: var(--p-accent);
+  color: #fff;
+  border-color: var(--p-accent);
 }
 .plots-app .p-btn.ghost {
-    background: transparent;
-    border-color: transparent;
+  background: transparent;
+  border-color: transparent;
 }
 .plots-app .p-btn.ghost:hover {
-    background: var(--p-inset);
+  background: var(--p-inset);
 }
 .plots-app .p-btn.icon {
-    width: 26px;
-    padding: 0;
-    justify-content: center;
+  width: 26px;
+  padding: 0;
+  justify-content: center;
 }
 
 .plots-app .p-pill {
-    font-family: var(--p-font-mono);
-    font-size: 10.5px;
-    padding: 2px 7px;
-    border-radius: 999px;
-    background: var(--p-inset);
-    color: var(--p-ink70);
-    border: 1px solid transparent;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    white-space: nowrap;
-    flex-shrink: 0;
+  font-family: var(--p-font-mono);
+  font-size: 10.5px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--p-inset);
+  color: var(--p-ink70);
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .plots-app .p-pill.ok {
-    background: color-mix(in oklab, var(--p-ok) 14%, transparent);
-    color: var(--p-ok);
+  background: color-mix(in oklab, var(--p-ok) 14%, transparent);
+  color: var(--p-ok);
 }
 .plots-app .p-pill.dashed {
-    background: transparent;
-    border-color: var(--p-border);
-    color: var(--p-ink70);
-    border-style: dashed;
+  background: transparent;
+  border-color: var(--p-border);
+  color: var(--p-ink70);
+  border-style: dashed;
 }
 
 .plots-app .p-live-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--p-live);
-    box-shadow: 0 0 0 0 color-mix(in oklab, var(--p-live) 60%, transparent);
-    animation: p-pulse 1.4s infinite;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--p-live);
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--p-live) 60%, transparent);
+  animation: p-pulse 1.4s infinite;
 }
 @keyframes p-pulse {
-    0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--p-live) 60%, transparent); }
-    70% { box-shadow: 0 0 0 6px color-mix(in oklab, var(--p-live) 0%, transparent); }
-    100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--p-live) 0%, transparent); }
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--p-live) 60%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--p-live) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--p-live) 0%, transparent);
+  }
 }
 
 /* layout */
 .plots-app {
-    display: grid;
-    grid-template-rows: 44px 1fr;
-    height: 720px;
-    max-height: calc(100vh - 200px);
-    min-height: 520px;
-    border: 1px solid var(--p-border);
-    border-radius: var(--p-radius);
-    overflow: hidden;
+  display: grid;
+  grid-template-rows: 44px 1fr;
+  height: 720px;
+  max-height: calc(100vh - 200px);
+  min-height: 520px;
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius);
+  overflow: hidden;
 }
 
 .plots-app .p-topbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 0 12px;
-    background: var(--p-panel);
-    border-bottom: 1px solid var(--p-border);
-    flex-wrap: nowrap;
-    white-space: nowrap;
-    overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  background: var(--p-panel);
+  border-bottom: 1px solid var(--p-border);
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .plots-app .p-work {
-    display: grid;
-    grid-template-columns: 240px 1fr 320px;
-    gap: 8px;
-    padding: 8px;
-    min-height: 0;
-    background: var(--p-bg);
-    overflow: hidden;
+  display: grid;
+  grid-template-columns: 240px 1fr 320px;
+  gap: 8px;
+  padding: 8px;
+  min-height: 0;
+  background: var(--p-bg);
+  overflow: hidden;
 }
 .plots-app .p-center {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    gap: 8px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 8px;
 }
 
 .plots-app .p-center > .p-panel:last-child {
-    flex: 1 1 auto;
-    min-height: 320px;
-    overflow: auto;
-    resize: vertical;
+  flex: 1 1 auto;
+  min-height: 320px;
+  overflow: auto;
+  resize: vertical;
 }
 
 .plots-app .p-cursor-readout {
-    overflow: auto;
+  overflow: auto;
 }
 
 .plots-app .p-cursor-values {
-    display: flex;
-    gap: 14px;
-    flex-wrap: wrap;
-    flex: 1;
-    min-width: 0;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
 }
 
 .plots-app .p-panel-h {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--p-border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--p-border);
 }
 
 /* scrollbars */
 .plots-app .p-scroll {
-    overflow: auto;
+  overflow: auto;
 }
 .plots-app .p-scroll::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+  width: 8px;
+  height: 8px;
 }
 .plots-app .p-scroll::-webkit-scrollbar-thumb {
-    background: var(--p-border);
-    border-radius: 4px;
+  background: var(--p-border);
+  border-radius: 4px;
 }
 .plots-app .p-scroll::-webkit-scrollbar-thumb:hover {
-    background: var(--p-border-hi);
+  background: var(--p-border-hi);
 }
 
 .plots-app svg {
-    display: block;
+  display: block;
 }
 .plots-app text {
-    font-family: var(--p-font-mono);
+  font-family: var(--p-font-mono);
 }
 
 @keyframes p-fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .plots-app input.p-search {
-    font-family: var(--p-font-ui);
-    font-size: 12px;
-    height: 26px;
-    padding: 0 10px;
-    background: var(--p-inset);
-    border: 1px solid transparent;
-    border-radius: var(--p-radius-sm);
-    color: var(--p-ink);
-    width: 100%;
+  font-family: var(--p-font-ui);
+  font-size: 12px;
+  height: 26px;
+  padding: 0 10px;
+  background: var(--p-inset);
+  border: 1px solid transparent;
+  border-radius: var(--p-radius-sm);
+  color: var(--p-ink);
+  width: 100%;
 }
 .plots-app input.p-search:focus {
-    outline: none;
-    border-color: var(--p-accent);
-    background: var(--p-panel);
+  outline: none;
+  border-color: var(--p-accent);
+  background: var(--p-panel);
 }
 
 /* hover row */
 .plots-app .p-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 6px;
-    border-radius: 4px;
-    cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 .plots-app .p-row:hover {
-    background: var(--p-inset);
+  background: var(--p-inset);
 }
 .plots-app .p-row.on {
-    background: color-mix(in oklab, var(--p-accent) 10%, transparent);
+  background: color-mix(in oklab, var(--p-accent) 10%, transparent);
 }
 .plots-app .p-row.on .p-row-name {
-    font-weight: 600;
+  font-weight: 600;
 }
 
 .plots-app .p-wordmark {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 4px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
 }
 .plots-app .p-wordmark .p-dot {
-    width: 6px;
-    height: 6px;
-    background: var(--p-accent);
-    border-radius: 50%;
-    transform: translateY(-2px);
+  width: 6px;
+  height: 6px;
+  background: var(--p-accent);
+  border-radius: 50%;
+  transform: translateY(-2px);
 }
 
 /* hide labels on narrow viewports */
 @media (max-width: 1280px) {
-    .plots-app .p-hide-narrow {
-        display: none;
-    }
+  .plots-app .p-hide-narrow {
+    display: none;
+  }
 }
 
 /* mobile collapse: stack rails below center */
 @media (max-width: 900px) {
-    .plots-app {
-        height: calc(100vh - 120px);
-        max-height: none;
-        min-height: 520px;
-    }
-    .plots-app .p-work {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto minmax(0, 1fr) auto;
-        overflow-y: auto;
-    }
-    .plots-app .p-center {
-        min-height: 280px;
-    }
-    .plots-app .p-center > .p-panel:last-child {
-        min-height: 0;
-        flex: 1;
-    }
-    .plots-app .p-cursor-readout {
-        max-height: 64px;
-    }
-    .plots-app .p-cursor-values {
-        flex-wrap: nowrap;
-    }
-    /* Allow rails to size to their content; cap with max-height for many channels */
-    .plots-app .p-rail-channels,
-    .plots-app .p-rail-timeline {
-        max-height: 220px;
-    }
-    /* Prevent scroll area from expanding to fill parent height (which causes an empty gap).
+  .plots-app {
+    height: calc(100vh - 120px);
+    max-height: none;
+    min-height: 520px;
+  }
+  /* Single vertical scroll: the work area is a flex column whose sections
+       each size to their content, and the whole column scrolls as one. Every
+       direct child is flex:0 0 auto so nothing collapses or steals height. */
+  .plots-app .p-work {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+  }
+  .plots-app .p-work > * {
+    flex: 0 0 auto;
+  }
+  .plots-app .p-center {
+    min-height: 0;
+  }
+  /* The plot needs an explicit, definite height so its ResizeObserver-driven
+       SVG sizes correctly in the content-sized column (a min-height alone can
+       resolve to 0 during reflow). !important overrides the inline minHeight:0. */
+  .plots-app .p-plot-panel {
+    flex: 0 0 auto;
+    height: 56vh !important;
+    min-height: 320px !important;
+    resize: vertical;
+    overflow: hidden;
+  }
+  /* The image section flows with its content rather than being trapped in the
+       plot panel's resizable scroll box. */
+  .plots-app .p-center > .p-panel.p-img-section {
+    flex: 0 0 auto;
+    min-height: 0;
+    overflow: visible;
+    resize: none;
+  }
+  .plots-app .p-cursor-readout {
+    max-height: 64px;
+  }
+  .plots-app .p-cursor-values {
+    flex-wrap: nowrap;
+  }
+  /* Rails size to their content (capped for many channels), never growing to
+       fill the column. */
+  .plots-app .p-rail-channels,
+  .plots-app .p-rail-timeline {
+    flex: 0 0 auto;
+    max-height: 220px;
+  }
+  /* Prevent scroll area from expanding to fill parent height (which causes an empty gap).
        !important is needed to override the inline flex: 1 style set in the JSX. */
-    .plots-app .p-rail-channels .p-scroll,
-    .plots-app .p-rail-timeline .p-scroll {
-        flex: 0 1 auto !important;
-        max-height: 160px;
-    }
+  .plots-app .p-rail-channels .p-scroll,
+  .plots-app .p-rail-timeline .p-scroll {
+    flex: 0 1 auto !important;
+    max-height: 160px;
+  }
+}
+
+/* ── Image view ─────────────────────────────────────────────────────────── */
+.plots-app .p-img-section {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--p-border);
+}
+.plots-app .p-img-section__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.plots-app .p-img-section__hint {
+  font-size: 10.5px;
+}
+
+/* Selector chips — wrap so every image stays visible (no horizontal scroll). */
+.plots-app .p-img-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.plots-app .p-img-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 9px 4px 4px;
+  max-width: 200px;
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius);
+  background: transparent;
+  color: var(--p-ink);
+  font-family: var(--p-font-ui);
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+.plots-app .p-img-chip:hover {
+  border-color: var(--p-border-hi);
+  background: var(--p-inset);
+}
+.plots-app .p-img-chip.is-selected {
+  border-color: var(--p-accent);
+  background: color-mix(in oklab, var(--p-accent) 10%, transparent);
+}
+.plots-app .p-img-chip__thumb {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  background: var(--p-inset);
+  border-radius: var(--p-radius-sm);
+  overflow: hidden;
+  display: block;
+}
+.plots-app .p-img-chip__name {
+  font-family: var(--p-font-mono);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Selected-image grid — auto-fills columns, collapses to one on narrow screens. */
+.plots-app .p-img-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.plots-app .p-img-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.plots-app .p-img-cell__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.plots-app .p-img-cell__name {
+  font-size: 11px;
+  color: var(--p-ink70);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.plots-app .p-img-cell__frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  background: var(--p-inset);
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius);
+  overflow: hidden;
+  cursor: zoom-in;
+}
+.plots-app .p-img-cell__frame:hover {
+  border-color: var(--p-border-hi);
+}
+
+/* Shared canvas + empty-state rendering. */
+.plots-app .p-img-canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  display: block;
+}
+.plots-app .p-img-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--p-ink30);
+  font-size: 11px;
+}
+
+/* Lightbox — fullscreen single-image inspector. */
+.plots-app .p-img-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  flex-direction: column;
+  animation: p-fadeIn 0.12s ease;
+}
+.plots-app .p-img-lightbox__bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  background: var(--p-panel);
+  border-bottom: 1px solid var(--p-border);
+}
+.plots-app .p-img-lightbox__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--p-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plots-app .p-img-lightbox__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+.plots-app .p-img-lightbox__frame {
+  max-width: 100%;
+  max-height: 100%;
+  width: min(100%, 80vh);
+  aspect-ratio: 1;
 }
 
 /* fullscreen route override */
 .plots-fullscreen-wrap .plots-app {
-    height: 100vh;
-    max-height: 100vh;
-    border-radius: 0;
-    border: none;
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
+  border: none;
 }
 
 /* native browser fullscreen for the plot panel */
 .p-panel:fullscreen {
-    background: var(--p-surface, #1a1a1a);
-    display: flex;
-    align-items: stretch;
-    justify-content: stretch;
+  background: var(--p-surface, #1a1a1a);
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
 }
 
 .p-panel:fullscreen > * {
-    flex: 1;
-    min-width: 0;
-    min-height: 0;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
 }

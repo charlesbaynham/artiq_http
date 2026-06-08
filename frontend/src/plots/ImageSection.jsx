@@ -31,42 +31,110 @@ function saveSelected(set) {
   }
 }
 
-// Per-image child that owns the SSE hook so hook count is unconditional.
-function ImageStream({ name, selected, thumbPixels }) {
+// Aspect ratio (cols/rows) of a 2D pixel array, or null if not yet known.
+function pixelAspect(pixels) {
+  if (!pixels || !pixels.length || !pixels[0]?.length) return null;
+  return pixels[0].length / pixels.length;
+}
+
+// A live image tile in the responsive grid. Owns its own SSE subscription so
+// the hook count stays unconditional regardless of selection state. When this
+// image is the expanded one it also renders the lightbox, reusing its own live
+// pixels rather than opening a second SSE connection (browsers cap concurrent
+// connections per host, so a separate stream can stall).
+function ImageTile({
+  name,
+  selected,
+  thumbPixels,
+  expanded,
+  onExpand,
+  onClose,
+}) {
   const { data } = useSSEDataset(name, { enabled: selected });
   const livePixels = data?.[name]?.[1] ?? null;
-  const pixels = selected ? livePixels : thumbPixels;
+  const pixels = livePixels ?? thumbPixels;
 
   if (!selected) return null;
 
+  const aspect = pixelAspect(pixels) ?? 1;
+
   return (
-    <div
-      style={{
-        flexShrink: 0,
-        width: 280,
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-      }}
-    >
-      <span
-        className="p-mono"
-        style={{
-          fontSize: 11,
-          color: "var(--p-ink70)",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-        title={name}
-      >
-        {name}
-      </span>
-      <div
-        className="p-panel"
-        style={{ width: 280, height: 280, padding: 0, overflow: "hidden" }}
+    <div className="p-img-cell">
+      <div className="p-img-cell__head">
+        <span className="p-img-cell__name p-mono" title={name}>
+          {name}
+        </span>
+      </div>
+      <button
+        type="button"
+        className="p-img-cell__frame"
+        style={{ aspectRatio: String(aspect) }}
+        onClick={() => onExpand(name)}
+        title={`Expand ${name}`}
+        aria-label={`Expand ${name}`}
       >
         <PlotImage name={name} pixels={pixels} />
+      </button>
+      {expanded && (
+        <ImageLightbox name={name} pixels={pixels} onClose={onClose} />
+      )}
+    </div>
+  );
+}
+
+// Fullscreen overlay showing one image large. Presentational: the pixels are
+// passed in from the owning tile so no extra SSE connection is needed.
+function ImageLightbox({ name, pixels, onClose }) {
+  const aspect = pixelAspect(pixels) ?? 1;
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="p-img-lightbox"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${name} image`}
+    >
+      <div className="p-img-lightbox__bar" onClick={(e) => e.stopPropagation()}>
+        <span className="p-img-lightbox__name p-mono" title={name}>
+          {name}
+        </span>
+        <button
+          type="button"
+          className="p-btn ghost icon"
+          onClick={onClose}
+          aria-label="Close"
+          title="Close"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+      <div className="p-img-lightbox__body">
+        <div
+          className="p-img-lightbox__frame"
+          style={{ aspectRatio: String(aspect) }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <PlotImage name={name} pixels={pixels} />
+        </div>
       </div>
     </div>
   );
@@ -76,6 +144,7 @@ function ImageSection() {
   const [imageNames, setImageNames] = useState([]);
   const [selected, setSelected] = useState(loadSelected);
   const [thumbData, setThumbData] = useState({});
+  const [expanded, setExpanded] = useState(null);
   const thumbTimerRef = useRef(null);
 
   const discoverImages = useCallback(async () => {
@@ -114,7 +183,7 @@ function ImageSection() {
     }
   }, []);
 
-  // Initial fetch and 60 s polling for all image thumbnails.
+  // Initial fetch and periodic polling for all image thumbnails.
   useEffect(() => {
     if (!imageNames.length) return;
     fetchThumbs(imageNames);
@@ -140,81 +209,56 @@ function ImageSection() {
     [imageNames, selected],
   );
 
+  // Close the lightbox if its image disappears from the store.
+  useEffect(() => {
+    if (expanded && !imageNames.includes(expanded)) setExpanded(null);
+  }, [expanded, imageNames]);
+
   if (!imageNames.length) return null;
 
   return (
-    <div
-      className="p-panel"
-      style={{
-        flexShrink: 0,
-        padding: "8px 10px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        borderTop: "1px solid var(--p-border)",
-      }}
-    >
-      {/* Selector row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span className="p-lbl" style={{ flexShrink: 0 }}>
-          images
+    <div className="p-panel p-img-section">
+      <div className="p-img-section__head">
+        <span className="p-lbl">images</span>
+        <span className="p-img-section__hint p-dim">
+          {anySelected ? "tap an image to expand" : "select images to view"}
         </span>
-        <div
-          style={{
-            display: "flex",
-            gap: 6,
-            overflowX: "auto",
-            alignItems: "flex-end",
-          }}
-        >
-          {imageNames.map((name) => {
-            const isSelected = selected.has(name);
-            return (
-              <button
-                key={name}
-                className="p-btn ghost"
-                onClick={() => toggleSelected(name)}
-                title={isSelected ? `Deselect ${name}` : `Select ${name}`}
-                style={{
-                  padding: 4,
-                  border: `1px solid ${
-                    isSelected ? "var(--p-accent)" : "var(--p-border)"
-                  }`,
-                  borderRadius: "var(--p-radius)",
-                  background: isSelected
-                    ? "rgba(240,138,77,0.08)"
-                    : "transparent",
-                  cursor: "pointer",
-                  flexShrink: 0,
-                }}
-              >
-                <PlotImage
-                  name={name}
-                  pixels={thumbData[name] ?? null}
-                  compact
-                />
-              </button>
-            );
-          })}
-        </div>
       </div>
 
-      {/* Live image strip for selected images */}
+      {/* Selector — wrapping chips, one per discovered image. */}
+      <div className="p-img-selector">
+        {imageNames.map((name) => {
+          const isSelected = selected.has(name);
+          return (
+            <button
+              key={name}
+              type="button"
+              className={`p-img-chip ${isSelected ? "is-selected" : ""}`}
+              onClick={() => toggleSelected(name)}
+              aria-pressed={isSelected}
+              title={isSelected ? `Hide ${name}` : `Show ${name}`}
+            >
+              <span className="p-img-chip__thumb">
+                <PlotImage name={name} pixels={thumbData[name] ?? null} />
+              </span>
+              <span className="p-img-chip__name">{name}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Selected images — responsive grid that fills the available width. */}
       {anySelected && (
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            overflowX: "auto",
-            paddingBottom: 4,
-          }}
-        >
+        <div className="p-img-grid">
           {imageNames.map((name) => (
-            <ImageStream
+            <ImageTile
               key={name}
               name={name}
               selected={selected.has(name)}
               thumbPixels={thumbData[name] ?? null}
+              expanded={expanded === name}
+              onExpand={setExpanded}
+              onClose={() => setExpanded(null)}
             />
           ))}
         </div>
