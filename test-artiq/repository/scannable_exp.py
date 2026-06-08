@@ -14,6 +14,15 @@ from ndscan.experiment import (
     IntParam,
     make_fragment_scan_exp,
 )
+from artiq.coredevice.comm_kernel import CommKernelDummy
+
+
+if not hasattr(CommKernelDummy, "close"):
+
+    def _close(self):
+        return None
+
+    CommKernelDummy.close = _close
 
 
 class ScannableFrag(ExpFragment):
