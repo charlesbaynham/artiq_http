@@ -1,10 +1,69 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { niceTicks, formatNum } from "./utils";
 
+// Group (x, value) pairs by identical x, returning points sorted by x with the
+// mean and standard error of the mean (std / sqrt(n)) of the values at each x.
+// Scans are often run in a randomized order and/or with repeats, so connecting
+// the raw points in arrival order produces a messy line; aggregating by x gives
+// a line through the per-x mean (with `err` available for error bars).
+function aggregateByX(xs, values) {
+  const groups = new Map();
+  const n = Math.min(xs.length, values.length);
+  for (let i = 0; i < n; i++) {
+    const x = xs[i];
+    const v = values[i];
+    if (!isFinite(x) || !isFinite(v)) continue;
+    let g = groups.get(x);
+    if (!g) groups.set(x, (g = []));
+    g.push(v);
+  }
+  const pts = [];
+  for (const [x, vs] of groups) {
+    const m = vs.length;
+    const mean = vs.reduce((a, b) => a + b, 0) / m;
+    let err = 0;
+    if (m > 1) {
+      const variance =
+        vs.reduce((a, b) => a + (b - mean) * (b - mean), 0) / (m - 1);
+      // Standard error of the mean: sample std divided by sqrt(n).
+      err = Math.sqrt(variance / m);
+    }
+    pts.push({ x, mean, err, n: m });
+  }
+  pts.sort((a, b) => a.x - b.x);
+  return pts;
+}
+
+// Build the ordered list of curve points used to draw the connecting line. For
+// scanned axes we sort by x and collapse repeats to their mean ± standard error;
+// for a time axis (e.g. 0D repeat mode) the arrival order is meaningful, so
+// points are kept as-is with no aggregation.
+function buildCurve(xs, values, scanned) {
+  if (scanned) return aggregateByX(xs, values);
+  const pts = [];
+  const n = Math.min(xs.length, values.length);
+  for (let i = 0; i < n; i++) {
+    if (isFinite(xs[i]) && isFinite(values[i])) {
+      pts.push({ x: xs[i], mean: values[i], err: 0, n: 1 });
+    }
+  }
+  return pts;
+}
+
 // 1D plot — points + connecting line per channel, optional ghost overlays,
-// crosshair cursor with per-channel readouts, inline legend.
-function Plot1D({ xs, xLabel, yLabel, channels, ghosts = [] }) {
+// crosshair cursor with per-channel readouts, inline legend. When `scanned` is
+// true the x-axis is a real scanned parameter, so points are sorted by x and
+// repeats at the same x are collapsed to their mean with standard-error bars;
+// when false (e.g. a 0D elapsed-time series) points are connected in order.
+function Plot1D({
+  xs,
+  xLabel,
+  yLabel,
+  channels,
+  ghosts = [],
+  scanned = false,
+}) {
   const ref = useRef(null);
   const [size, setSize] = useState({ w: 800, h: 460 });
   const [cursor, setCursor] = useState(null);
@@ -22,9 +81,27 @@ function Plot1D({ xs, xLabel, yLabel, channels, ghosts = [] }) {
     return () => ro.disconnect();
   }, []);
 
-  const onChannels = channels.filter(
-    (c) => c.on && c.values && c.values.length,
-  );
+  // Aggregate raw points into the curves used for the connecting lines and
+  // error bars. Memoized so cursor moves (which only set local state) don't
+  // recompute it — the props are stable between hovers.
+  const { onChannels, channelCurves, ghostCurves } = useMemo(() => {
+    const onCh = channels.filter((c) => c.on && c.values && c.values.length);
+    return {
+      onChannels: onCh,
+      channelCurves: onCh.map((c) => ({
+        ...c,
+        curve: buildCurve(xs, c.values, scanned),
+      })),
+      ghostCurves: ghosts.map((g) => ({
+        ...g,
+        curve: buildCurve(
+          g.xs && g.xs.length ? g.xs : xs,
+          g.values || [],
+          scanned,
+        ),
+      })),
+    };
+  }, [channels, xs, ghosts, scanned]);
 
   if (!xs.length || !onChannels.length) {
     return (
@@ -52,17 +129,41 @@ function Plot1D({ xs, xLabel, yLabel, channels, ghosts = [] }) {
   const innerW = size.w - padL - padR;
   const innerH = size.h - padT - padB;
 
-  // x range from axis values
-  const xMin = Math.min(...xs);
-  const xMax = Math.max(...xs);
-  // y range from all visible channels (with sensible fallback)
+  // x range from axis values, including any ghost overlays so a wider ghost
+  // isn't clipped (matching the y-range treatment below).
+  const allXs = ghostCurves.reduce(
+    (acc, g) => acc.concat(g.curve.map((p) => p.x)),
+    xs.filter((x) => isFinite(x)),
+  );
+  const xMin = Math.min(...allXs);
+  const xMax = Math.max(...allXs);
+  // y range from all visible channels (with sensible fallback). Include the
+  // raw points and the mean ± standard-error extents, since a large error bar
+  // can push beyond the most extreme raw point.
   let yMin = Infinity,
     yMax = -Infinity;
+  const extendY = (v) => {
+    if (!isFinite(v)) return;
+    if (v < yMin) yMin = v;
+    if (v > yMax) yMax = v;
+  };
   for (const c of onChannels) {
-    for (const v of c.values) {
-      if (!isFinite(v)) continue;
-      if (v < yMin) yMin = v;
-      if (v > yMax) yMax = v;
+    for (const v of c.values) extendY(v);
+  }
+  for (const c of channelCurves) {
+    for (const p of c.curve) {
+      extendY(p.mean - p.err);
+      extendY(p.mean + p.err);
+    }
+  }
+  // Fold ghost overlays into the range too, so an overlaid run is never
+  // clipped off-screen (e.g. early in a live scan when the active data still
+  // spans a tiny range).
+  for (const g of ghostCurves) {
+    for (const v of g.values || []) extendY(v);
+    for (const p of g.curve) {
+      extendY(p.mean - p.err);
+      extendY(p.mean + p.err);
     }
   }
   if (!isFinite(yMin) || !isFinite(yMax) || yMin === yMax) {
@@ -92,26 +193,40 @@ function Plot1D({ xs, xLabel, yLabel, channels, ghosts = [] }) {
   };
   const handleLeave = () => setCursor(null);
 
+  // Report the curve point (mean, sorted by x) nearest the cursor's x. Using
+  // the curve rather than the raw array index keeps the readout correct even
+  // when points were sampled out of order.
+  const nearestPoint = (curve) => {
+    if (!curve.length) return null;
+    let best = curve[0];
+    let bestD = Math.abs(curve[0].x - cursor.x);
+    for (const p of curve) {
+      const d = Math.abs(p.x - cursor.x);
+      if (d < bestD) {
+        bestD = d;
+        best = p;
+      }
+    }
+    return best;
+  };
+
   const cursorX = cursor ? sx(cursor.x) : null;
   const cursorReadouts = cursor
-    ? onChannels.map((c) => {
-        const arr = c.values;
-        let idx = Math.round(
-          ((cursor.x - xMin) / (xMax - xMin || 1)) * (arr.length - 1),
-        );
-        idx = Math.max(0, Math.min(arr.length - 1, idx));
-        return { key: c.key, color: c.color, value: arr[idx] };
+    ? channelCurves.map((c) => {
+        const p = nearestPoint(c.curve);
+        return {
+          key: c.key,
+          color: c.color,
+          value: p ? p.mean : NaN,
+          err: p && scanned && p.n > 1 ? p.err : null,
+        };
       })
     : [];
   const cursorGhostReadouts = cursor
-    ? ghosts.flatMap((g) => {
-        const arr = g.values;
-        if (!arr || !arr.length) return [];
-        let idx = Math.round(
-          ((cursor.x - xMin) / (xMax - xMin || 1)) * (arr.length - 1),
-        );
-        idx = Math.max(0, Math.min(arr.length - 1, idx));
-        return [{ rid: g.rid, value: arr[idx] }];
+    ? ghostCurves.flatMap((g) => {
+        const p = nearestPoint(g.curve);
+        if (!p) return [];
+        return [{ rid: g.rid, value: p.mean }];
       })
     : [];
 
@@ -211,12 +326,14 @@ function Plot1D({ xs, xLabel, yLabel, channels, ghosts = [] }) {
             ))}
           </g>
 
-          {/* ghost traces */}
-          {ghosts.map((g, gi) => {
+          {/* ghost traces — faded dashed line through the per-x means, with
+              faint raw points so the underlying scatter is still visible. */}
+          {ghostCurves.map((g, gi) => {
             const arr = g.values || [];
-            if (!arr.length) return null;
-            // Ghost xs may differ; here we assume they share the same axis grid.
-            const gxs = g.xs || xs;
+            const gxs = g.xs && g.xs.length ? g.xs : xs;
+            const line = g.curve
+              .map((p) => `${sx(p.x)},${sy(p.mean)}`)
+              .join(" ");
             return (
               <g key={"gh" + gi}>
                 {arr.map((v, i) =>
@@ -225,32 +342,91 @@ function Plot1D({ xs, xLabel, yLabel, channels, ghosts = [] }) {
                       key={i}
                       cx={sx(gxs[i])}
                       cy={sy(v)}
-                      r="2"
+                      r="1.5"
                       fill="var(--p-ink50)"
-                      opacity="0.55"
+                      opacity="0.4"
                     />
                   ) : null,
+                )}
+                {g.curve.length > 1 && (
+                  <polyline
+                    points={line}
+                    fill="none"
+                    stroke="var(--p-ink50)"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 3"
+                    opacity="0.6"
+                  />
                 )}
               </g>
             );
           })}
 
-          {/* active channel traces */}
-          {onChannels.map((c) => {
-            const arr = c.values;
+          {/* active channel traces — connecting line through the per-x means,
+              raw points, and standard-error bars where there are repeats. */}
+          {channelCurves.map((c) => {
+            const pts = c.curve;
+            const hasRepeats = scanned && pts.some((p) => p.n > 1);
+            const line = pts.map((p) => `${sx(p.x)},${sy(p.mean)}`).join(" ");
             return (
               <g key={c.key}>
-                {arr.map((v, i) =>
+                {pts.length > 1 && (
+                  <polyline
+                    points={line}
+                    fill="none"
+                    stroke={c.color}
+                    strokeWidth="1.6"
+                    opacity="0.85"
+                  />
+                )}
+                {/* raw individual points — dimmed when repeats are summarized
+                    by mean markers, otherwise shown at full prominence. */}
+                {c.values.map((v, i) =>
                   isFinite(v) && isFinite(xs[i]) ? (
                     <circle
                       key={i}
                       cx={sx(xs[i])}
                       cy={sy(v)}
-                      r="2"
+                      r={hasRepeats ? "1.6" : "2"}
                       fill={c.color}
+                      opacity={hasRepeats ? 0.4 : 1}
                     />
                   ) : null,
                 )}
+                {/* error bars + mean markers (only when repeats exist) */}
+                {hasRepeats &&
+                  pts.map((p, i) => (
+                    <g key={"eb" + i}>
+                      {p.err > 0 && (
+                        <g stroke={c.color} strokeWidth="1" opacity="0.75">
+                          <line
+                            x1={sx(p.x)}
+                            x2={sx(p.x)}
+                            y1={sy(p.mean - p.err)}
+                            y2={sy(p.mean + p.err)}
+                          />
+                          <line
+                            x1={sx(p.x) - 3}
+                            x2={sx(p.x) + 3}
+                            y1={sy(p.mean - p.err)}
+                            y2={sy(p.mean - p.err)}
+                          />
+                          <line
+                            x1={sx(p.x) - 3}
+                            x2={sx(p.x) + 3}
+                            y1={sy(p.mean + p.err)}
+                            y2={sy(p.mean + p.err)}
+                          />
+                        </g>
+                      )}
+                      <circle
+                        cx={sx(p.x)}
+                        cy={sy(p.mean)}
+                        r="2.6"
+                        fill={c.color}
+                      />
+                    </g>
+                  ))}
               </g>
             );
           })}
@@ -398,6 +574,7 @@ function CursorReadout({ cursor, xLabel, cursorReadouts, ghostReadouts }) {
             {cursorReadouts.map((r) => (
               <span key={r.key} className="p-mono" style={{ color: r.color }}>
                 {r.key} = <b>{formatNum(r.value)}</b>
+                {r.err != null && r.err > 0 ? ` ± ${formatNum(r.err)}` : ""}
               </span>
             ))}
             {ghostReadouts.map((g) => (
@@ -422,6 +599,7 @@ Plot1D.propTypes = {
   yLabel: PropTypes.string,
   channels: PropTypes.array.isRequired,
   ghosts: PropTypes.array,
+  scanned: PropTypes.bool,
 };
 
 export default Plot1D;

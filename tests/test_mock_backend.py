@@ -223,10 +223,11 @@ def test_mock_manager_get_explist_structure():
     from artiq_http.mock_backend import MockSubscriberManager
 
     explist = MockSubscriberManager().get_explist()
-    assert len(explist) == 1
-    entry = next(iter(explist.values()))
-    assert "file" in entry
-    assert "class_name" in entry
+    assert len(explist) == 2
+    assert set(explist) == {"MockRepeatExperiment", "MockFreqScan"}
+    for entry in explist.values():
+        assert "file" in entry
+        assert "class_name" in entry
 
 
 def test_mock_manager_get_explist_status():
@@ -297,8 +298,8 @@ def test_explist_returns_mock_experiment(mock_client):
     assert r.status_code == 200
     data = r.json()
     assert data["scanning"] is False
-    assert len(data["experiments"]) == 1
-    assert data["experiments"][0]["class_name"] == "MockRepeatExperiment"
+    class_names = {exp["class_name"] for exp in data["experiments"]}
+    assert class_names == {"MockRepeatExperiment", "MockFreqScan"}
 
 
 def test_schedule_empty_in_mock_mode(mock_client):
