@@ -13,7 +13,7 @@ Also serves two 1D frequency-scan NDScans of the same experiment
 and a live run (ndscan.rid_3) whose points stream in a *randomized* order with
 repeats at each x. The randomized order with repeats exercises the Plot1D line
 rendering, which sorts points by x and draws the line through the per-x mean
-with standard-deviation error bars.
+with standard-error-of-the-mean error bars.
 """
 
 import asyncio

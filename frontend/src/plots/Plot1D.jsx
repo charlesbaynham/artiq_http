@@ -3,10 +3,10 @@ import PropTypes from "prop-types";
 import { niceTicks, formatNum } from "./utils";
 
 // Group (x, value) pairs by identical x, returning points sorted by x with the
-// mean and sample standard deviation of the values at each x. Scans are often
-// run in a randomized order and/or with repeats, so connecting the raw points
-// in arrival order produces a messy line; aggregating by x gives a line through
-// the per-x mean (with the std available for error bars).
+// mean and standard error of the mean (std / sqrt(n)) of the values at each x.
+// Scans are often run in a randomized order and/or with repeats, so connecting
+// the raw points in arrival order produces a messy line; aggregating by x gives
+// a line through the per-x mean (with `err` available for error bars).
 function aggregateByX(xs, values) {
   const groups = new Map();
   const n = Math.min(xs.length, values.length);
@@ -22,29 +22,30 @@ function aggregateByX(xs, values) {
   for (const [x, vs] of groups) {
     const m = vs.length;
     const mean = vs.reduce((a, b) => a + b, 0) / m;
-    let std = 0;
+    let err = 0;
     if (m > 1) {
       const variance =
         vs.reduce((a, b) => a + (b - mean) * (b - mean), 0) / (m - 1);
-      std = Math.sqrt(variance);
+      // Standard error of the mean: sample std divided by sqrt(n).
+      err = Math.sqrt(variance / m);
     }
-    pts.push({ x, mean, std, n: m });
+    pts.push({ x, mean, err, n: m });
   }
   pts.sort((a, b) => a.x - b.x);
   return pts;
 }
 
 // Build the ordered list of curve points used to draw the connecting line. For
-// scanned axes we sort by x and collapse repeats to their mean ± std; for a
-// time axis (e.g. 0D repeat mode) the arrival order is meaningful, so points
-// are kept as-is with no aggregation.
+// scanned axes we sort by x and collapse repeats to their mean ± standard error;
+// for a time axis (e.g. 0D repeat mode) the arrival order is meaningful, so
+// points are kept as-is with no aggregation.
 function buildCurve(xs, values, scanned) {
   if (scanned) return aggregateByX(xs, values);
   const pts = [];
   const n = Math.min(xs.length, values.length);
   for (let i = 0; i < n; i++) {
     if (isFinite(xs[i]) && isFinite(values[i])) {
-      pts.push({ x: xs[i], mean: values[i], std: 0, n: 1 });
+      pts.push({ x: xs[i], mean: values[i], err: 0, n: 1 });
     }
   }
   return pts;
@@ -53,8 +54,8 @@ function buildCurve(xs, values, scanned) {
 // 1D plot — points + connecting line per channel, optional ghost overlays,
 // crosshair cursor with per-channel readouts, inline legend. When `scanned` is
 // true the x-axis is a real scanned parameter, so points are sorted by x and
-// repeats at the same x are collapsed to their mean with std error bars; when
-// false (e.g. a 0D elapsed-time series) points are connected in arrival order.
+// repeats at the same x are collapsed to their mean with standard-error bars;
+// when false (e.g. a 0D elapsed-time series) points are connected in order.
 function Plot1D({
   xs,
   xLabel,
@@ -137,8 +138,8 @@ function Plot1D({
   const xMin = Math.min(...allXs);
   const xMax = Math.max(...allXs);
   // y range from all visible channels (with sensible fallback). Include the
-  // raw points and the mean ± std error-bar extents, since a large std can
-  // push a bar beyond the most extreme raw point.
+  // raw points and the mean ± standard-error extents, since a large error bar
+  // can push beyond the most extreme raw point.
   let yMin = Infinity,
     yMax = -Infinity;
   const extendY = (v) => {
@@ -151,8 +152,8 @@ function Plot1D({
   }
   for (const c of channelCurves) {
     for (const p of c.curve) {
-      extendY(p.mean - p.std);
-      extendY(p.mean + p.std);
+      extendY(p.mean - p.err);
+      extendY(p.mean + p.err);
     }
   }
   // Fold ghost overlays into the range too, so an overlaid run is never
@@ -161,8 +162,8 @@ function Plot1D({
   for (const g of ghostCurves) {
     for (const v of g.values || []) extendY(v);
     for (const p of g.curve) {
-      extendY(p.mean - p.std);
-      extendY(p.mean + p.std);
+      extendY(p.mean - p.err);
+      extendY(p.mean + p.err);
     }
   }
   if (!isFinite(yMin) || !isFinite(yMax) || yMin === yMax) {
@@ -217,7 +218,7 @@ function Plot1D({
           key: c.key,
           color: c.color,
           value: p ? p.mean : NaN,
-          std: p && scanned && p.n > 1 ? p.std : null,
+          err: p && scanned && p.n > 1 ? p.err : null,
         };
       })
     : [];
@@ -362,7 +363,7 @@ function Plot1D({
           })}
 
           {/* active channel traces — connecting line through the per-x means,
-              raw points, and std error bars where there are repeats. */}
+              raw points, and standard-error bars where there are repeats. */}
           {channelCurves.map((c) => {
             const pts = c.curve;
             const hasRepeats = scanned && pts.some((p) => p.n > 1);
@@ -396,25 +397,25 @@ function Plot1D({
                 {hasRepeats &&
                   pts.map((p, i) => (
                     <g key={"eb" + i}>
-                      {p.std > 0 && (
+                      {p.err > 0 && (
                         <g stroke={c.color} strokeWidth="1" opacity="0.75">
                           <line
                             x1={sx(p.x)}
                             x2={sx(p.x)}
-                            y1={sy(p.mean - p.std)}
-                            y2={sy(p.mean + p.std)}
+                            y1={sy(p.mean - p.err)}
+                            y2={sy(p.mean + p.err)}
                           />
                           <line
                             x1={sx(p.x) - 3}
                             x2={sx(p.x) + 3}
-                            y1={sy(p.mean - p.std)}
-                            y2={sy(p.mean - p.std)}
+                            y1={sy(p.mean - p.err)}
+                            y2={sy(p.mean - p.err)}
                           />
                           <line
                             x1={sx(p.x) - 3}
                             x2={sx(p.x) + 3}
-                            y1={sy(p.mean + p.std)}
-                            y2={sy(p.mean + p.std)}
+                            y1={sy(p.mean + p.err)}
+                            y2={sy(p.mean + p.err)}
                           />
                         </g>
                       )}
@@ -573,7 +574,7 @@ function CursorReadout({ cursor, xLabel, cursorReadouts, ghostReadouts }) {
             {cursorReadouts.map((r) => (
               <span key={r.key} className="p-mono" style={{ color: r.color }}>
                 {r.key} = <b>{formatNum(r.value)}</b>
-                {r.std != null && r.std > 0 ? ` ± ${formatNum(r.std)}` : ""}
+                {r.err != null && r.err > 0 ? ` ± ${formatNum(r.err)}` : ""}
               </span>
             ))}
             {ghostReadouts.map((g) => (
