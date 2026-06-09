@@ -67,7 +67,7 @@ uv run python -m artiq_http.main --mock
 # or: ARTIQ_HTTP_MOCK=1 uv run python -m artiq_http.main
 ```
 
-The mock serves a live 0D repeat single-point NDScan (`ndscan.rid_1`) with four channels (Signal A–D) updating every 0.5 s, so the Plots view has data to render immediately. It also serves five animated camera images of differing sizes and patterns (`camera_image`, `mot_fluorescence_image`, `ion_chain_image`, `background_image`, `absorption_image`), so the Plots image view can be exercised with multiple images at once. Schedule is empty; experiment submission and cancellation return 503. No ARTIQ stack or Docker is required.
+The mock serves a live 0D repeat single-point NDScan (`ndscan.rid_1`) with four channels (Signal A–D) updating every 0.5 s, so the Plots view has data to render immediately. It also serves two 1D frequency-scan NDScans of the same experiment (`mock.MockFreqScan`): a completed run (`ndscan.rid_2`) that can be toggled on as a ghost overlay, and a live run (`ndscan.rid_3`) whose points stream in a randomized order with repeats at each x. The live run exercises the Plot1D line rendering, which sorts points by their scanned-axis value and draws the connecting line through the per-x mean with standard-deviation error bars. It also serves five animated camera images of differing sizes and patterns (`camera_image`, `mot_fluorescence_image`, `ion_chain_image`, `background_image`, `absorption_image`), so the Plots image view can be exercised with multiple images at once. Schedule is empty; experiment submission and cancellation return 503. No ARTIQ stack or Docker is required.
 
 The mock backend lives in `artiq_http/mock_backend.py`. It replaces the global `subscriber_manager` singleton at startup, so all API paths behave normally.
 

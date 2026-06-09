@@ -7,6 +7,13 @@ ARTIQ_HTTP_MOCK=1.
 
 Serves one 0D repeat single-point NDScan (ndscan.rid_1) with four channels
 whose values drift sinusoidally with Gaussian noise, updating every 0.5 s.
+
+Also serves two 1D frequency-scan NDScans of the same experiment
+(mock.MockFreqScan): a completed run (ndscan.rid_2) usable as a ghost overlay,
+and a live run (ndscan.rid_3) whose points stream in a *randomized* order with
+repeats at each x. The randomized order with repeats exercises the Plot1D line
+rendering, which sorts points by x and draws the line through the per-x mean
+with standard-deviation error bars.
 """
 
 import asyncio
@@ -44,8 +51,76 @@ _MOCK_EXPLIST = {
         "argument_ui": None,
         "scheduler_defaults": {},
         "docstring": "Mock repeat experiment for frontend development",
-    }
+    },
+    "MockFreqScan": {
+        "file": "mock_experiment.py",
+        "class_name": "MockFreqScan",
+        "arginfo": {},
+        "argument_ui": None,
+        "scheduler_defaults": {},
+        "docstring": "Mock 1D frequency scan for frontend development",
+    },
 }
+
+
+# ── 1D frequency-scan mocks ──────────────────────────────────────────────────
+# Two runs of the same experiment so the timeline can offer one as a ghost
+# overlay of the other. rid_3 is live and reveals its points in randomized
+# order with repeats; rid_2 is a completed run with a shifted resonance.
+_SCAN1D_FQN = "mock.MockFreqScan"
+_SCAN1D_GHOST_PREFIX = "ndscan.rid_2"
+_SCAN1D_LIVE_PREFIX = "ndscan.rid_3"
+
+_SCAN1D_CHANNELS = {
+    "signal": {"path": "signal", "description": "Excitation", "type": "float", "scale": 1.0, "unit": ""},
+    "reference": {"path": "reference", "description": "Reference", "type": "float", "scale": 1.0, "unit": ""},
+}
+
+# One scanned axis: detuning in MHz. Mirrors the schema ndscan writes to the
+# `.axes` dataset (see ndscan's test_experiment_entrypoint fixtures).
+_SCAN1D_AXIS = {
+    "increment": 5.0,
+    "max": 25.0,
+    "min": -25.0,
+    "path": "*",
+    "param": {
+        "default": "0.0",
+        "description": "Detuning",
+        "fqn": _SCAN1D_FQN + ".detuning",
+        "unit": "MHz",
+        "type": "float",
+        "spec": {"is_scannable": True, "scale": 1.0, "step": 1.0},
+    },
+}
+
+# 11 distinct x points, each measured _SCAN1D_REPEATS times.
+_SCAN1D_X_POINTS = [-25.0 + 5.0 * i for i in range(11)]
+_SCAN1D_REPEATS = 4
+
+
+def _scan1d_sample(x: float, center: float) -> Dict[str, float]:
+    """A noisy Lorentzian resonance in `signal`, plus a flat-ish `reference`."""
+    width = 6.0
+    signal = 0.12 + 0.8 / (1.0 + ((x - center) / width) ** 2) + random.gauss(0, 0.05)
+    reference = 0.5 + random.gauss(0, 0.03)
+    return {"signal": signal, "reference": reference}
+
+
+def _scan1d_schedule() -> List[float]:
+    """A randomized measurement order: each x point repeated _SCAN1D_REPEATS times."""
+    plan = [x for x in _SCAN1D_X_POINTS for _ in range(_SCAN1D_REPEATS)]
+    random.shuffle(plan)
+    return plan
+
+
+def _scan1d_static(prefix: str, completed: bool) -> Dict[str, Any]:
+    """Static (metadata) datasets shared by both 1D runs."""
+    return {
+        f"{prefix}.axes": [False, json.dumps([_SCAN1D_AXIS]), {}],
+        f"{prefix}.channels": [False, json.dumps(_SCAN1D_CHANNELS), {}],
+        f"{prefix}.fragment_fqn": [False, _SCAN1D_FQN, {}],
+        f"{prefix}.completed": [False, completed, {}],
+    }
 
 
 _IMAGE_SIZE = 64
@@ -211,6 +286,11 @@ class MockSubscriberManager:
         }
         self._task: asyncio.Task | None = None
         self._started = False
+        # Live 1D scan progress (rid_3): a randomized measurement schedule that
+        # is revealed one point per tick and reshuffled once exhausted.
+        self._scan1d_schedule: List[float] = []
+        self._scan1d_idx = 0
+        self._scan1d_center = 0.0
 
     async def start(self) -> None:
         if self._started:
@@ -227,6 +307,29 @@ class MockSubscriberManager:
                 _generate_image(spec["size"], spec["kind"], seed=i * 1.7),
                 {},
             ]
+
+        # Seed the completed 1D ghost run (rid_2): a full sweep with a shifted
+        # resonance so it visibly differs from the live run.
+        self._datasets_sub._data.update(_scan1d_static(_SCAN1D_GHOST_PREFIX, completed=True))
+        ghost_axis: List[float] = []
+        ghost_channels: Dict[str, List[float]] = {k: [] for k in _SCAN1D_CHANNELS}
+        for x in _scan1d_schedule():
+            sample = _scan1d_sample(x, center=-8.0)
+            ghost_axis.append(x)
+            for k in _SCAN1D_CHANNELS:
+                ghost_channels[k].append(sample[k])
+        self._datasets_sub._data[f"{_SCAN1D_GHOST_PREFIX}.points.axis_0"] = [False, ghost_axis, {}]
+        for k, vals in ghost_channels.items():
+            self._datasets_sub._data[f"{_SCAN1D_GHOST_PREFIX}.points.channel_{k}"] = [False, vals, {}]
+
+        # Seed the live 1D run (rid_3) metadata and a randomized schedule. Points
+        # are revealed in the update loop.
+        self._datasets_sub._data.update(_scan1d_static(_SCAN1D_LIVE_PREFIX, completed=False))
+        self._scan1d_schedule = _scan1d_schedule()
+        self._scan1d_idx = 0
+        self._datasets_sub._data[f"{_SCAN1D_LIVE_PREFIX}.points.axis_0"] = [False, [], {}]
+        for k in _SCAN1D_CHANNELS:
+            self._datasets_sub._data[f"{_SCAN1D_LIVE_PREFIX}.points.channel_{k}"] = [False, [], {}]
 
         self._task = asyncio.create_task(self._update_loop())
         self._started = True
@@ -255,6 +358,32 @@ class MockSubscriberManager:
                     spec["key"],
                     [False, _generate_image(spec["size"], spec["kind"], seed=i * 1.7), {}],
                 )
+            self._step_live_scan1d()
+
+    def _step_live_scan1d(self) -> None:
+        """Reveal the next point of the live 1D scan, restarting the sweep when
+        it completes (with a slowly drifting resonance to keep it lively)."""
+        prefix = _SCAN1D_LIVE_PREFIX
+        if self._scan1d_idx >= len(self._scan1d_schedule):
+            # Sweep complete — reshuffle, nudge the resonance, and start over.
+            self._scan1d_schedule = _scan1d_schedule()
+            self._scan1d_idx = 0
+            self._scan1d_center = max(-15.0, min(15.0, self._scan1d_center + random.uniform(-4.0, 4.0)))
+            self._datasets_sub._set_and_notify(f"{prefix}.points.axis_0", [False, [], {}])
+            for k in _SCAN1D_CHANNELS:
+                self._datasets_sub._set_and_notify(f"{prefix}.points.channel_{k}", [False, [], {}])
+
+        x = self._scan1d_schedule[self._scan1d_idx]
+        self._scan1d_idx += 1
+        sample = _scan1d_sample(x, self._scan1d_center)
+
+        axis = list(self._datasets_sub._data[f"{prefix}.points.axis_0"][1])
+        axis.append(x)
+        self._datasets_sub._set_and_notify(f"{prefix}.points.axis_0", [False, axis, {}])
+        for k in _SCAN1D_CHANNELS:
+            vals = list(self._datasets_sub._data[f"{prefix}.points.channel_{k}"][1])
+            vals.append(sample[k])
+            self._datasets_sub._set_and_notify(f"{prefix}.points.channel_{k}", [False, vals, {}])
 
     # ── SubscriberManager interface ──────────────────────────────────────────
 

@@ -779,6 +779,7 @@ function PlotBody({
         yLabel="value"
         channels={channelDescriptors}
         ghosts={ghosts}
+        scanned
       />
     );
   }
