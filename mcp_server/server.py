@@ -145,10 +145,13 @@ async def submit_experiment(
     pipeline: str = "main",
     priority: int = 0,
     flush: bool = False,
-) -> int:
-    """Submit an experiment and return its Run ID (RID) immediately without waiting.
+    wait_for_completion: bool = False,
+    timeout_seconds: float = 600.0,
+) -> int | dict[str, Any]:
+    """Submit an experiment, optionally waiting for it to complete.
 
-    Use submit_and_wait() instead if you need to know when the experiment finishes.
+    By default this returns the Run ID (RID) immediately. Set
+    ``wait_for_completion=True`` to block until the experiment finishes.
 
     Args:
         file: Relative path to the experiment file, e.g. "idle.py".
@@ -157,54 +160,30 @@ async def submit_experiment(
         pipeline: Scheduling pipeline name (default: "main").
         priority: Scheduling priority — higher runs sooner (default: 0).
         flush: If True, flush the pipeline before submitting (default: False).
+        wait_for_completion: If True, wait for the experiment to finish before
+            returning (default: False).
+        timeout_seconds: Max seconds to wait when ``wait_for_completion`` is True
+            (default: 600, max: 21600).
 
     Returns:
-        The integer Run ID (RID) assigned to this submission.
+        The integer Run ID (RID) when ``wait_for_completion`` is False, or a dict
+        with 'rid' (int), 'status' (str: "completed"/"failed"/"timeout"),
+        'timed_out' (bool), and 'error' (str|None — set when status is "failed")
+        when it is True.
     """
     expid = {"file": file, "class_name": class_name, "arguments": arguments}
-    params = {"pipeline": pipeline, "priority": priority, "flush": flush}
+    params: dict[str, Any] = {"pipeline": pipeline, "priority": priority, "flush": flush}
+    if wait_for_completion:
+        timeout = min(timeout_seconds, 21600.0)
+        params["wait_for_completion"] = True
+        params["timeout"] = timeout
+        # Give the httpx client a generous timeout beyond the server-side wait.
+        async with _client(timeout=timeout + 15.0) as c:
+            r = await c.post("/api/schedule", json=expid, params=params)
+            r.raise_for_status()
+            return r.json()
     async with _client() as c:
         r = await c.post("/api/schedule", json=expid, params=params)
-        r.raise_for_status()
-        return r.json()
-
-
-@mcp.tool()
-async def submit_and_wait(
-    file: str,
-    class_name: str,
-    arguments: dict[str, Any] | None = None,
-    pipeline: str = "main",
-    priority: int = 0,
-    flush: bool = False,
-    timeout_seconds: float = 60.0,
-) -> dict[str, Any]:
-    """Submit an experiment and wait for it to complete before returning.
-
-    Args:
-        file: Relative path to the experiment file, e.g. "idle.py".
-        class_name: Python class name of the experiment, e.g. "Idle".
-        arguments: Experiment arguments as a dict. Omit or pass None to use server defaults.
-        pipeline: Scheduling pipeline name (default: "main").
-        priority: Scheduling priority (default: 0).
-        flush: If True, flush the pipeline before submitting (default: False).
-        timeout_seconds: Max seconds to wait before returning regardless (default: 60, max: 300).
-
-    Returns:
-        Dict with 'rid' (int), 'status' (str: "completed"/"failed"/"timeout"),
-        'timed_out' (bool), and 'error' (str|None — set when status is "failed").
-    """
-    expid = {"file": file, "class_name": class_name, "arguments": arguments}
-    params = {
-        "pipeline": pipeline,
-        "priority": priority,
-        "flush": flush,
-        "timeout": min(timeout_seconds, 300.0),
-    }
-    # Give the httpx client a generous timeout beyond the server-side wait.
-    client_timeout = min(timeout_seconds, 300.0) + 15.0
-    async with _client(timeout=client_timeout) as c:
-        r = await c.post("/api/schedule/submit-and-wait", json=expid, params=params)
         r.raise_for_status()
         return r.json()
 
@@ -221,7 +200,9 @@ async def submit_1d_scan(
     pipeline: str = "main",
     priority: int = 0,
     flush: bool = False,
-) -> int:
+    wait_for_completion: bool = False,
+    timeout_seconds: float = 600.0,
+) -> int | dict[str, Any]:
     """Submit a 1-D ndscan scan without handcrafting ndscan_params.
 
     The server builds canonical ndscan_params from the provided axis and
@@ -249,9 +230,15 @@ async def submit_1d_scan(
         pipeline: Scheduling pipeline name (default "main").
         priority: Scheduling priority — higher runs sooner (default 0).
         flush: Flush the pipeline before submitting (default False).
+        wait_for_completion: If True, wait for the scan to finish before
+            returning (default False).
+        timeout_seconds: Max seconds to wait when ``wait_for_completion`` is True
+            (default 600, max 21600).
 
     Returns:
-        The integer Run ID (RID) assigned to this submission.
+        The integer Run ID (RID) when ``wait_for_completion`` is False, or a dict
+        with 'rid', 'status' ("completed"/"failed"/"timeout"), 'timed_out', and
+        'error' when it is True.
     """
     payload = {
         "file": file,
@@ -263,6 +250,23 @@ async def submit_1d_scan(
         "priority": priority,
         "flush": flush,
     }
+    return await _post_scan(payload, wait_for_completion, timeout_seconds)
+
+
+async def _post_scan(
+    payload: dict[str, Any],
+    wait_for_completion: bool,
+    timeout_seconds: float,
+) -> int | dict[str, Any]:
+    """POST a scan request to /api/scan, optionally waiting for completion."""
+    if wait_for_completion:
+        timeout = min(timeout_seconds, 21600.0)
+        params = {"wait_for_completion": True, "timeout": timeout}
+        # Give the httpx client a generous timeout beyond the server-side wait.
+        async with _client(timeout=timeout + 15.0) as c:
+            r = await c.post("/api/scan", json=payload, params=params)
+            r.raise_for_status()
+            return r.json()
     async with _client() as c:
         r = await c.post("/api/scan", json=payload)
         r.raise_for_status()
@@ -279,7 +283,9 @@ async def submit_multi_axis_scan(
     pipeline: str = "main",
     priority: int = 0,
     flush: bool = False,
-) -> int:
+    wait_for_completion: bool = False,
+    timeout_seconds: float = 600.0,
+) -> int | dict[str, Any]:
     """Submit a multi-axis ndscan scan without handcrafting ndscan_params.
 
     Each axis is scanned independently (not a grid); ndscan interleaves them
@@ -302,9 +308,15 @@ async def submit_multi_axis_scan(
         pipeline: Scheduling pipeline name (default "main").
         priority: Scheduling priority — higher runs sooner (default 0).
         flush: Flush the pipeline before submitting (default False).
+        wait_for_completion: If True, wait for the scan to finish before
+            returning (default False).
+        timeout_seconds: Max seconds to wait when ``wait_for_completion`` is True
+            (default 600, max 21600).
 
     Returns:
-        The integer Run ID (RID) assigned to this submission.
+        The integer Run ID (RID) when ``wait_for_completion`` is False, or a dict
+        with 'rid', 'status' ("completed"/"failed"/"timeout"), 'timed_out', and
+        'error' when it is True.
     """
     payload = {
         "file": file,
@@ -316,10 +328,7 @@ async def submit_multi_axis_scan(
         "priority": priority,
         "flush": flush,
     }
-    async with _client() as c:
-        r = await c.post("/api/scan", json=payload)
-        r.raise_for_status()
-        return r.json()
+    return await _post_scan(payload, wait_for_completion, timeout_seconds)
 
 
 @mcp.tool()
