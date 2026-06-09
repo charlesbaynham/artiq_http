@@ -560,16 +560,17 @@ async def _wait_for_rid_completion(rid: int, timeout: float) -> api.models.Submi
     return api.models.SubmitAndWaitResult(rid=rid, status="timeout", timed_out=True)
 
 
-@router.post("/schedule/submit-and-wait")
-async def submit_and_wait(
+@router.post("/schedule")
+async def submit_experiment(
     expid: api.models.ExpID,
     pipeline: str = "main",
     priority: int = 0,
     flush: bool = False,
     due_date: float = None,
-    timeout: float = 60.0,
-) -> api.models.SubmitAndWaitResult:
-    """Submit an experiment and wait for it to complete.
+    wait_for_completion: bool = False,
+    timeout: float = 600.0,
+) -> int | api.models.SubmitAndWaitResult:
+    """Submit an experiment.
 
     Args:
         expid: Experiment ID specification
@@ -577,15 +578,19 @@ async def submit_and_wait(
         priority: Scheduling priority (default: 0)
         flush: Whether to flush the pipeline (default: False)
         due_date: Optional due date as Unix timestamp
-        timeout: Max seconds to wait (default: 60, max: 300)
+        wait_for_completion: If True, block until the experiment finishes
+            before returning (default: False)
+        timeout: Max seconds to wait when ``wait_for_completion`` is True
+            (default: 600, max: 21600)
 
     Returns:
-        SubmitAndWaitResult with rid, status, and timed_out fields
+        The integer Run ID (RID) when ``wait_for_completion`` is False, or a
+        SubmitAndWaitResult with *rid*, *status*, *timed_out*, and *error*
+        fields when it is True.
     """
     if config.get("mock"):
         raise HTTPException(503, "Mock mode: experiment control not available")
 
-    timeout = min(timeout, 300.0)
     await _validate_expid_ndscan(expid)
     try:
         rid = await api.control_schedule.submit_experiment(
@@ -598,31 +603,9 @@ async def submit_and_wait(
     except ValueError as e:
         raise HTTPException(422, str(e))
 
-    return await _wait_for_rid_completion(rid, timeout)
-
-
-@router.post("/schedule")
-async def submit_experiment(
-    expid: api.models.ExpID,
-    pipeline: str = "main",
-    priority: int = 0,
-    flush: bool = False,
-    due_date: float = None,
-) -> int:
-    if config.get("mock"):
-        raise HTTPException(503, "Mock mode: experiment control not available")
-
-    await _validate_expid_ndscan(expid)
-    try:
-        return await api.control_schedule.submit_experiment(
-            expid,
-            pipeline,
-            priority,
-            flush,
-            due_date,
-        )
-    except ValueError as e:
-        raise HTTPException(422, str(e))
+    if wait_for_completion:
+        return await _wait_for_rid_completion(rid, min(timeout, 21600.0))
+    return rid
 
 
 async def _build_scan_expid(req: api.models.ScanSubmitRequest) -> api.models.ExpID:
@@ -654,45 +637,32 @@ async def _build_scan_expid(req: api.models.ScanSubmitRequest) -> api.models.Exp
 
 
 @router.post("/scan")
-async def submit_scan(req: api.models.ScanSubmitRequest) -> int:
+async def submit_scan(
+    req: api.models.ScanSubmitRequest,
+    wait_for_completion: bool = False,
+    timeout: float = 600.0,
+) -> int | api.models.SubmitAndWaitResult:
     """Submit a high-level ndscan scan without constructing ndscan_params manually.
 
     The server builds canonical ndscan_params from *axes*, *fixed_params*, and
     *num_repeats* and submits the experiment through the standard scheduling
-    path.  Returns the integer Run ID (RID).
+    path.
+
+    Args:
+        req: High-level scan submission request
+        wait_for_completion: If True, block until the scan finishes before
+            returning (default: False)
+        timeout: Max seconds to wait when ``wait_for_completion`` is True
+            (default: 600, max: 21600)
+
+    Returns:
+        The integer Run ID (RID) when ``wait_for_completion`` is False, or a
+        SubmitAndWaitResult with *rid*, *status*, *timed_out*, and *error*
+        fields when it is True.
     """
     if config.get("mock"):
         raise HTTPException(503, "Mock mode: experiment control not available")
 
-    expid = await _build_scan_expid(req)
-    await _validate_expid_ndscan(expid)
-    try:
-        return await api.control_schedule.submit_experiment(
-            expid,
-            req.pipeline,
-            req.priority,
-            req.flush,
-            req.due_date,
-        )
-    except ValueError as e:
-        raise HTTPException(422, str(e))
-
-
-@router.post("/scan/submit-and-wait")
-async def submit_scan_and_wait(
-    req: api.models.ScanSubmitRequest,
-    timeout: float = 60.0,
-) -> api.models.SubmitAndWaitResult:
-    """Submit a high-level ndscan scan and wait for it to complete.
-
-    Builds ndscan_params server-side and submits through the standard
-    scheduling path.  Returns a SubmitAndWaitResult with *rid*, *status*,
-    and *timed_out* fields.
-    """
-    if config.get("mock"):
-        raise HTTPException(503, "Mock mode: experiment control not available")
-
-    timeout = min(timeout, 300.0)
     expid = await _build_scan_expid(req)
     await _validate_expid_ndscan(expid)
     try:
@@ -706,7 +676,9 @@ async def submit_scan_and_wait(
     except ValueError as e:
         raise HTTPException(422, str(e))
 
-    return await _wait_for_rid_completion(rid, timeout)
+    if wait_for_completion:
+        return await _wait_for_rid_completion(rid, min(timeout, 21600.0))
+    return rid
 
 
 app.include_router(router, prefix="/api")
