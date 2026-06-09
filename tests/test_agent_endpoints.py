@@ -229,7 +229,7 @@ def test_explist_defaults_ndscan_experiment(mock_get_explist):
 
 
 # ---------------------------------------------------------------------------
-# POST /api/schedule/submit-and-wait
+# POST /api/schedule?wait_for_completion=true
 # ---------------------------------------------------------------------------
 
 EXPID_PAYLOAD = {
@@ -267,7 +267,7 @@ def test_submit_and_wait_completes(mock_submit, mock_schedule, mock_sleep):
         },
         {},  # RID gone on second poll
     ]
-    response = client.post("/api/schedule/submit-and-wait?timeout=60", json=EXPID_PAYLOAD)
+    response = client.post("/api/schedule?wait_for_completion=true&timeout=60", json=EXPID_PAYLOAD)
     assert response.status_code == 200
     data = response.json()
     assert data["rid"] == 42
@@ -301,7 +301,7 @@ def test_submit_and_wait_timeout(mock_submit, mock_schedule, mock_sleep):
     }
     # Return schedule with RID present enough times to exhaust the timeout
     mock_schedule.return_value = schedule_entry
-    response = client.post("/api/schedule/submit-and-wait?timeout=2", json=EXPID_PAYLOAD)
+    response = client.post("/api/schedule?wait_for_completion=true&timeout=2", json=EXPID_PAYLOAD)
     assert response.status_code == 200
     data = response.json()
     assert data["rid"] == 99
@@ -313,11 +313,11 @@ def test_submit_and_wait_timeout(mock_submit, mock_schedule, mock_sleep):
 @patch("artiq_http.api.api.notifiers.get_schedule", new_callable=AsyncMock)
 @patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
 def test_submit_and_wait_clamps_timeout(mock_submit, mock_schedule, mock_sleep):
-    """submit-and-wait clamps timeout=999 to max 300 and still returns a result."""
+    """submit-and-wait clamps an over-large timeout to max 21600 and still returns."""
     mock_submit.return_value = 77
     # RID gone immediately
     mock_schedule.return_value = {}
-    response = client.post("/api/schedule/submit-and-wait?timeout=999", json=EXPID_PAYLOAD)
+    response = client.post("/api/schedule?wait_for_completion=true&timeout=99999", json=EXPID_PAYLOAD)
     assert response.status_code == 200
     data = response.json()
     assert data["rid"] == 77
@@ -363,7 +363,7 @@ def test_submit_and_wait_waits_for_subscriber_lag(mock_submit, mock_schedule, mo
         running_entry,  # poll 3: still running
         {},  # poll 4: finished -> genuinely completed
     ]
-    response = client.post("/api/schedule/submit-and-wait?timeout=60", json=EXPID_PAYLOAD)
+    response = client.post("/api/schedule?wait_for_completion=true&timeout=60", json=EXPID_PAYLOAD)
     assert response.status_code == 200
     data = response.json()
     assert data["rid"] == 42
@@ -702,7 +702,7 @@ def test_submit_ndscan_listscan_empty_values(mock_submit, mock_get_explist):
 @patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
 @patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
 def test_submit_and_wait_ndscan_validation(mock_submit, mock_get_explist):
-    """submit-and-wait also runs ndscan validation."""
+    """wait_for_completion submission also runs ndscan validation."""
     mock_get_explist.return_value = ExperimentList(
         current_rev="abc123",
         scanning=False,
@@ -725,7 +725,7 @@ def test_submit_and_wait_ndscan_validation(mock_submit, mock_get_explist):
         },
         "repo_rev": None,
     }
-    response = client.post("/api/schedule/submit-and-wait", json=payload)
+    response = client.post("/api/schedule?wait_for_completion=true", json=payload)
     assert response.status_code == 422
     assert "must be greater than 0" in response.json()["detail"]
 
@@ -905,7 +905,7 @@ def test_submit_scan_and_wait_completes(
     mock_api_explist.return_value = explist
     mock_schedule.return_value = {}  # RID gone immediately
     mock_logs.return_value = []  # no failure logged
-    response = client.post("/api/scan/submit-and-wait", json=SCAN_REQUEST_1D)
+    response = client.post("/api/scan?wait_for_completion=true", json=SCAN_REQUEST_1D)
     assert response.status_code == 200
     data = response.json()
     assert data["rid"] == 88
@@ -945,7 +945,7 @@ def test_submit_scan_and_wait_reports_failure(
             "message": "artiq.master.scheduler:got worker exception in prepare stage, deleting RID 88",
         }
     ]
-    response = client.post("/api/scan/submit-and-wait", json=SCAN_REQUEST_1D)
+    response = client.post("/api/scan?wait_for_completion=true", json=SCAN_REQUEST_1D)
     assert response.status_code == 200
     data = response.json()
     assert data["rid"] == 88
@@ -986,7 +986,7 @@ def test_submit_scan_and_wait_ignores_debug_deletion(
             "message": "artiq.master.scheduler:deleting RID 88...",
         }
     ]
-    response = client.post("/api/scan/submit-and-wait", json=SCAN_REQUEST_1D)
+    response = client.post("/api/scan?wait_for_completion=true", json=SCAN_REQUEST_1D)
     assert response.status_code == 200
     data = response.json()
     assert data["rid"] == 88

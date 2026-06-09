@@ -138,13 +138,14 @@ async def test_all():
             data = format_result(result)
             print(data)
 
-            # 8. submit_and_wait
-            print("\n--- 9. submit_and_wait ---")
+            # 8. submit_experiment with wait_for_completion
+            print("\n--- 9. submit_experiment (wait_for_completion) ---")
             result = await session.call_tool(
-                "submit_and_wait",
+                "submit_experiment",
                 {
                     "file": "idle.py",
                     "class_name": "Idle",
+                    "wait_for_completion": True,
                     "timeout_seconds": 5,
                 },
             )

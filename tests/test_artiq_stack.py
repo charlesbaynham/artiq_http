@@ -244,7 +244,7 @@ def test_submit_multi_axis_scan(client):
 
 
 def test_submit_scan_and_wait_completes(client):
-    """POST /api/scan/submit-and-wait runs a host-only scan to completion."""
+    """POST /api/scan?wait_for_completion=true runs a host-only scan to completion."""
     schemata = _scannable_schemata(client)
     fqn = _fqn_ending_in(schemata, ".frequency")
 
@@ -259,7 +259,7 @@ def test_submit_scan_and_wait_completes(client):
             }
         ],
     }
-    response = client.post("/api/scan/submit-and-wait?timeout=120", json=req)
+    response = client.post("/api/scan?wait_for_completion=true&timeout=120", json=req)
     assert response.status_code == 200, response.text
     result = response.json()
     assert result["rid"] >= 0
@@ -271,7 +271,7 @@ def test_submit_scan_and_wait_completes(client):
 
     # And confirm the run genuinely produced data, not just vanished.
     axis, completed = _poll_scan_points(client, result["rid"], expected_points=4)
-    assert axis is not None, "submit-and-wait reported completed but produced no points"
+    assert axis is not None, "wait_for_completion reported completed but produced no points"
     assert len(axis) == 4
     assert completed is True
 

@@ -123,11 +123,11 @@ Returns a dict mapping RID (str) → schedule item. Each item has `pipeline`, `p
 
 ---
 
-### `submit_experiment(file, class_name, arguments?, pipeline?, priority?, flush?)`
+### `submit_experiment(file, class_name, arguments?, pipeline?, priority?, flush?, wait_for_completion?, timeout_seconds?)`
 
-Submit an experiment and return its RID immediately without waiting.
-
-Use `submit_and_wait()` if you need confirmation that the experiment finished.
+Submit an experiment. By default returns its RID immediately without waiting.
+Set `wait_for_completion=True` to block until the experiment completes (or the
+timeout expires).
 
 | Arg | Type | Default | Description |
 |---|---|---|---|
@@ -137,22 +137,12 @@ Use `submit_and_wait()` if you need confirmation that the experiment finished.
 | `pipeline` | str | `"main"` | Scheduling pipeline |
 | `priority` | int | `0` | Higher = runs sooner |
 | `flush` | bool | `false` | Flush pipeline before submitting |
+| `wait_for_completion` | bool | `false` | If true, block until the run finishes |
+| `timeout_seconds` | float | `600.0` | Max seconds to wait when waiting (server caps at 21600) |
 
-Returns the integer RID.
-
----
-
-### `submit_and_wait(file, class_name, arguments?, pipeline?, priority?, flush?, timeout_seconds?)`
-
-Submit an experiment and block until it completes (or the timeout expires).
-
-Same args as `submit_experiment()`, plus:
-
-| Arg | Type | Default | Description |
-|---|---|---|---|
-| `timeout_seconds` | float | `60.0` | Max seconds to wait (server caps at 300) |
-
-Returns a dict with `rid` (int), `status` (str, e.g. `"completed"` or `"timeout"`), `timed_out` (bool).
+Returns the integer RID when not waiting, or a dict with `rid` (int), `status`
+(str, e.g. `"completed"`/`"failed"`/`"timeout"`), `timed_out` (bool), and
+`error` (str\|null) when `wait_for_completion=True`.
 
 ---
 
@@ -210,7 +200,7 @@ Returns a dict with key `logs` containing the filtered entries. Each entry has `
 ```
 1. search_experiments("idle")          → find the experiment entry
 2. get_experiment_defaults(file, cls)  → fetch default arguments
-3. submit_and_wait(file, cls, args)    → run it and wait for completion
+3. submit_experiment(file, cls, args, wait_for_completion=True)  → run it and wait for completion
 4. get_dataset_values(["results"])     → read back datasets
 ```
 
@@ -225,7 +215,7 @@ Returns a dict with key `logs` containing the filtered entries. Each entry has `
 
 ```
 1. Record current time (e.g. time.time())
-2. submit_and_wait(file, cls, args)      → run experiment to completion
+2. submit_experiment(file, cls, args, wait_for_completion=True)  → run experiment to completion
 3. get_logs(since=timestamp)             → retrieve only logs from this run
 4. get_dataset_values([...])             → read back results
 ```
@@ -280,4 +270,4 @@ Then connect via `.mcp.json`:
 | experiment entry | `name`, `file`, `class_name`, `arginfo`, `argument_ui`, `scheduler_defaults` |
 | experiment defaults | `file`, `class_name`, `arguments: dict` |
 | schedule item | `pipeline`, `priority`, `due_date`, `flush`, `status`, `repo_msg`, `expid` |
-| submit_and_wait result | `rid: int`, `status: str`, `timed_out: bool` |
+| wait_for_completion result | `rid: int`, `status: str`, `timed_out: bool`, `error: str \| null` |

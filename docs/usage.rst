@@ -53,9 +53,14 @@ All values must be in SI units as declared by the experiment parameter schema.
 A parameter must not appear in both ``axes`` and ``fixed_params``; the server
 returns HTTP 422 if an overlap is detected.
 
-Use ``POST /api/scan/submit-and-wait`` to block until the experiment finishes.
-This endpoint accepts the same body plus an optional ``timeout`` query
-parameter (seconds, capped at 300).
+By default ``POST /api/scan`` returns the integer Run ID (RID) as soon as the
+experiment is queued.  To block until the experiment finishes, add the
+``wait_for_completion=true`` query parameter.  When waiting, the endpoint
+returns a result object (``rid``, ``status`` — one of ``completed`` /
+``failed`` / ``timeout`` —, ``timed_out``, and ``error``) instead of a bare
+RID.  An optional ``timeout`` query parameter sets the maximum wait in seconds
+(default 600, capped at 21600).  The same ``wait_for_completion`` / ``timeout``
+parameters are accepted by ``POST /api/schedule``.
 
 Error codes
 ^^^^^^^^^^^
@@ -82,4 +87,8 @@ The MCP server exposes two high-level scan tools:
 * ``submit_multi_axis_scan`` — multi-axis scan; takes an ``axes`` list in the
   same format as ``POST /api/scan``.
 
-Both tools call ``POST /api/scan`` internally and return the RID.
+Both tools call ``POST /api/scan`` internally and return the RID.  Like the
+``submit_experiment`` tool, they accept ``wait_for_completion`` (default
+``False``) and ``timeout_seconds`` (default 600, capped at 21600); when waiting
+they return a result dict (``rid``, ``status``, ``timed_out``, ``error``)
+instead of a bare RID.

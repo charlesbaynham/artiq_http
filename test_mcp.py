@@ -267,9 +267,15 @@ async def test_submit_and_wait():
             expid = {"file": file_path, "class_name": class_name, "arguments": {}}
 
             r = await client.post(
-                "/api/schedule/submit-and-wait",
+                "/api/schedule",
                 json=expid,
-                params={"pipeline": "main", "priority": 0, "flush": False, "timeout": 5.0},
+                params={
+                    "pipeline": "main",
+                    "priority": 0,
+                    "flush": False,
+                    "wait_for_completion": True,
+                    "timeout": 5.0,
+                },
             )
             if r.status_code == 200:
                 data = r.json()
