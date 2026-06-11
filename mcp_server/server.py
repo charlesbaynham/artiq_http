@@ -138,6 +138,23 @@ async def get_schedule() -> dict[str, Any]:
 
 
 @mcp.tool()
+async def get_schedule_item(rid: int) -> dict[str, Any]:
+    """Get a single schedule item by its Run ID (RID).
+
+    Args:
+        rid: Run ID of the experiment to look up.
+
+    Returns a dict with 'pipeline', 'priority', 'status', 'expid', 'due_date',
+    and 'flush'. Raises an error if the RID is not currently in the schedule
+    (e.g. it already completed or was never submitted).
+    """
+    async with _client() as c:
+        r = await c.get(f"/api/schedule/{rid}")
+        r.raise_for_status()
+        return r.json()
+
+
+@mcp.tool()
 async def submit_experiment(
     file: str,
     class_name: str,
@@ -145,6 +162,9 @@ async def submit_experiment(
     pipeline: str = "main",
     priority: int = 0,
     flush: bool = False,
+    repo_rev: str | None = None,
+    due_date: float | None = None,
+    log_level: int | None = None,
     wait_for_completion: bool = False,
     timeout_seconds: float = 600.0,
 ) -> int | dict[str, Any]:
@@ -160,6 +180,13 @@ async def submit_experiment(
         pipeline: Scheduling pipeline name (default: "main").
         priority: Scheduling priority — higher runs sooner (default: 0).
         flush: If True, flush the pipeline before submitting (default: False).
+        repo_rev: Git revision (commit hash, branch, or tag) of the experiment
+            repository to check out before running. Omit or pass None to use the
+            master's current revision.
+        due_date: Earliest time the experiment may run, as a Unix timestamp.
+            Omit or pass None to run as soon as scheduled.
+        log_level: Python logging level for the experiment's worker (e.g. 10=DEBUG,
+            20=INFO, 30=WARNING). Omit or pass None to use the server default.
         wait_for_completion: If True, wait for the experiment to finish before
             returning (default: False).
         timeout_seconds: Max seconds to wait when ``wait_for_completion`` is True
@@ -171,8 +198,14 @@ async def submit_experiment(
         'timed_out' (bool), and 'error' (str|None — set when status is "failed")
         when it is True.
     """
-    expid = {"file": file, "class_name": class_name, "arguments": arguments}
+    expid: dict[str, Any] = {"file": file, "class_name": class_name, "arguments": arguments}
+    if repo_rev is not None:
+        expid["repo_rev"] = repo_rev
+    if log_level is not None:
+        expid["log_level"] = log_level
     params: dict[str, Any] = {"pipeline": pipeline, "priority": priority, "flush": flush}
+    if due_date is not None:
+        params["due_date"] = due_date
     if wait_for_completion:
         timeout = min(timeout_seconds, 21600.0)
         params["wait_for_completion"] = True
@@ -200,6 +233,7 @@ async def submit_1d_scan(
     pipeline: str = "main",
     priority: int = 0,
     flush: bool = False,
+    due_date: float | None = None,
     wait_for_completion: bool = False,
     timeout_seconds: float = 600.0,
 ) -> int | dict[str, Any]:
@@ -230,6 +264,8 @@ async def submit_1d_scan(
         pipeline: Scheduling pipeline name (default "main").
         priority: Scheduling priority — higher runs sooner (default 0).
         flush: Flush the pipeline before submitting (default False).
+        due_date: Earliest time the scan may run, as a Unix timestamp. Omit or
+            pass None to run as soon as scheduled.
         wait_for_completion: If True, wait for the scan to finish before
             returning (default False).
         timeout_seconds: Max seconds to wait when ``wait_for_completion`` is True
@@ -240,7 +276,7 @@ async def submit_1d_scan(
         with 'rid', 'status' ("completed"/"failed"/"timeout"), 'timed_out', and
         'error' when it is True.
     """
-    payload = {
+    payload: dict[str, Any] = {
         "file": file,
         "class_name": class_name,
         "axes": [{"fqn": axis_fqn, "type": scan_type, "range": scan_range}],
@@ -250,6 +286,8 @@ async def submit_1d_scan(
         "priority": priority,
         "flush": flush,
     }
+    if due_date is not None:
+        payload["due_date"] = due_date
     return await _post_scan(payload, wait_for_completion, timeout_seconds)
 
 
@@ -283,6 +321,7 @@ async def submit_multi_axis_scan(
     pipeline: str = "main",
     priority: int = 0,
     flush: bool = False,
+    due_date: float | None = None,
     wait_for_completion: bool = False,
     timeout_seconds: float = 600.0,
 ) -> int | dict[str, Any]:
@@ -308,6 +347,8 @@ async def submit_multi_axis_scan(
         pipeline: Scheduling pipeline name (default "main").
         priority: Scheduling priority — higher runs sooner (default 0).
         flush: Flush the pipeline before submitting (default False).
+        due_date: Earliest time the scan may run, as a Unix timestamp. Omit or
+            pass None to run as soon as scheduled.
         wait_for_completion: If True, wait for the scan to finish before
             returning (default False).
         timeout_seconds: Max seconds to wait when ``wait_for_completion`` is True
@@ -318,7 +359,7 @@ async def submit_multi_axis_scan(
         with 'rid', 'status' ("completed"/"failed"/"timeout"), 'timed_out', and
         'error' when it is True.
     """
-    payload = {
+    payload: dict[str, Any] = {
         "file": file,
         "class_name": class_name,
         "axes": axes,
@@ -328,6 +369,8 @@ async def submit_multi_axis_scan(
         "priority": priority,
         "flush": flush,
     }
+    if due_date is not None:
+        payload["due_date"] = due_date
     return await _post_scan(payload, wait_for_completion, timeout_seconds)
 
 
@@ -347,6 +390,24 @@ async def cancel_experiment(rid: int, force: bool = False) -> str:
         r = await c.post("/api/cancel", params={"rid": rid, "force": force})
         r.raise_for_status()
         return f"Cancel requested for RID {rid} (force={force})"
+
+
+# ---------------------------------------------------------------------------
+# Devices
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+async def get_devices() -> dict[str, Any]:
+    """Get the current ARTIQ device database (device_db).
+
+    Returns a dict mapping device name -> device definition. This can be large
+    on systems with many devices.
+    """
+    async with _client() as c:
+        r = await c.get("/api/devices")
+        r.raise_for_status()
+        return r.json()
 
 
 # ---------------------------------------------------------------------------
