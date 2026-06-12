@@ -1,15 +1,31 @@
 import logging
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ExpID(BaseModel):
     log_level: int = logging.WARNING
     file: str
     class_name: str
-    arguments: Optional[Dict[str, Any]]
+    arguments: Dict[str, Any] = Field(default_factory=dict)
     repo_rev: Optional[str] = None
+
+    @field_validator("arguments", mode="before")
+    @classmethod
+    def _normalise_arguments(cls, value: Any) -> Any:
+        """Coerce a missing/``null`` ``arguments`` to an empty dict.
+
+        ARTIQ feeds ``expid["arguments"]`` straight into ndscan's /
+        ARTIQ's ``ProcessArgumentManager`` (``if key in unprocessed_arguments``),
+        which raises ``TypeError: argument of type 'NoneType' is not iterable``
+        when the value is ``None`` instead of falling back to the experiment's
+        default arguments. ``None`` and ``{}`` are semantically identical here
+        ("no explicit arguments — use defaults"), so we normalise ``None`` to
+        ``{}`` before it reaches the master. Any other non-dict value is left
+        untouched so pydantic rejects it with a clear 422.
+        """
+        return {} if value is None else value
 
 
 class ScheduleItem(BaseModel):
