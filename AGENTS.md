@@ -23,6 +23,7 @@ See README.rst for instructions
   - `main.py` - Entry point
   - `config.py` - Configuration
   - `artiq_api/` - ARTIQ API wrapper modules
+- `mcp_server/` - MCP (Model Context Protocol) server (`server.py`) that bridges to the HTTP API
 - `frontend/` - React frontend
 - `docker/` - Container and compose configuration for backend/frontend deployment
   - `compose.yml` - Main backend/frontend compose stack
@@ -37,6 +38,34 @@ See README.rst for instructions
   - `docker-compose.yml` - Test stack orchestration
 - `tests/` - Test suite
 - `docs/` - Sphinx documentation
+
+## MCP Server
+
+`mcp_server/server.py` is a hand-written [FastMCP](https://github.com/modelcontextprotocol/python-sdk)
+server that exposes ARTIQ functionality to MCP clients (e.g. Claude). It is a
+thin, curated bridge: every tool simply calls the FastAPI HTTP backend
+(`artiq_http/api.py`) over HTTP via `httpx`. It is deliberately *not*
+auto-generated from the OpenAPI schema — the hand-written layer adds
+LLM-friendly docstrings, flattened parameters, response unwrapping (e.g.
+datasets), convenience scan tools, and prompts/resources that have no HTTP
+equivalent.
+
+**Feature-parity rule:** because the two interfaces are maintained separately,
+any change to the HTTP API surface MUST be mirrored in the MCP server. In
+particular:
+
+- A new request parameter on `POST /api/schedule` (the `ExpID` body or its query
+  params) must be added to the `submit_experiment` tool.
+- A new request parameter on `POST /api/scan` (`ScanSubmitRequest`) must be added
+  to the `submit_1d_scan` and `submit_multi_axis_scan` tools.
+- A new HTTP endpoint that an MCP client could reasonably use should get a
+  corresponding tool.
+
+The following HTTP features are intentionally **not** exposed via MCP (do not
+treat these as parity gaps): `GET /api/datasets` full dump (too large — use the
+`list_dataset_names` / `get_dataset_values` tools instead), `GET /api/datasets/stream/...`
+(SSE streaming, not MCP-shaped), the `fields`/`full` query filters on the
+`explist` endpoints (MCP returns the curated form), and `GET /api/` (hello-world).
 
 ## Development Guidelines
 
@@ -125,19 +154,21 @@ This project includes agent configuration in the `.agent/` directory:
 
 ## Versioning
 
-This project uses manual semantic versioning with hard-coded version strings. The version is stored in both:
+This project uses manual semantic versioning with hard-coded version strings. The version is stored in four places, which must stay in sync (enforced by `tests/test_version_consistency.py`):
 - `artiq_http/__init__.py` - Runtime package version (`__version__`)
 - `pyproject.toml` - Packaging metadata version
+- `package.json` - Node/JS package version
+- `.claude-plugin/plugin.json` - Claude plugin version
 
 **When making changes, update the version according to Semantic Versioning (semver) principles:**
 - **MAJOR** (X.0.0): Breaking changes to the API
 - **MINOR** (0.X.0): New features, backward-compatible
 - **PATCH** (0.0.X): Bug fixes, backward-compatible
 
-**Update both files whenever you make changes:**
+**Update all four files whenever you make changes:**
 1. Determine the appropriate version increment based on the changes
-2. Update `artiq_http/__init__.py` (`__version__`)
-3. Update the `version` field in `pyproject.toml` to match
+2. Update the `version` in `artiq_http/__init__.py`, `pyproject.toml`,
+   `package.json`, and `.claude-plugin/plugin.json` so they all match
 
 ## Agent documentation
 
