@@ -92,6 +92,62 @@ def test_submit_experiment_with_due_date(mock_submit):
 
 
 @patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_experiment_null_arguments_coerced(mock_submit):
+    """A null ``arguments`` must be coerced to {} before reaching ARTIQ.
+
+    ARTIQ/ndscan feed ``expid["arguments"]`` straight into a membership test
+    (``key in unprocessed_arguments``); ``None`` raises a cryptic TypeError
+    deep in the worker, while ``{}`` correctly falls back to defaults.
+    """
+    mock_submit.return_value = 44
+
+    expid_data = {
+        "file": "test_experiment.py",
+        "class_name": "TestExperiment",
+        "arguments": None,
+    }
+
+    response = client.post("/api/schedule?pipeline=main&priority=0&flush=false", json=expid_data)
+    assert response.status_code == 200
+    assert response.json() == 44
+
+    submitted_expid = mock_submit.call_args.args[0]
+    assert submitted_expid.arguments == {}
+
+
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_experiment_omitted_arguments_defaults_to_empty_dict(mock_submit):
+    """Omitting ``arguments`` entirely defaults to {} (use experiment defaults)."""
+    mock_submit.return_value = 45
+
+    expid_data = {
+        "file": "test_experiment.py",
+        "class_name": "TestExperiment",
+    }
+
+    response = client.post("/api/schedule?pipeline=main&priority=0&flush=false", json=expid_data)
+    assert response.status_code == 200
+    assert response.json() == 45
+
+    submitted_expid = mock_submit.call_args.args[0]
+    assert submitted_expid.arguments == {}
+
+
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
+def test_submit_experiment_non_dict_arguments_rejected(mock_submit):
+    """A non-dict (non-null) ``arguments`` is rejected with a 422, not coerced."""
+    expid_data = {
+        "file": "test_experiment.py",
+        "class_name": "TestExperiment",
+        "arguments": ["not", "a", "dict"],
+    }
+
+    response = client.post("/api/schedule?pipeline=main&priority=0&flush=false", json=expid_data)
+    assert response.status_code == 422
+    mock_submit.assert_not_called()
+
+
+@patch("artiq_http.api.api.control_schedule.submit_experiment", new_callable=AsyncMock)
 def test_submit_experiment_value_error(mock_submit):
     """Test POST /schedule with invalid data causing ValueError"""
     mock_submit.side_effect = ValueError("Invalid experiment configuration")
