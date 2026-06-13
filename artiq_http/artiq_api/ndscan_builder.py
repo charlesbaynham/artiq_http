@@ -28,9 +28,7 @@ The ``path`` is the *instance path* at which the parameter is mounted.  ndscan
 keys every override/axis store by ``(fqn, path)`` and binds it only to a handle
 whose path matches; the top-level experiment fragment is ``""`` while a
 parameter defined on a sub-fragment lives at that sub-fragment's path (e.g.
-``"readout"``).  Targeting a sub-fragment parameter with the top-level ``""``
-fails at run time with ``Override for '<fqn>' in path '' did not match any
-parameters``.  We therefore resolve each FQN to its real instance path from the
+``"readout"``).  We resolve each FQN to its real instance path from the
 experiment's ``instances`` map rather than hardcoding ``""`` (see
 :func:`_resolve_path`).
 """
