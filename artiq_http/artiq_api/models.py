@@ -108,6 +108,11 @@ class ScanAxis(BaseModel):
 
     An optional ``randomise_order`` (bool, default False) may be added to any
     ``range``.
+
+    ``path`` is optional: the parameter's instance path is resolved
+    automatically from the experiment's ``instances`` map, so a sub-fragment
+    parameter is targeted correctly without specifying it.  Only set ``path``
+    to disambiguate an FQN that is mounted at more than one instance path.
     """
 
     fqn: str = Field(..., description="Fully-qualified parameter name, e.g. 'my_exp.frequency'")
@@ -123,6 +128,14 @@ class ScanAxis(BaseModel):
             "For list: {'values': [...]}. Optional 'randomise_order' (bool)."
         ),
     )
+    path: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional instance path to target. Resolved automatically from the "
+            "experiment's instances map when omitted; set only to disambiguate "
+            "an FQN present at multiple instance paths."
+        ),
+    )
 
 
 class ScanSubmitRequest(BaseModel):
@@ -130,10 +143,18 @@ class ScanSubmitRequest(BaseModel):
 
     file: str = Field(..., description="Relative path to the experiment file, e.g. 'scans/rabi.py'")
     class_name: str = Field(..., description="Python class name of the experiment, e.g. 'RabiFlop'")
-    axes: List[ScanAxis] = Field(..., description="List of scan axes (at least one required)")
+    axes: List[ScanAxis] = Field(
+        ...,
+        description="List of scan axes; may be empty to run once with no scan axis (no_axes_mode 'single')",
+    )
     fixed_params: Optional[Dict[str, Any]] = Field(
         default=None,
-        description="Dict mapping FQN to override value for parameters held fixed during the scan",
+        description=(
+            "Dict mapping FQN to override value for parameters held fixed during "
+            "the scan. The instance path is resolved automatically (sub-fragment "
+            "params included). To disambiguate an FQN present at multiple paths, "
+            "pass {'value': <v>, 'path': <instance_path>} instead of a bare value."
+        ),
     )
     num_repeats: int = Field(default=1, ge=1, description="Number of times to repeat the scan (default 1)")
     pipeline: str = Field(default="main", description="Scheduling pipeline name (default 'main')")
