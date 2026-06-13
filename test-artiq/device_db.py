@@ -1,9 +1,4 @@
 # device_db.py
-#
-# Note: the CommKernelDummy.close() compatibility shim that previously lived
-# here is now installed into the env's site-packages (see flake.nix /
-# shim/artiq_dummy_core_close_shim.py) so it also applies in the worker
-# process, which builds devices over IPC and never executes this file.
 device_db = {
     "core": {
         "type": "local",
