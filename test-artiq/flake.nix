@@ -63,6 +63,20 @@
           '';
         };
 
+        # Compatibility shim, packaged as a Python module so it lands inside the
+        # withPackages env's site-packages (i.e. on the interpreter's
+        # NIX_PYTHONPATH). A ".pth" makes it load at interpreter startup in BOTH
+        # the master and each experiment worker — the worker builds devices over
+        # IPC and never runs device_db.py, and the artiq_master wrapper pins the
+        # inner python's NIX_PYTHONPATH, so a device_db-level or outer-env patch
+        # would not reach it. See shim/ for the rationale.
+        dummyCoreCloseShim = py.pkgs.toPythonModule (pkgs.runCommand "artiq-dummy-core-close-shim" { } ''
+          dst="$out/${py.sitePackages}"
+          mkdir -p "$dst"
+          cp ${./shim/artiq_dummy_core_close_shim.py} "$dst/artiq_dummy_core_close_shim.py"
+          echo 'import artiq_dummy_core_close_shim' > "$dst/zzz-artiq-dummy-core-close.pth"
+        '');
+
         artiqEnv = pkgs.buildEnv {
           name = "artiq-env";
           paths = [
@@ -72,6 +86,7 @@
               ps.paramiko # needed if and only if flashing boards remotely (artiq_flash -H)
               artiq.flake8-artiq
               ndscan
+              dummyCoreCloseShim
             ]))
           ];
         };
