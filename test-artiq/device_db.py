@@ -1,14 +1,9 @@
 # device_db.py
-from artiq.coredevice.comm_kernel import CommKernelDummy
-
-if not hasattr(CommKernelDummy, "close"):
-
-    def _close(self):
-        return None
-
-    CommKernelDummy.close = _close
-
-
+#
+# Note: the CommKernelDummy.close() compatibility shim that previously lived
+# here is now installed into the env's site-packages (see flake.nix /
+# shim/artiq_dummy_core_close_shim.py) so it also applies in the worker
+# process, which builds devices over IPC and never executes this file.
 device_db = {
     "core": {
         "type": "local",

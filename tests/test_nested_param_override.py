@@ -77,28 +77,19 @@ def _sample_value(param_type: str | None):
     return {"float": 1.0, "int": 1, "bool": True}.get(param_type, 1.0)
 
 
-# The bundled test stack's dummy core (CommKernelDummy) lacks a ``close()``
-# method on this ARTIQ version, so the *worker* crashes at device teardown.
-# device_db.py's shim only patches the master process (the worker builds devices
-# over IPC via ParentDeviceDB), so it does not help here.  This teardown crash
-# is unrelated to parameter-path resolution and is tracked separately; tolerate
-# it so these tests assert only on what the fix controls.
-_KNOWN_TEARDOWN_BUG = "CommKernelDummy"
-
-
 def _assert_param_bound(result: dict) -> None:
-    """Assert the override/axis bound at the correct instance path.
+    """Assert the override/axis bound at the correct instance path and the run
+    completed cleanly.
 
     Correct binding means ndscan's ``prepare()`` did NOT raise the path-mismatch
     error (``did not match any parameters``) — that error is exactly the bug the
-    fix addresses, and it happens *before* the run.  The run therefore either
-    completes, or (only on this test stack) trips the unrelated dummy-core
-    teardown crash; any other failure is a real problem.
+    fix addresses, and it happens *before* the run.  The run must then complete:
+    the dummy-core teardown crash that used to mask this is fixed separately (see
+    ``tests/test_dummy_core_teardown.py``).
     """
     error = result.get("error") or ""
     assert "did not match" not in error, f"parameter failed to bind at its instance path: {error}"
-    if result["status"] != "completed":
-        assert _KNOWN_TEARDOWN_BUG in error, f"unexpected run failure: {result}"
+    assert result["status"] == "completed", f"run did not complete cleanly: {error}"
 
 
 def test_subfragment_fixed_param_resolves_and_runs(client):
