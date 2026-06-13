@@ -85,6 +85,8 @@ def _resolve_path(fqn: str, explicit_path: str | None, fqn_to_paths: dict[str, l
     candidates = fqn_to_paths.get(fqn)
 
     if explicit_path is not None:
+        if not isinstance(explicit_path, str):
+            raise ValueError(f"explicit path for '{fqn}' must be a string, got {type(explicit_path).__name__}")
         if candidates and explicit_path not in candidates:
             raise ValueError(
                 f"explicit path '{explicit_path}' for '{fqn}' is not one of its " f"instance paths {candidates}"

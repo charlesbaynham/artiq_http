@@ -20,7 +20,16 @@ pytestmark = pytest.mark.realserver
 
 
 def _ndscan_default(arginfo: dict) -> dict:
-    return json.loads(arginfo["ndscan_params"][0]["default"])
+    """Decode an experiment's ndscan_params default payload, or {} if malformed.
+
+    Defensive so a single odd explist entry can't crash the whole search — the
+    caller just skips to the next experiment.
+    """
+    try:
+        data = json.loads(arginfo["ndscan_params"][0]["default"])
+    except (KeyError, IndexError, TypeError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def _find_nested_ndscan(client) -> dict:
@@ -43,6 +52,8 @@ def _find_nested_ndscan(client) -> dict:
         default = _ndscan_default(arginfo)
         instances = default.get("instances", {})
         schemata = default.get("schemata", {})
+        if not isinstance(instances, dict) or not isinstance(schemata, dict):
+            continue
 
         # First FQN mounted at a non-top-level instance path.
         override_fqn = override_path = None

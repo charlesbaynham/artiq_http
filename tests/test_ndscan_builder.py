@@ -413,3 +413,23 @@ async def test_missing_instances_falls_back_to_top_level(mock_get_explist):
     )
     axis = json.loads(result)["scan"]["axes"][0]
     assert axis["path"] == ""
+
+
+@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
+async def test_non_string_explicit_path_rejected(mock_get_explist):
+    """A non-string explicit path is rejected even with no instances data.
+
+    Without the type check a non-string path (e.g. via the {'value','path'}
+    fixed-param form) would be emitted verbatim into ndscan_params and slip past
+    server-side validation, which only checks that 'path' is present.
+    """
+    arginfo = _nested_arginfo(instances={}, schemata_fqns=["exp.freq"])
+    mock_get_explist.return_value = _explist(arginfo)
+
+    with pytest.raises(ValueError, match="must be a string"):
+        await build_ndscan_params(
+            file="ndscan_exp.py",
+            class_name="NDScanExp",
+            axes=[],
+            fixed_params={"exp.freq": {"value": 1.0, "path": 123}},
+        )

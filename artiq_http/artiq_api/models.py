@@ -143,7 +143,10 @@ class ScanSubmitRequest(BaseModel):
 
     file: str = Field(..., description="Relative path to the experiment file, e.g. 'scans/rabi.py'")
     class_name: str = Field(..., description="Python class name of the experiment, e.g. 'RabiFlop'")
-    axes: List[ScanAxis] = Field(..., description="List of scan axes (at least one required)")
+    axes: List[ScanAxis] = Field(
+        ...,
+        description="List of scan axes; may be empty to run once with no scan axis (no_axes_mode 'single')",
+    )
     fixed_params: Optional[Dict[str, Any]] = Field(
         default=None,
         description=(
