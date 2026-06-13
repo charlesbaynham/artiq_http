@@ -17,11 +17,22 @@ than reconstructing them here.
 
 Wire format (what ndscan actually decodes):
 
-* ``overrides``: ``{fqn: [{"path": "", "value": <v>}]}`` — a *list* of
-  path/value specs per FQN, not a bare scalar.
+* ``overrides``: ``{fqn: [{"path": <instance_path>, "value": <v>}]}`` — a *list*
+  of path/value specs per FQN, not a bare scalar.
 * ``scan.axes[i]``: ``{"type": <generator>, "range": {...}, "fqn": <fqn>,
-  "path": ""}`` where ``type`` is an ndscan generator name and ``range`` is the
-  generator's constructor kwargs (every generator requires ``randomise_order``).
+  "path": <instance_path>}`` where ``type`` is an ndscan generator name and
+  ``range`` is the generator's constructor kwargs (every generator requires
+  ``randomise_order``).
+
+The ``path`` is the *instance path* at which the parameter is mounted.  ndscan
+keys every override/axis store by ``(fqn, path)`` and binds it only to a handle
+whose path matches; the top-level experiment fragment is ``""`` while a
+parameter defined on a sub-fragment lives at that sub-fragment's path (e.g.
+``"readout"``).  Targeting a sub-fragment parameter with the top-level ``""``
+fails at run time with ``Override for '<fqn>' in path '' did not match any
+parameters``.  We therefore resolve each FQN to its real instance path from the
+experiment's ``instances`` map rather than hardcoding ``""`` (see
+:func:`_resolve_path`).
 """
 
 from __future__ import annotations
@@ -29,7 +40,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from .ndscan_validation import _extract_schemata_from_arginfo
+from .ndscan_validation import _extract_instances_from_arginfo, _extract_schemata_from_arginfo
 from .notifiers import get_explist
 
 # ndscan scan-generator names (see ndscan.experiment.scan_generator.GENERATORS).
@@ -43,13 +54,78 @@ SUPPORTED_GENERATORS = {
 }
 
 
-def _build_axis(axis: dict) -> dict:
+def _invert_instances(instances: dict) -> dict[str, list[str]]:
+    """Invert ndscan's ``instances`` map (``{path: [fqn, ...]}``) into a
+    ``{fqn: [path, ...]}`` lookup.
+
+    A given FQN may be mounted at more than one instance path (e.g. the same
+    sub-fragment type used twice), so each FQN maps to a *list* of paths.  Paths
+    are de-duplicated while preserving first-seen order for stable error
+    messages.
+    """
+    fqn_to_paths: dict[str, list[str]] = {}
+    for path, fqns in instances.items():
+        if not isinstance(fqns, (list, tuple)):
+            continue
+        for fqn in fqns:
+            paths = fqn_to_paths.setdefault(fqn, [])
+            if path not in paths:
+                paths.append(path)
+    return fqn_to_paths
+
+
+def _resolve_path(fqn: str, explicit_path: str | None, fqn_to_paths: dict[str, list[str]]) -> str:
+    """Resolve the instance path at which *fqn*'s override/axis store should sit.
+
+    * If the caller gave an ``explicit_path``, it is honoured (and validated
+      against the known instance paths for *fqn* when those are available).
+    * Otherwise the path is looked up from the inverted ``instances`` map:
+      a unique match is used directly; an ambiguous FQN (present at multiple
+      paths) raises and demands an explicit path; an FQN with no instance
+      information falls back to ``""`` for backward compatibility.
+    """
+    candidates = fqn_to_paths.get(fqn)
+
+    if explicit_path is not None:
+        if candidates and explicit_path not in candidates:
+            raise ValueError(
+                f"explicit path '{explicit_path}' for '{fqn}' is not one of its " f"instance paths {candidates}"
+            )
+        return explicit_path
+
+    if not candidates:
+        # No instance information (e.g. arginfo without an ``instances`` map):
+        # preserve the historical top-level behaviour.
+        return ""
+    if len(candidates) == 1:
+        return candidates[0]
+    raise ValueError(
+        f"parameter '{fqn}' exists at multiple instance paths {candidates}; "
+        f"specify the path explicitly to disambiguate"
+    )
+
+
+def _split_fixed_param(value: Any) -> tuple[Any, str | None]:
+    """Split a ``fixed_params`` value into ``(value, explicit_path)``.
+
+    A plain scalar means "override this FQN, auto-resolving its path".  To pin a
+    specific instance path (needed only when an FQN is ambiguous), pass a dict
+    ``{"value": <v>, "path": <instance_path>}``.  ndscan scannable parameters are
+    always scalars, so a dict value unambiguously denotes the explicit form.
+    """
+    if isinstance(value, dict) and "value" in value:
+        return value["value"], value.get("path")
+    return value, None
+
+
+def _build_axis(axis: dict, fqn_to_paths: dict[str, list[str]]) -> dict:
     """Normalise one high-level axis dict into ndscan wire format.
 
-    Adds the required ``path`` key and a default ``randomise_order`` and checks
-    that ``type`` is a supported ndscan generator with the keys it needs.  The
-    range is otherwise passed through verbatim (its values are the generator's
-    constructor arguments).
+    Resolves the required ``path`` key (from the axis's optional explicit
+    ``path`` or the experiment's ``instances`` map) and a default
+    ``randomise_order``, and checks that ``type`` is a supported ndscan
+    generator with the keys it needs.  The range is otherwise passed through
+    verbatim (its values are the generator's constructor arguments).
     """
     fqn = axis.get("fqn")
     if not fqn or not isinstance(fqn, str):
@@ -73,7 +149,8 @@ def _build_axis(axis: dict) -> dict:
     range_out = dict(range_in)
     range_out.setdefault("randomise_order", False)
 
-    return {"type": gtype, "range": range_out, "fqn": fqn, "path": ""}
+    path = _resolve_path(fqn, axis.get("path"), fqn_to_paths)
+    return {"type": gtype, "range": range_out, "fqn": fqn, "path": path}
 
 
 async def build_ndscan_params(
@@ -94,8 +171,13 @@ async def build_ndscan_params(
         class_name: Experiment class name (e.g. "RabiFlop").
         axes: List of high-level scan-axis dicts, each with ``fqn``, ``type``
             (ndscan generator name), and ``range`` keys.
-        fixed_params: Dict mapping FQN to a fixed override value.  Each becomes
-            ``{fqn: [{"path": "", "value": value}]}`` in ``overrides``.
+        fixed_params: Dict mapping FQN to a fixed override value.  The value is
+            normally the scalar to hold the parameter at; its instance path is
+            resolved automatically from the experiment's ``instances`` map.  To
+            pin an ambiguous FQN to a specific instance path, pass
+            ``{"value": <v>, "path": <instance_path>}`` instead of a bare scalar.
+            Each becomes ``{fqn: [{"path": <resolved>, "value": value}]}`` in
+            ``overrides``.
         num_repeats: Number of repeat runs (default: 1).
 
     Returns:
@@ -123,12 +205,20 @@ async def build_ndscan_params(
     if not schemata:
         raise ValueError(f"Experiment {file}/{class_name} has no ndscan schemata")
 
-    overrides = {fqn: [{"path": "", "value": value}] for fqn, value in (fixed_params or {}).items()}
+    # Map each FQN to the instance path(s) it is mounted at, so sub-fragment
+    # parameters are targeted at their real path rather than the top level.
+    fqn_to_paths = _invert_instances(_extract_instances_from_arginfo(arginfo))
+
+    overrides: dict[str, list[dict[str, Any]]] = {}
+    for fqn, raw in (fixed_params or {}).items():
+        value, explicit_path = _split_fixed_param(raw)
+        path = _resolve_path(fqn, explicit_path, fqn_to_paths)
+        overrides[fqn] = [{"path": path, "value": value}]
 
     params_data = {
         "overrides": overrides,
         "scan": {
-            "axes": [_build_axis(ax) for ax in axes],
+            "axes": [_build_axis(ax, fqn_to_paths) for ax in axes],
             "num_repeats": num_repeats,
             "no_axes_mode": "single",
             "randomise_order_globally": False,

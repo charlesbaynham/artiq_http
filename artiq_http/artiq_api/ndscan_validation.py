@@ -194,10 +194,13 @@ def validate_ndscan_params(arguments: dict, arginfo: dict | None) -> str | None:
     return None
 
 
-def _extract_schemata_from_arginfo(arginfo: dict) -> dict:
-    """Extract the ndscan schemata dict from an experiment's arginfo.
+def _extract_ndscan_default(arginfo: dict) -> dict:
+    """Decode the ndscan_params *default* payload from an experiment's arginfo.
 
-    Returns an empty dict if ndscan_params is missing or malformed.
+    The default is the JSON string in ``arginfo["ndscan_params"][0]["default"]``;
+    it decodes to ndscan's full param descriptor (``schemata``, ``instances``,
+    ``overrides``, ``scan``, …).  Returns an empty dict if it is missing or
+    malformed.
     """
     ndscan_params = arginfo.get("ndscan_params")
     if not ndscan_params or not isinstance(ndscan_params, (list, tuple)):
@@ -211,9 +214,34 @@ def _extract_schemata_from_arginfo(arginfo: dict) -> dict:
         if not default_json or not isinstance(default_json, str):
             return {}
         params_data = json.loads(default_json)
-        schemata = params_data.get("schemata", {})
-        if isinstance(schemata, dict):
-            return schemata
+        if isinstance(params_data, dict):
+            return params_data
     except (json.JSONDecodeError, IndexError, KeyError, TypeError):
         pass
     return {}
+
+
+def _extract_schemata_from_arginfo(arginfo: dict) -> dict:
+    """Extract the ndscan schemata dict (``{fqn: schema}``) from an experiment's
+    arginfo.
+
+    Returns an empty dict if ndscan_params is missing or malformed.
+    """
+    schemata = _extract_ndscan_default(arginfo).get("schemata", {})
+    return schemata if isinstance(schemata, dict) else {}
+
+
+def _extract_instances_from_arginfo(arginfo: dict) -> dict:
+    """Extract the ndscan ``instances`` map (``{path: [fqn, ...]}``) from an
+    experiment's arginfo.
+
+    ndscan records, for every instance path at which a fragment is mounted, the
+    list of parameter FQNs that live there.  The top-level experiment fragment
+    is path ``""``; a sub-fragment mounted as ``readout`` contributes path
+    ``"readout"`` (nested sub-fragments use ``"a/b"``).  This is the map used to
+    target a parameter override at the right instance path.
+
+    Returns an empty dict if ndscan_params is missing or malformed.
+    """
+    instances = _extract_ndscan_default(arginfo).get("instances", {})
+    return instances if isinstance(instances, dict) else {}
