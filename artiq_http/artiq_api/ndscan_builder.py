@@ -89,7 +89,7 @@ def _resolve_path(fqn: str, explicit_path: str | None, fqn_to_paths: dict[str, l
             raise ValueError(f"explicit path for '{fqn}' must be a string, got {type(explicit_path).__name__}")
         if candidates and explicit_path not in candidates:
             raise ValueError(
-                f"explicit path '{explicit_path}' for '{fqn}' is not one of its " f"instance paths {candidates}"
+                f"explicit path '{explicit_path}' for '{fqn}' is not one of its instance paths {candidates}"
             )
         return explicit_path
 
@@ -100,8 +100,7 @@ def _resolve_path(fqn: str, explicit_path: str | None, fqn_to_paths: dict[str, l
     if len(candidates) == 1:
         return candidates[0]
     raise ValueError(
-        f"parameter '{fqn}' exists at multiple instance paths {candidates}; "
-        f"specify the path explicitly to disambiguate"
+        f"parameter '{fqn}' exists at multiple instance paths {candidates}; specify the path explicitly to disambiguate"
     )
 
 

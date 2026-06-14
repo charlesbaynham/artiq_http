@@ -1,7 +1,7 @@
 repos:
   # Several generic fixes
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: check-merge-conflict
@@ -10,7 +10,7 @@ repos:
 
   # Lint and format the code with ruff
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.6
+    rev: v0.15.17
     hooks:
       - id: ruff
         args: [--fix]
@@ -20,6 +20,8 @@ repos:
       - id: ruff-format
 
   # Format JavaScript and JSX files with Prettier
+  # NB: pinned to the last stable v3 tag; v4 on this mirror is only an
+  # alpha and the repo is archived upstream.
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0
     hooks:
