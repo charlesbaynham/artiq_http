@@ -319,3 +319,48 @@ def test_submit_returns_503_in_mock_mode(mock_client):
 def test_cancel_returns_503_in_mock_mode(mock_client):
     r = mock_client.post("/api/cancel?rid=1")
     assert r.status_code == 503
+
+
+def test_recompute_returns_mock_arginfo(mock_client):
+    r = mock_client.post(
+        "/api/explist/mock_experiment.py/MockRepeatExperiment/recompute",
+        params={"revision": "some-branch"},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["file"] == "mock_experiment.py"
+    assert data["class_name"] == "MockRepeatExperiment"
+    assert data["arginfo"] == {}
+
+
+def test_recompute_unknown_experiment_returns_404(mock_client):
+    r = mock_client.post("/api/explist/mock_experiment.py/Nope/recompute")
+    assert r.status_code == 404
+
+
+def test_recompute_extracts_class_arginfo(monkeypatch):
+    """Outside mock mode the endpoint extracts the requested class from the
+    description returned by experiment_db.examine and 404s when it is absent."""
+    import asyncio
+
+    from artiq_http import api as api_module
+    from artiq_http.config import config
+
+    fake_arginfo = {"freq": [{"ty": "NumberValue", "default": 1.0}, "RF", None]}
+
+    async def fake_examine(filename, revision=None):
+        assert filename == "scans/rabi.py"
+        assert revision == "feature-branch"
+        return {"RabiFlop": {"arginfo": fake_arginfo}, "Other": {"arginfo": {}}}
+
+    monkeypatch.setitem(config, "mock", False)
+    monkeypatch.setattr(api_module.api.control_schedule, "examine_experiment", fake_examine)
+
+    result = asyncio.run(api_module.recompute_explist_arginfo("scans/rabi.py", "RabiFlop", "feature-branch"))
+    assert result.arginfo == fake_arginfo
+
+    from fastapi import HTTPException
+
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(api_module.recompute_explist_arginfo("scans/rabi.py", "Missing", "feature-branch"))
+    assert exc.value.status_code == 404

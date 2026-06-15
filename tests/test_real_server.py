@@ -47,6 +47,27 @@ def test_get_explist(client):
     assert "current_rev" in data
 
 
+def test_recompute_arginfo(client):
+    """POST /explist/{file}/{class_name}/recompute re-examines on the master and
+    returns arginfo matching the statically-scanned current revision."""
+    explist = client.get("/api/explist?fields=file,class_name").json()["experiments"]
+    assert explist, "no experiments discovered on the real server"
+    exp = explist[0]
+
+    static = client.get(f"/api/explist/{exp['file']}/{exp['class_name']}/arginfo")
+    assert static.status_code == 200
+
+    # revision omitted -> examine at the master's current revision.
+    recomputed = client.post(f"/api/explist/{exp['file']}/{exp['class_name']}/recompute")
+    assert recomputed.status_code == 200, recomputed.text
+    data = recomputed.json()
+    assert data["file"] == exp["file"]
+    assert data["class_name"] == exp["class_name"]
+    assert isinstance(data["arginfo"], dict)
+    # The examined argument set should match the static scan's argument set.
+    assert set(data["arginfo"].keys()) == set(static.json()["arginfo"].keys())
+
+
 def _get_ndscan_experiment(client) -> dict:
     response = client.get("/api/explist?fields=file,class_name,arginfo&full=true")
     assert response.status_code == 200
