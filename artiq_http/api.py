@@ -116,11 +116,18 @@ async def lifespan(app: FastAPI):
         from .mock_backend import MockSubscriberManager
 
         logger.info("Mock mode: starting mock backend")
+        # Swap in the mock manager, restoring the original singleton on teardown so
+        # mock mode does not leak into other consumers (notably realserver tests that
+        # share the process-wide subscriber_manager).
+        previous = artiq_api.persistent_subscriber.subscriber_manager
         mock_mgr = MockSubscriberManager()
         artiq_api.persistent_subscriber.subscriber_manager = mock_mgr
         await mock_mgr.start()
-        yield
-        await mock_mgr.stop()
+        try:
+            yield
+        finally:
+            await mock_mgr.stop()
+            artiq_api.persistent_subscriber.subscriber_manager = previous
         return
 
     # Startup
@@ -458,6 +465,49 @@ async def get_explist_arginfo(file: str, class_name: str) -> api.models.Experime
                 arginfo=exp.arginfo,
             )
     raise HTTPException(404, f"Experiment {file}/{class_name} not found")
+
+
+@router.post("/explist/{file:path}/{class_name}/recompute")
+async def recompute_explist_arginfo(
+    file: str,
+    class_name: str,
+    revision: str | None = None,
+) -> api.models.ExperimentArginfo:
+    """Re-examine an experiment at *revision* and return its fresh arginfo.
+
+    This is the artiq_http equivalent of the ARTIQ dashboard's "Recompute all
+    arguments" button: it re-evaluates which arguments exist and their defaults for
+    the experiment as defined at the given git revision/branch, rather than reading
+    the master's statically-scanned current revision. Pass the returned ``revision``
+    as ``repo_rev`` when submitting so the experiment actually runs from it.
+
+    Args:
+        file: Experiment file path, relative to the repository root.
+        class_name: Experiment class name.
+        revision: Git revision/branch/tag to examine. Omit to use the master's
+            current revision.
+    """
+    if config.get("mock"):
+        from .artiq_api.persistent_subscriber import subscriber_manager
+
+        arginfo = subscriber_manager.examine_experiment(file, class_name, revision)
+        if arginfo is None:
+            raise HTTPException(404, f"Experiment {file}/{class_name} not found")
+        return api.models.ExperimentArginfo(file=file, class_name=class_name, arginfo=arginfo)
+
+    try:
+        description = await api.control_schedule.examine_experiment(file, revision)
+    except Exception as e:  # noqa: BLE001 - surface any RPC/connection failure as 503
+        raise HTTPException(503, f"Failed to examine experiment: {str(e)}")
+
+    if class_name not in description:
+        raise HTTPException(404, f"Experiment {file}/{class_name} not found at revision {revision or 'current'}")
+
+    return api.models.ExperimentArginfo(
+        file=file,
+        class_name=class_name,
+        arginfo=description[class_name].get("arginfo", {}),
+    )
 
 
 async def _validate_expid_ndscan(expid: api.models.ExpID) -> None:

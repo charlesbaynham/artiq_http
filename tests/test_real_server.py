@@ -47,6 +47,33 @@ def test_get_explist(client):
     assert "current_rev" in data
 
 
+def test_recompute_arginfo(client):
+    """POST /explist/{file}/{class_name}/recompute re-examines on the master and
+    returns arginfo matching the statically-scanned current revision."""
+    explist = client.get("/api/explist?fields=file,class_name").json()["experiments"]
+    assert explist, "no experiments discovered on the real server"
+    # Target a known, examinable experiment rather than explist[0] so the test is
+    # deterministic and independent of scan ordering.
+    exp = next(
+        (e for e in explist if e["file"] == "simple_exp.py" and e["class_name"] == "SimpleExp"),
+        None,
+    )
+    assert exp is not None, "simple_exp.py:SimpleExp not found in explist"
+
+    static = client.get(f"/api/explist/{exp['file']}/{exp['class_name']}/arginfo")
+    assert static.status_code == 200
+
+    # revision omitted -> examine at the master's current revision.
+    recomputed = client.post(f"/api/explist/{exp['file']}/{exp['class_name']}/recompute")
+    assert recomputed.status_code == 200, recomputed.text
+    data = recomputed.json()
+    assert data["file"] == exp["file"]
+    assert data["class_name"] == exp["class_name"]
+    assert isinstance(data["arginfo"], dict)
+    # The examined argument set should match the static scan's argument set.
+    assert set(data["arginfo"].keys()) == set(static.json()["arginfo"].keys())
+
+
 def _get_ndscan_experiment(client) -> dict:
     response = client.get("/api/explist?fields=file,class_name,arginfo&full=true")
     assert response.status_code == 200
@@ -58,10 +85,17 @@ def _get_ndscan_experiment(client) -> dict:
             continue
 
         schemata = json.loads(arginfo["ndscan_params"][0]["default"])["schemata"]
-        if any(key.endswith(".frequency") for key in schemata) and any(key.endswith(".amplitude") for key in schemata):
+        # Require every parameter that _build_ndscan_arguments overrides, not just
+        # frequency/amplitude: some experiments (e.g. scannable_exp.py) expose
+        # frequency+amplitude but no enable_noise, and would fail the build step.
+        if (
+            any(key.endswith(".frequency") for key in schemata)
+            and any(key.endswith(".amplitude") for key in schemata)
+            and any(key.endswith(".enable_noise") for key in schemata)
+        ):
             return experiment
 
-    pytest.skip("No suitable ndscan experiment with frequency/amplitude parameters available")
+    pytest.skip("No suitable ndscan experiment with frequency/amplitude/enable_noise parameters available")
 
 
 def _build_ndscan_arguments(arginfo: dict) -> dict:

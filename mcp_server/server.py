@@ -119,6 +119,33 @@ async def get_experiment_arginfo(file: str, class_name: str) -> dict[str, Any]:
         return r.json()
 
 
+@mcp.tool()
+async def recompute_experiment_arguments(file: str, class_name: str, revision: str | None = None) -> dict[str, Any]:
+    """Re-examine an experiment at a given git revision/branch and return its fresh arginfo.
+
+    This is the equivalent of the ARTIQ dashboard's "Recompute all arguments": it
+    re-evaluates which arguments exist and their defaults for the experiment as
+    defined at *revision*, rather than the master's statically-scanned current
+    revision. Use this to inspect an experiment on a different branch; pass the same
+    revision as repo_rev when submitting so it actually runs from that revision.
+
+    Args:
+        file: Relative path to the experiment file, e.g. "scans/rabi.py".
+        class_name: Python class name of the experiment, e.g. "RabiFlop".
+        revision: Git revision/branch/tag to examine. Omit to use the master's
+            current revision.
+
+    Returns a dict with 'file', 'class_name', and 'arginfo'.
+    """
+    encoded_file = quote(file, safe="/")
+    encoded_class = quote(class_name, safe="")
+    params = {"revision": revision} if revision is not None else None
+    async with _client() as c:
+        r = await c.post(f"/api/explist/{encoded_file}/{encoded_class}/recompute", params=params)
+        r.raise_for_status()
+        return r.json()
+
+
 # ---------------------------------------------------------------------------
 # Schedule
 # ---------------------------------------------------------------------------

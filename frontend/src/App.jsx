@@ -142,11 +142,11 @@ function App() {
     const uniqueId = `${exp.file}:${exp.class_name}`;
 
     setSelectedExperiment(uniqueId);
-    setRepoRev(explist.repo_rev);
+    setRepoRev(explist.current_rev);
 
     const params = new URLSearchParams();
     params.set("experiment", uniqueId);
-    if (explist.repo_rev) params.set("rev", explist.repo_rev);
+    if (explist.current_rev) params.set("rev", explist.current_rev);
     navigate({ pathname: "/configure", search: params.toString() });
 
     // Scroll to Configure Submission section
