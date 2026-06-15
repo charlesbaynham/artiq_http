@@ -393,6 +393,18 @@ class MockSubscriberManager:
     def get_explist_status(self) -> Dict:
         return {"cur_rev": "mock", "scanning": False}
 
+    def examine_experiment(self, file: str, class_name: str, revision=None):
+        """Return the static mock arginfo for *class_name*, or None if unknown.
+
+        Mock mode has no real ARTIQ master/git backend, so *revision* is ignored and
+        the existing mock explist arginfo is returned. This lets the frontend's
+        "Recompute arguments" control be exercised under ``make mock``.
+        """
+        for entry in _MOCK_EXPLIST.values():
+            if entry["file"] == file and entry["class_name"] == class_name:
+                return entry.get("arginfo", {})
+        return None
+
     def get_schedule(self) -> Dict:
         return {}
 
