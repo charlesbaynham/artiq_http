@@ -85,10 +85,17 @@ def _get_ndscan_experiment(client) -> dict:
             continue
 
         schemata = json.loads(arginfo["ndscan_params"][0]["default"])["schemata"]
-        if any(key.endswith(".frequency") for key in schemata) and any(key.endswith(".amplitude") for key in schemata):
+        # Require every parameter that _build_ndscan_arguments overrides, not just
+        # frequency/amplitude: some experiments (e.g. scannable_exp.py) expose
+        # frequency+amplitude but no enable_noise, and would fail the build step.
+        if (
+            any(key.endswith(".frequency") for key in schemata)
+            and any(key.endswith(".amplitude") for key in schemata)
+            and any(key.endswith(".enable_noise") for key in schemata)
+        ):
             return experiment
 
-    pytest.skip("No suitable ndscan experiment with frequency/amplitude parameters available")
+    pytest.skip("No suitable ndscan experiment with frequency/amplitude/enable_noise parameters available")
 
 
 def _build_ndscan_arguments(arginfo: dict) -> dict:
