@@ -52,7 +52,13 @@ def test_recompute_arginfo(client):
     returns arginfo matching the statically-scanned current revision."""
     explist = client.get("/api/explist?fields=file,class_name").json()["experiments"]
     assert explist, "no experiments discovered on the real server"
-    exp = explist[0]
+    # Target a known, examinable experiment rather than explist[0] so the test is
+    # deterministic and independent of scan ordering.
+    exp = next(
+        (e for e in explist if e["file"] == "simple_exp.py" and e["class_name"] == "SimpleExp"),
+        None,
+    )
+    assert exp is not None, "simple_exp.py:SimpleExp not found in explist"
 
     static = client.get(f"/api/explist/{exp['file']}/{exp['class_name']}/arginfo")
     assert static.status_code == 200

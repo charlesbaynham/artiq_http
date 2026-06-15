@@ -338,6 +338,27 @@ def test_recompute_unknown_experiment_returns_404(mock_client):
     assert r.status_code == 404
 
 
+def test_mock_mode_restores_subscriber_manager():
+    """Mock mode must not leak its MockSubscriberManager into the process-wide
+    singleton; otherwise realserver test modules collected later inherit mock data."""
+    from artiq_http import artiq_api
+    from artiq_http.api import app
+    from artiq_http.config import config
+
+    original = artiq_api.persistent_subscriber.subscriber_manager
+    prev_mock = config.get("mock", False)
+    config["mock"] = True
+    try:
+        with TestClient(app):
+            # Inside mock mode the singleton is swapped for the mock manager.
+            assert artiq_api.persistent_subscriber.subscriber_manager is not original
+        # On teardown the original singleton must be restored.
+        assert artiq_api.persistent_subscriber.subscriber_manager is original
+    finally:
+        config["mock"] = prev_mock
+        artiq_api.persistent_subscriber.subscriber_manager = original
+
+
 def test_recompute_extracts_class_arginfo(monkeypatch):
     """Outside mock mode the endpoint extracts the requested class from the
     description returned by experiment_db.examine and 404s when it is absent."""

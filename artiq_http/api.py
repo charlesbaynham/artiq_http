@@ -116,11 +116,18 @@ async def lifespan(app: FastAPI):
         from .mock_backend import MockSubscriberManager
 
         logger.info("Mock mode: starting mock backend")
+        # Swap in the mock manager, restoring the original singleton on teardown so
+        # mock mode does not leak into other consumers (notably realserver tests that
+        # share the process-wide subscriber_manager).
+        previous = artiq_api.persistent_subscriber.subscriber_manager
         mock_mgr = MockSubscriberManager()
         artiq_api.persistent_subscriber.subscriber_manager = mock_mgr
         await mock_mgr.start()
-        yield
-        await mock_mgr.stop()
+        try:
+            yield
+        finally:
+            await mock_mgr.stop()
+            artiq_api.persistent_subscriber.subscriber_manager = previous
         return
 
     # Startup
