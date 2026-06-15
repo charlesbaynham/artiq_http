@@ -83,6 +83,23 @@ export function get_explist_arginfo(file, class_name) {
   );
 }
 
+export function recompute_arguments(file, class_name, revision) {
+  // file may contain slashes (path), so encode each segment individually
+  const encodedFile = file
+    .split("/")
+    .map((s) => encodeURIComponent(s))
+    .join("/");
+  const params = {};
+  if (revision) params.revision = revision;
+  return api_fetch(
+    `api/explist/${encodedFile}/${encodeURIComponent(class_name)}/recompute`,
+    {
+      method: "POST",
+      params,
+    },
+  );
+}
+
 export function get_dataset_names() {
   return api_fetch("api/datasets/names");
 }
