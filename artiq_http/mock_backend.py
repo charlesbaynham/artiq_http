@@ -29,11 +29,42 @@ logger = logging.getLogger(__name__)
 _RID = 1
 _PREFIX = f"ndscan.rid_{_RID}"
 
+# `display_hints.priority` mirrors ndscan: higher means more important, negative
+# means hidden by default. Signal A/B are the "important" channels the experiment
+# shows by default; Signal C/D are diagnostics hidden until the user enables them.
 _CHANNELS = {
-    "ch0": {"path": "ch0", "description": "Signal A", "type": "float", "scale": 1.0, "unit": ""},
-    "ch1": {"path": "ch1", "description": "Signal B", "type": "float", "scale": 1.0, "unit": ""},
-    "ch2": {"path": "ch2", "description": "Signal C", "type": "float", "scale": 1.0, "unit": ""},
-    "ch3": {"path": "ch3", "description": "Signal D", "type": "float", "scale": 1.0, "unit": ""},
+    "ch0": {
+        "path": "ch0",
+        "description": "Signal A",
+        "type": "float",
+        "scale": 1.0,
+        "unit": "",
+        "display_hints": {"priority": 1},
+    },
+    "ch1": {
+        "path": "ch1",
+        "description": "Signal B",
+        "type": "float",
+        "scale": 1.0,
+        "unit": "",
+        "display_hints": {"priority": 1},
+    },
+    "ch2": {
+        "path": "ch2",
+        "description": "Signal C",
+        "type": "float",
+        "scale": 1.0,
+        "unit": "",
+        "display_hints": {"priority": -1},
+    },
+    "ch3": {
+        "path": "ch3",
+        "description": "Signal D",
+        "type": "float",
+        "scale": 1.0,
+        "unit": "",
+        "display_hints": {"priority": -1},
+    },
 }
 
 _STATIC_DATASETS: Dict[str, Any] = {
@@ -71,9 +102,18 @@ _SCAN1D_FQN = "mock.MockFreqScan"
 _SCAN1D_GHOST_PREFIX = "ndscan.rid_2"
 _SCAN1D_LIVE_PREFIX = "ndscan.rid_3"
 
+# `reference` is a negative-priority diagnostic channel: hidden by default so the
+# plot opens on the important `signal` channel only (see `_CHANNELS` above).
 _SCAN1D_CHANNELS = {
     "signal": {"path": "signal", "description": "Excitation", "type": "float", "scale": 1.0, "unit": ""},
-    "reference": {"path": "reference", "description": "Reference", "type": "float", "scale": 1.0, "unit": ""},
+    "reference": {
+        "path": "reference",
+        "description": "Reference",
+        "type": "float",
+        "scale": 1.0,
+        "unit": "",
+        "display_hints": {"priority": -1},
+    },
 }
 
 # One scanned axis: detuning in MHz. Mirrors the schema ndscan writes to the

@@ -22,6 +22,8 @@ import {
   extractRid,
   loadChannelVisibility,
   saveChannelVisibility,
+  channelPriority,
+  defaultVisibleChannels,
 } from "./utils";
 import { copyPlotToClipboard } from "./copyPlot";
 import ImageSection from "./ImageSection";
@@ -230,6 +232,29 @@ function PlotsApp() {
     [channelKeysSig],
   );
 
+  // Default visibility derived from ndscan's `display_hints.priority`: channels
+  // the experiment marks unimportant (negative priority) start hidden, the rest
+  // start visible. Keyed off a priority signature so it stays stable across SSE
+  // updates (priorities don't change mid-run) and the effect below doesn't
+  // re-run on every streamed point.
+  const channelPrioSig = active?.channels
+    ? channelKeys
+        .map((k) => `${k}=${channelPriority(active.channels[k])}`)
+        .join("\0")
+    : "";
+  const defaultVisible = useMemo(() => {
+    if (!channelPrioSig) return {};
+    const channels = {};
+    const keys = [];
+    for (const pair of channelPrioSig.split("\0")) {
+      const eq = pair.lastIndexOf("=");
+      const k = pair.slice(0, eq);
+      keys.push(k);
+      channels[k] = { display_hints: { priority: Number(pair.slice(eq + 1)) } };
+    }
+    return defaultVisibleChannels(channels, keys);
+  }, [channelPrioSig]);
+
   const [visibility, setVisibility] = useState({});
   // Load saved visibility when the active experiment changes.
   useEffect(() => {
@@ -238,8 +263,7 @@ function PlotsApp() {
     setVisibility((prev) => {
       let changed = false;
       const next = { ...prev };
-      for (let i = 0; i < channelKeys.length; i++) {
-        const k = channelKeys[i];
+      for (const k of channelKeys) {
         if (saved && k in saved) {
           const val = !!saved[k];
           if (next[k] !== val) {
@@ -247,14 +271,14 @@ function PlotsApp() {
             changed = true;
           }
         } else if (!(k in next)) {
-          // Default: first three channels visible.
-          next[k] = i < 3;
+          // Default to the channels the experiment shows by default.
+          next[k] = !!defaultVisible[k];
           changed = true;
         }
       }
       return changed ? next : prev;
     });
-  }, [fragmentFqn, channelKeys]);
+  }, [fragmentFqn, channelKeys, defaultVisible]);
 
   const toggleChannel = useCallback(
     (key) => {
