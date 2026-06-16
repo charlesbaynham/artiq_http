@@ -71,9 +71,14 @@ _SCAN1D_FQN = "mock.MockFreqScan"
 _SCAN1D_GHOST_PREFIX = "ndscan.rid_2"
 _SCAN1D_LIVE_PREFIX = "ndscan.rid_3"
 
+# Two small-scale (0–1) channels plus a large-scale (~10⁴–10⁵) `atom_number`
+# channel. None carry display hints, so the frontend's scale-based fallback
+# groups `atom_number` onto its own plot, separate from `signal`/`reference` —
+# exercising the fix for unrelated scales being crushed onto one shared y-axis.
 _SCAN1D_CHANNELS = {
     "signal": {"path": "signal", "description": "Excitation", "type": "float", "scale": 1.0, "unit": ""},
     "reference": {"path": "reference", "description": "Reference", "type": "float", "scale": 1.0, "unit": ""},
+    "atom_number": {"path": "atom_number", "description": "Atom number", "type": "float", "scale": 1.0, "unit": ""},
 }
 
 # One scanned axis: detuning in MHz. Mirrors the schema ndscan writes to the
@@ -99,11 +104,14 @@ _SCAN1D_REPEATS = 4
 
 
 def _scan1d_sample(x: float, center: float) -> Dict[str, float]:
-    """A noisy Lorentzian resonance in `signal`, plus a flat-ish `reference`."""
+    """A noisy Lorentzian resonance in `signal`, a flat-ish `reference`, and a
+    large-scale `atom_number` (~10⁴–10⁵) that tracks the resonance."""
     width = 6.0
-    signal = 0.12 + 0.8 / (1.0 + ((x - center) / width) ** 2) + random.gauss(0, 0.05)
+    lorentzian = 1.0 / (1.0 + ((x - center) / width) ** 2)
+    signal = 0.12 + 0.8 * lorentzian + random.gauss(0, 0.05)
     reference = 0.5 + random.gauss(0, 0.03)
-    return {"signal": signal, "reference": reference}
+    atom_number = 50000.0 + 30000.0 * lorentzian + random.gauss(0, 3000.0)
+    return {"signal": signal, "reference": reference, "atom_number": atom_number}
 
 
 def _scan1d_schedule() -> List[float]:
