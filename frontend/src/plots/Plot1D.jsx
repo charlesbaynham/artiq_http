@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { niceTicks, formatNum } from "./utils";
+import { useMeasuredSize } from "./useMeasuredSize";
 
 // Group (x, value) pairs by identical x, returning points sorted by x with the
 // mean and standard error of the mean (std / sqrt(n)) of the values at each x.
@@ -64,22 +65,8 @@ function Plot1D({
   ghosts = [],
   scanned = false,
 }) {
-  const ref = useRef(null);
-  const [size, setSize] = useState({ w: 800, h: 460 });
+  const [setRef, size] = useMeasuredSize();
   const [cursor, setCursor] = useState(null);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    const ro = new ResizeObserver(([e]) => {
-      const cr = e.contentRect;
-      setSize({
-        w: Math.max(360, cr.width),
-        h: Math.max(220, cr.height),
-      });
-    });
-    ro.observe(ref.current);
-    return () => ro.disconnect();
-  }, []);
 
   // Aggregate raw points into the curves used for the connecting lines and
   // error bars. Memoized so cursor moves (which only set local state) don't
@@ -106,7 +93,7 @@ function Plot1D({
   if (!xs.length || !onChannels.length) {
     return (
       <div
-        ref={ref}
+        ref={setRef}
         style={{
           width: "100%",
           height: "100%",
@@ -240,7 +227,7 @@ function Plot1D({
       }}
     >
       <div
-        ref={ref}
+        ref={setRef}
         style={{
           flex: 1,
           position: "relative",

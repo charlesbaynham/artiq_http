@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useMeasuredSize } from "./useMeasuredSize";
 import PropTypes from "prop-types";
 import { niceTicks, formatNum, rampColor } from "./utils";
 
@@ -8,23 +9,9 @@ import { niceTicks, formatNum, rampColor } from "./utils";
 // We bin the points onto a regular grid (rendered as a canvas image), then
 // draw axes/cursor in an overlay SVG.
 function Plot2D({ xs, ys, values, xLabel, yLabel, metric }) {
-  const ref = useRef(null);
+  const [setRef, size] = useMeasuredSize();
   const canvasRef = useRef(null);
-  const [size, setSize] = useState({ w: 800, h: 460 });
   const [cursor, setCursor] = useState(null);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    const ro = new ResizeObserver(([e]) => {
-      const cr = e.contentRect;
-      setSize({
-        w: Math.max(360, cr.width),
-        h: Math.max(220, cr.height),
-      });
-    });
-    ro.observe(ref.current);
-    return () => ro.disconnect();
-  }, []);
 
   // Infer grid: take unique sorted axis values; if regular, use as grid;
   // otherwise fall back to scatter rendering.
@@ -117,7 +104,7 @@ function Plot2D({ xs, ys, values, xLabel, yLabel, metric }) {
   if (!grid || cols === 0 || rows === 0) {
     return (
       <div
-        ref={ref}
+        ref={setRef}
         style={{
           width: "100%",
           height: "100%",
@@ -176,7 +163,7 @@ function Plot2D({ xs, ys, values, xLabel, yLabel, metric }) {
       }}
     >
       <div
-        ref={ref}
+        ref={setRef}
         style={{
           flex: 1,
           position: "relative",
