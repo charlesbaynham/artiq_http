@@ -58,7 +58,7 @@ function drawLegend(
   channels,
   ghosts,
   plotW,
-  headerH,
+  topY,
   panel,
   border,
   accent,
@@ -68,7 +68,7 @@ function drawLegend(
 ) {
   const LEGEND_W = Math.min(220, Math.max(160, Math.round(plotW * 0.3)));
   const LEGEND_X = plotW - LEGEND_W - 12;
-  const LEGEND_Y = headerH + 12;
+  const LEGEND_Y = topY + 12;
   const PAD_X = 8;
   const PAD_Y = 6;
   const LINE_H = 18;
@@ -196,6 +196,8 @@ export async function copyPlotToClipboard({
   rid,
   dims,
   channelDescriptors = [],
+  channelGroups = null,
+  primaryChannelKey = null,
   fragmentFqn = "",
   metric2D = null,
   ghosts = [],
@@ -215,21 +217,40 @@ export async function copyPlotToClipboard({
   const FOOTER = 30;
   let plotW, plotH, drawPlot;
 
-  let svgEl = containerEl.querySelector("svg");
+  // The plot area may contain several stacked plot SVGs (one per channel
+  // group). Exclude the fullscreen-button icon, which is also an <svg>.
+  const svgEls = Array.from(containerEl.querySelectorAll("svg")).filter(
+    (el) => !el.closest("button"),
+  );
 
-  // A 0D repeat scan with accumulated local history renders as a 1D plot.
+  // `panels` is populated in the SVG branch and consumed by the legend pass so
+  // each stacked plot gets its own legend at the right vertical offset.
+  let panels = [];
+
+  // A 0D repeat scan with accumulated local history renders as 1D plot SVG(s).
   // If an SVG is present, capture it using the vector path regardless of dims.
-  if (dims === "1D" || dims === "2D" || svgEl) {
-    if (!svgEl) throw new Error("No SVG element found in plot container");
+  if (dims === "1D" || dims === "2D" || svgEls.length) {
+    if (!svgEls.length)
+      throw new Error("No SVG element found in plot container");
 
-    plotW =
-      parseInt(svgEl.getAttribute("width"), 10) || svgEl.clientWidth || 800;
-    plotH =
-      parseInt(svgEl.getAttribute("height"), 10) || svgEl.clientHeight || 460;
+    // Rasterise each stacked plot SVG, preserving DOM (top-to-bottom) order.
+    for (const el of svgEls) {
+      const w = parseInt(el.getAttribute("width"), 10) || el.clientWidth || 800;
+      const h =
+        parseInt(el.getAttribute("height"), 10) || el.clientHeight || 460;
+      const svgStr = new XMLSerializer().serializeToString(el);
+      const img = await loadSVGImage(resolveVars(svgStr, cs));
+      panels.push({ img, w, h });
+    }
+    plotW = Math.max(...panels.map((p) => p.w));
+    plotH = panels.reduce((acc, p) => acc + p.h, 0);
 
-    const svgStr = new XMLSerializer().serializeToString(svgEl);
-    const resolved = resolveVars(svgStr, cs);
-    const svgImg = await loadSVGImage(resolved);
+    // Record each panel's vertical offset (within the plot area) for legends.
+    let acc = 0;
+    for (const p of panels) {
+      p.offset = acc;
+      acc += p.h;
+    }
 
     let heatmap = null;
     if (dims === "2D") {
@@ -250,16 +271,19 @@ export async function copyPlotToClipboard({
     drawPlot = (ctx, yOff = 0) => {
       ctx.fillStyle = bg;
       ctx.fillRect(0, yOff, plotW, plotH);
-      if (heatmap) {
-        ctx.drawImage(
-          heatmap.el,
-          heatmap.x,
-          heatmap.y + yOff,
-          heatmap.w,
-          heatmap.h,
-        );
-      }
-      ctx.drawImage(svgImg, 0, yOff, plotW, plotH);
+      panels.forEach((p, i) => {
+        const y = yOff + p.offset;
+        if (heatmap && i === 0) {
+          ctx.drawImage(
+            heatmap.el,
+            heatmap.x,
+            y + heatmap.y,
+            heatmap.w,
+            heatmap.h,
+          );
+        }
+        ctx.drawImage(p.img, 0, y, p.w, p.h);
+      });
     };
   } else {
     // 0D — draw channel tiles directly onto canvas
@@ -379,22 +403,53 @@ export async function copyPlotToClipboard({
   // ── Legend / metric badge overlay ──
   // 0D repeat scans with accumulated history render as a 1D plot (SVG).
   // Draw a legend in both the true 1D case and the 0D-with-SVG case.
-  if (dims === "1D" || (dims === "0D" && svgEl)) {
-    const onCh = channelDescriptors.filter((c) => c.on);
-    if (onCh.length > 0 || ghosts.length > 0) {
-      drawLegend(
-        ctx,
-        onCh,
-        ghosts,
-        plotW,
-        HEADER,
-        panel,
-        border,
-        accent,
-        ink,
-        ink50,
-        cs,
-      );
+  if (dims === "1D" || (dims === "0D" && svgEls.length)) {
+    if (channelGroups && channelGroups.length) {
+      // Per-group legends, one on each stacked plot. The ghost overlay sits on
+      // the plot holding the primary channel, so its legend entry goes there.
+      let ghostPanel = 0;
+      if (primaryChannelKey != null) {
+        const idx = channelGroups.findIndex((g) =>
+          g.some((c) => c.key === primaryChannelKey),
+        );
+        if (idx >= 0) ghostPanel = idx;
+      }
+      panels.forEach((p, i) => {
+        const onCh = (channelGroups[i] || []).filter((c) => c.on);
+        const panelGhosts = i === ghostPanel ? ghosts : [];
+        if (onCh.length > 0 || panelGhosts.length > 0) {
+          drawLegend(
+            ctx,
+            onCh,
+            panelGhosts,
+            plotW,
+            HEADER + p.offset,
+            panel,
+            border,
+            accent,
+            ink,
+            ink50,
+            cs,
+          );
+        }
+      });
+    } else {
+      const onCh = channelDescriptors.filter((c) => c.on);
+      if (onCh.length > 0 || ghosts.length > 0) {
+        drawLegend(
+          ctx,
+          onCh,
+          ghosts,
+          plotW,
+          HEADER,
+          panel,
+          border,
+          accent,
+          ink,
+          ink50,
+          cs,
+        );
+      }
     }
   } else if (dims === "2D" && metric2D) {
     drawMetricBadge(ctx, metric2D, plotW, HEADER, panel, border, accent, ink);

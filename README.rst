@@ -108,15 +108,24 @@ To inspect or reset the test stack:
 
 **Production:**
 
+For production deployments use the Docker Compose stack in ``docker/``, which
+runs the backend (API only), the frontend (built and served by Caddy), and the
+MCP server together:
+
 .. code-block:: bash
 
-    # Build static HTML first
-    cd frontend && npm run build
+    cd docker
+    docker compose up -d
+
+The backend no longer serves the bundled frontend itself. To run just the API
+server (e.g. behind your own reverse proxy that serves the frontend separately):
+
+.. code-block:: bash
 
     # Install production dependencies only
     uv sync --no-dev
 
-    # Run the server (default port 8000)
+    # Run the API server (default port 8000)
     uv run aqctl_artiq_http
 
     # Run on a custom port
