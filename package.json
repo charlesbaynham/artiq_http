@@ -1,13 +1,11 @@
 {
   "name": "artiq-http",
-  "version": "0.17.1",
+  "version": "0.18.0",
   "scripts": {
     "install": "cd frontend && npm install",
     "frontend": "cd frontend && npm start",
     "backend": "uv run aqctl_artiq_http --reload",
     "mcp": "uv run python mcp_server/server.py",
-    "static:update": "(rm -r artiq_http/static || true) && cd frontend && npm run build && mv dist ../artiq_http/static",
-    "build": "npm run static:update",
     "clean": "git clean -xdf --exclude venv --exclude node_modules --exclude .env"
   }
 }
