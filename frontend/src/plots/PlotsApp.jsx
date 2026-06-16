@@ -778,8 +778,8 @@ function StackedPlots1D({
           <div
             key={key}
             style={{
-              flex: single ? 1 : "1 0 auto",
-              minHeight: single ? 0 : 200,
+              flex: single ? 1 : "1 1 0",
+              minHeight: single ? 0 : 160,
             }}
           >
             <Plot1D
