@@ -2,7 +2,6 @@ import asyncio
 import logging
 import re
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Any, Dict
 
 import pydantic
@@ -10,7 +9,6 @@ from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.encoders import ENCODERS_BY_TYPE
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 
 from . import artiq_api as api
 from . import sse
@@ -733,18 +731,3 @@ async def submit_scan(
 
 app.include_router(router, prefix="/api")
 app.include_router(sse.router, prefix="/api")
-
-if config["dev_mode"]:
-    print("Development mode")
-
-    @app.get("/")
-    async def index():
-        return "HTML hosting is disabled in dev mode - access the react server from 'npm run frontend' directly"
-
-else:
-    print("Production mode")
-    app.mount(
-        "/",
-        StaticFiles(directory=Path(__file__, "../static").resolve(), html=True),
-        name="static",
-    )
