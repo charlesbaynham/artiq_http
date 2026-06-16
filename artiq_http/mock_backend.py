@@ -29,11 +29,42 @@ logger = logging.getLogger(__name__)
 _RID = 1
 _PREFIX = f"ndscan.rid_{_RID}"
 
+# `display_hints.priority` mirrors ndscan: higher means more important, negative
+# means hidden by default. Signal A/B are the "important" channels the experiment
+# shows by default; Signal C/D are diagnostics hidden until the user enables them.
 _CHANNELS = {
-    "ch0": {"path": "ch0", "description": "Signal A", "type": "float", "scale": 1.0, "unit": ""},
-    "ch1": {"path": "ch1", "description": "Signal B", "type": "float", "scale": 1.0, "unit": ""},
-    "ch2": {"path": "ch2", "description": "Signal C", "type": "float", "scale": 1.0, "unit": ""},
-    "ch3": {"path": "ch3", "description": "Signal D", "type": "float", "scale": 1.0, "unit": ""},
+    "ch0": {
+        "path": "ch0",
+        "description": "Signal A",
+        "type": "float",
+        "scale": 1.0,
+        "unit": "",
+        "display_hints": {"priority": 1},
+    },
+    "ch1": {
+        "path": "ch1",
+        "description": "Signal B",
+        "type": "float",
+        "scale": 1.0,
+        "unit": "",
+        "display_hints": {"priority": 1},
+    },
+    "ch2": {
+        "path": "ch2",
+        "description": "Signal C",
+        "type": "float",
+        "scale": 1.0,
+        "unit": "",
+        "display_hints": {"priority": -1},
+    },
+    "ch3": {
+        "path": "ch3",
+        "description": "Signal D",
+        "type": "float",
+        "scale": 1.0,
+        "unit": "",
+        "display_hints": {"priority": -1},
+    },
 }
 
 _STATIC_DATASETS: Dict[str, Any] = {
@@ -71,13 +102,21 @@ _SCAN1D_FQN = "mock.MockFreqScan"
 _SCAN1D_GHOST_PREFIX = "ndscan.rid_2"
 _SCAN1D_LIVE_PREFIX = "ndscan.rid_3"
 
-# Two small-scale (0–1) channels plus a large-scale (~10⁴–10⁵) `atom_number`
-# channel. None carry display hints, so the frontend's scale-based fallback
-# groups `atom_number` onto its own plot, separate from `signal`/`reference` —
-# exercising the fix for unrelated scales being crushed onto one shared y-axis.
+# `signal` (small scale, the important channel) plus a large-scale (~10⁴–10⁵)
+# `atom_number`: their unrelated scales make the frontend's scale-based fallback
+# group `atom_number` onto its own plot, exercising the fix for crushed shared
+# y-axes. `reference` is a negative-priority diagnostic, hidden by default so the
+# plot opens on `signal`/`atom_number` until the user enables it.
 _SCAN1D_CHANNELS = {
     "signal": {"path": "signal", "description": "Excitation", "type": "float", "scale": 1.0, "unit": ""},
-    "reference": {"path": "reference", "description": "Reference", "type": "float", "scale": 1.0, "unit": ""},
+    "reference": {
+        "path": "reference",
+        "description": "Reference",
+        "type": "float",
+        "scale": 1.0,
+        "unit": "",
+        "display_hints": {"priority": -1},
+    },
     "atom_number": {"path": "atom_number", "description": "Atom number", "type": "float", "scale": 1.0, "unit": ""},
 }
 

@@ -95,3 +95,30 @@ export function saveChannelVisibility(fragmentFqn, visibility) {
     // ignore quota / disabled storage
   }
 }
+
+// ndscan exposes a per-channel `display_hints.priority`: higher means more
+// important, and a negative priority means "hidden by default" (the user can
+// still enable it). Default 0 when unspecified. See ndscan's
+// `plots/utils.py::_get_priority`.
+export function channelPriority(spec) {
+  const p = spec?.display_hints?.priority;
+  return typeof p === "number" ? p : 0;
+}
+
+// Default channel visibility, mirroring ndscan's
+// `get_default_hidden_channels`: every channel with a negative priority is
+// hidden by default, the rest are shown. If *every* channel is negative
+// priority, the highest-priority one is still shown so the plot is never empty.
+// `keys` is the list of channel keys to consider; returns a `{ key: bool }` map.
+export function defaultVisibleChannels(channels, keys) {
+  const hidden = new Set(keys.filter((k) => channelPriority(channels[k]) < 0));
+  if (keys.length && hidden.size >= keys.length) {
+    const best = keys.reduce((a, b) =>
+      channelPriority(channels[b]) > channelPriority(channels[a]) ? b : a,
+    );
+    hidden.delete(best);
+  }
+  const out = {};
+  for (const k of keys) out[k] = !hidden.has(k);
+  return out;
+}
