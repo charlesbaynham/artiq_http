@@ -23,6 +23,7 @@ import {
   loadChannelVisibility,
   saveChannelVisibility,
 } from "./utils";
+import { groupChannels } from "./grouping";
 import { copyPlotToClipboard } from "./copyPlot";
 import ImageSection from "./ImageSection";
 
@@ -345,6 +346,48 @@ function PlotsApp() {
     });
   }, [active, channelKeys, visibility, dims, metric2D]);
 
+  // ── Channel grouping into separate stacked plots ─────────────────────────
+  // The descriptor list fed into Plot1D for the current mode (1D scan, or the
+  // 0D-repeat elapsed-time series), with values resolved appropriately. Null
+  // for modes that don't use Plot1D (2D, or 0D before any history exists).
+  const plot1dChannels = useMemo(() => {
+    if (dims === "1D") return channelDescriptors;
+    if (dims === "0D" && timeseries0D) {
+      return channelDescriptors.map((c) => ({
+        ...c,
+        values: timeseries0D.channelValues[c.key] || [],
+      }));
+    }
+    return null;
+  }, [dims, channelDescriptors, timeseries0D]);
+
+  // Group channels (by ndscan share_axis_with hints, else by scale) so that
+  // unrelated scales don't get crushed onto one shared y-axis.
+  const channelGroups = useMemo(() => {
+    if (!active || !active.channels || !plot1dChannels) return [];
+    const valuesByKey = {};
+    for (const c of plot1dChannels) valuesByKey[c.key] = c.values;
+    return groupChannels(active.channels, valuesByKey);
+  }, [active, plot1dChannels]);
+
+  // Resolve groups to descriptor subsets, keeping only groups with at least one
+  // visible channel (in render order). These are the plots actually drawn, and
+  // are also handed to the clipboard exporter so its per-plot legends match.
+  const renderGroups = useMemo(() => {
+    if (!plot1dChannels) return null;
+    const byKey = new Map(plot1dChannels.map((d) => [d.key, d]));
+    const groups = channelGroups
+      .map((keys) => keys.map((k) => byKey.get(k)).filter(Boolean))
+      .filter((descs) => descs.some((d) => d.on));
+    if (!groups.length) {
+      const visible = plot1dChannels.filter((d) => d.on);
+      if (visible.length) return [visible];
+    }
+    return groups;
+  }, [channelGroups, plot1dChannels]);
+
+  const primaryChannelKey = plot1dChannels?.[0]?.key ?? null;
+
   // ── Native fullscreen for the plot panel ────────────────────────────────
   const plotPanelRef = useRef(null);
   const [isPlotFullscreen, setIsPlotFullscreen] = useState(false);
@@ -374,8 +417,9 @@ function PlotsApp() {
       rid: extractRid(activePrefix || ""),
       dims,
       channelDescriptors,
+      channelGroups: renderGroups,
     });
-  }, [activePrefix, dims, channelDescriptors]);
+  }, [activePrefix, dims, channelDescriptors, renderGroups]);
 
   // ── Timeline — show all recent runs ─────────────────────────────────────
   const timelineRuns = recentRuns;
@@ -552,6 +596,8 @@ function PlotsApp() {
               active={active}
               dims={dims}
               channelDescriptors={channelDescriptors}
+              renderGroups={renderGroups}
+              primaryChannelKey={primaryChannelKey}
               metric2D={metric2D}
               ghosts={ghostsForPlot}
               status={status}
@@ -684,10 +730,88 @@ function ActiveHeader({ prefix, rid, fragmentFqn, dims }) {
   );
 }
 
+// Render one Plot1D per channel group, stacked vertically. `groups` is an array
+// of descriptor arrays (already filtered to groups that have a visible channel).
+// A single group fills the panel; multiple groups stack and scroll so each keeps
+// its own independent y-scale.
+function StackedPlots1D({
+  groups,
+  xs,
+  xLabel,
+  scanned,
+  ghosts,
+  primaryChannelKey,
+}) {
+  if (!groups || !groups.length) {
+    return (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "var(--p-ink50)",
+          fontSize: 12,
+        }}
+      >
+        No channels visible.
+      </div>
+    );
+  }
+  const single = groups.length === 1;
+  return (
+    <div
+      style={{
+        height: "100%",
+        overflowY: single ? "hidden" : "auto",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {groups.map((descs) => {
+        const key = descs.map((d) => d.key).join("|");
+        const hasPrimary =
+          primaryChannelKey != null &&
+          descs.some((d) => d.key === primaryChannelKey);
+        return (
+          <div
+            key={key}
+            style={{
+              flex: single ? 1 : "1 1 0",
+              minHeight: single ? 0 : 160,
+            }}
+          >
+            <Plot1D
+              xs={xs}
+              xLabel={xLabel}
+              yLabel="value"
+              channels={descs}
+              ghosts={hasPrimary ? ghosts : []}
+              scanned={scanned}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+StackedPlots1D.propTypes = {
+  groups: PropTypes.array,
+  xs: PropTypes.array.isRequired,
+  xLabel: PropTypes.string,
+  scanned: PropTypes.bool,
+  ghosts: PropTypes.array,
+  primaryChannelKey: PropTypes.string,
+};
+
 function PlotBody({
   active,
   dims,
   channelDescriptors,
+  renderGroups,
+  primaryChannelKey,
   metric2D,
   ghosts,
   status,
@@ -750,16 +874,14 @@ function PlotBody({
 
   if (dims === "0D") {
     if (timeseries0D && timeseries0D.xs.length > 1) {
-      const channels = channelDescriptors.map((c) => ({
-        ...c,
-        values: timeseries0D.channelValues[c.key] || [],
-      }));
       return (
-        <Plot1D
+        <StackedPlots1D
+          groups={renderGroups}
           xs={timeseries0D.xs}
           xLabel="elapsed / s"
-          yLabel="value"
-          channels={channels}
+          scanned={false}
+          ghosts={[]}
+          primaryChannelKey={primaryChannelKey}
         />
       );
     }
@@ -773,13 +895,13 @@ function PlotBody({
     const xs = active.axisValues[0] || [];
     const axis = active.axes[0];
     return (
-      <Plot1D
+      <StackedPlots1D
+        groups={renderGroups}
         xs={xs}
         xLabel={axisLabel(axis)}
-        yLabel="value"
-        channels={channelDescriptors}
-        ghosts={ghosts}
         scanned
+        ghosts={ghosts}
+        primaryChannelKey={primaryChannelKey}
       />
     );
   }
@@ -820,6 +942,8 @@ PlotBody.propTypes = {
   active: PropTypes.object,
   dims: PropTypes.string,
   channelDescriptors: PropTypes.array.isRequired,
+  renderGroups: PropTypes.array,
+  primaryChannelKey: PropTypes.string,
   metric2D: PropTypes.string,
   ghosts: PropTypes.array,
   status: PropTypes.string,
