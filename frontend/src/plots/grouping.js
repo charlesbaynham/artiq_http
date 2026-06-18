@@ -1,12 +1,15 @@
 // Partition result channels into groups that should each be drawn on their own
-// 1D plot (with an independent y-scale), mirroring ndscan's behaviour.
+// 1D plot (with an independent y-scale).
 //
-// ndscan groups channels using explicit `display_hints.share_axis_with`
-// annotations (see ndscan/plots/utils.py: group_channels_into_axes). When an
-// experiment provides such hints we honour them faithfully. When it doesn't,
-// we fall back to grouping by order-of-magnitude of the channel values, so that
-// wildly different scales (e.g. atom_number ~1e5 vs excitation_fraction 0–1)
-// are never crushed onto the same axis.
+// Unlike ndscan — which by default puts *every* channel on its own axis unless
+// the experiment opts channels into sharing via `display_hints.share_axis_with`
+// — we group primarily by the order-of-magnitude of the channel values: similar
+// scales share a plot, and only wildly different scales (e.g. atom_number ~1e5
+// vs excitation_fraction 0–1) are split apart so the small-scale channels aren't
+// crushed flat. Explicit `share_axis_with` hints are still honoured, but only to
+// *force* channels onto a shared axis (never to force otherwise-similar channels
+// apart): hinted channels are kept together as an atomic unit and then placed by
+// their combined scale.
 
 const SCALAR_TYPES = new Set(["int", "float"]);
 
@@ -118,16 +121,30 @@ function representativeMagnitude(values) {
   return mags[idx];
 }
 
-// Fallback grouping: split channels wherever consecutive log10 magnitudes
-// differ by more than `decadeGap`. Channels with no data are kept together in
-// their own trailing group so they don't perturb the scaled groups.
-export function groupChannelsByScale(dataNames, valuesByKey, decadeGap = 1.5) {
+// Combined representative magnitude of an axis (a list of channel names that
+// share a y-scale): the high quantile of |v| over all members' values pooled
+// together. Returns null when no member has usable data.
+function axisMagnitude(axis, valuesByKey) {
+  const pooled = [];
+  for (const name of axis) {
+    for (const v of valuesByKey[name] || []) pooled.push(v);
+  }
+  return representativeMagnitude(pooled);
+}
+
+// Group axes (lists of channel names sharing a y-scale) into stacked plots by
+// scale: split wherever consecutive log10 magnitudes differ by more than
+// `decadeGap`, so similar scales share a plot and only very different scales
+// split. Axes with no data are kept together in their own trailing group so
+// they don't perturb the scaled groups. Each axis stays intact — explicit
+// `share_axis_with` membership is never broken apart.
+export function groupAxesByScale(axes, valuesByKey, decadeGap = 1.5) {
   const scaled = [];
   const noData = [];
-  for (const name of dataNames) {
-    const mag = representativeMagnitude(valuesByKey[name]);
-    if (mag == null) noData.push(name);
-    else scaled.push({ name, log: Math.log10(mag) });
+  for (const axis of axes) {
+    const mag = axisMagnitude(axis, valuesByKey);
+    if (mag == null) noData.push(axis);
+    else scaled.push({ axis, log: Math.log10(mag) });
   }
   // Preserve the incoming (priority) order among equal magnitudes by using a
   // stable sort on the log magnitude.
@@ -136,26 +153,27 @@ export function groupChannelsByScale(dataNames, valuesByKey, decadeGap = 1.5) {
   const groups = [];
   let current = null;
   let prevLog = null;
-  for (const { name, log } of scaled) {
+  for (const { axis, log } of scaled) {
     if (current === null || log - prevLog > decadeGap) {
       current = [];
       groups.push(current);
     }
-    current.push(name);
+    current.push(...axis);
     prevLog = log;
   }
-  if (noData.length) groups.push(noData);
+  if (noData.length) groups.push(noData.flat());
   return groups;
 }
 
 // Orchestrator: return the channel groups (lists of channel names) to render as
-// separate stacked plots. Uses hint-based grouping when the experiment provides
-// sharing hints, otherwise falls back to scale-based grouping.
+// separate stacked plots. Explicit `share_axis_with` hints force channels onto
+// a shared axis (kept atomic); the resulting axes are then split into separate
+// plots purely by order-of-magnitude of their values.
 export function groupChannels(channels, valuesByKey) {
   const dataNames = extractScalarChannels(channels);
   if (!dataNames.length) return [];
-  if (hasSharingHints(channels)) {
-    return groupChannelsIntoAxes(channels, dataNames);
-  }
-  return groupChannelsByScale(dataNames, valuesByKey);
+  const axes = hasSharingHints(channels)
+    ? groupChannelsIntoAxes(channels, dataNames)
+    : dataNames.map((name) => [name]);
+  return groupAxesByScale(axes, valuesByKey);
 }
