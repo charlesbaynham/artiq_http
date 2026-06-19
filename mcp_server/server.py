@@ -81,19 +81,33 @@ async def search_experiments(query: str) -> dict[str, Any]:
 
 
 @mcp.tool()
-async def get_experiment_defaults(file: str, class_name: str) -> dict[str, Any]:
+async def get_experiment_defaults(
+    file: str,
+    class_name: str,
+    revision: str | None = None,
+) -> dict[str, Any]:
     """Get the default argument values for a specific experiment.
+
+    By default the defaults come from the master's current revision. Pass
+    *revision* to re-examine the experiment at a specific git revision/branch/tag
+    and get its defaults instead — this works for an experiment that exists only
+    on another branch (not the current one) and does not re-scan the whole
+    repository. It returns the concise name -> default map; for the full raw
+    arginfo at a revision use ``recompute_experiment_arguments``.
 
     Args:
         file: Relative path to the experiment file, e.g. "idle.py" or "scans/rabi.py".
         class_name: Python class name of the experiment, e.g. "Idle" or "RabiFlop".
+        revision: Git revision/branch/tag to examine. Omit to use the master's
+            current revision.
 
     Returns a dict with 'file', 'class_name', and 'arguments' (dict of name -> default value).
     """
     encoded_file = quote(file, safe="/")
     encoded_class = quote(class_name, safe="")
+    params = {"revision": revision} if revision is not None else None
     async with _client() as c:
-        r = await c.get(f"/api/explist/{encoded_file}/{encoded_class}/defaults")
+        r = await c.get(f"/api/explist/{encoded_file}/{encoded_class}/defaults", params=params)
         r.raise_for_status()
         return r.json()
 

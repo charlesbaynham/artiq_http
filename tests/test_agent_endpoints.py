@@ -202,6 +202,32 @@ def test_explist_defaults_not_found(mock_get_explist):
 
 
 @patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.examine_experiment", new_callable=AsyncMock)
+def test_explist_defaults_at_revision_examines(mock_examine, mock_get_explist):
+    """GET .../defaults?revision=X examines that revision and extracts defaults.
+
+    The cached explist is not consulted (the experiment may not be on the current
+    revision at all), so get_explist must not be called.
+    """
+    mock_examine.return_value = {"SimpleExp": {"arginfo": EXPERIMENT_ENTRY["arginfo"]}}
+    response = client.get("/api/explist/simple_exp.py/SimpleExp/defaults", params={"revision": "feature-branch"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["file"] == "simple_exp.py"
+    assert data["arguments"]["count"] == 10
+    mock_examine.assert_awaited_once_with("simple_exp.py", "feature-branch")
+    mock_get_explist.assert_not_called()
+
+
+@patch("artiq_http.api.api.control_schedule.examine_experiment", new_callable=AsyncMock)
+def test_explist_defaults_at_revision_unknown_class(mock_examine):
+    """GET .../defaults?revision=X returns 404 when the class is absent there."""
+    mock_examine.return_value = {"Other": {"arginfo": {}}}
+    response = client.get("/api/explist/simple_exp.py/SimpleExp/defaults", params={"revision": "feature-branch"})
+    assert response.status_code == 404
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
 def test_explist_defaults_ndscan_experiment(mock_get_explist):
     """GET /api/explist/ndscan_exp.py/NDScanExp/defaults returns ndscan parameter defaults from schemata.
 

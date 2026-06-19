@@ -338,6 +338,27 @@ def test_recompute_unknown_experiment_returns_404(mock_client):
     assert r.status_code == 404
 
 
+def test_defaults_at_revision_returns_mock_defaults(mock_client):
+    """GET .../defaults?revision=X examines (mock: revision ignored) and extracts defaults."""
+    r = mock_client.get(
+        "/api/explist/mock_experiment.py/MockRepeatExperiment/defaults",
+        params={"revision": "some-branch"},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["file"] == "mock_experiment.py"
+    assert data["class_name"] == "MockRepeatExperiment"
+    assert isinstance(data["arguments"], dict)
+
+
+def test_defaults_at_revision_unknown_experiment_returns_404(mock_client):
+    r = mock_client.get(
+        "/api/explist/mock_experiment.py/Nope/defaults",
+        params={"revision": "some-branch"},
+    )
+    assert r.status_code == 404
+
+
 def test_mock_mode_restores_subscriber_manager():
     """Mock mode must not leak its MockSubscriberManager into the process-wide
     singleton; otherwise realserver test modules collected later inherit mock data."""

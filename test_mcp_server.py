@@ -154,6 +154,27 @@ async def test_submit_multi_axis_scan_forwards_due_date(monkeypatch):
     assert captured["json"]["due_date"] == 88.0
 
 
+async def test_get_experiment_defaults_forwards_revision(monkeypatch):
+    captured = _recording_client(monkeypatch, {"file": "scans/rabi.py", "class_name": "RabiFlop", "arguments": {}})
+
+    await server.get_experiment_defaults(
+        file="scans/rabi.py",
+        class_name="RabiFlop",
+        revision="feature-branch",
+    )
+
+    assert captured["url"].path == "/api/explist/scans/rabi.py/RabiFlop/defaults"
+    assert captured["params"]["revision"] == "feature-branch"
+
+
+async def test_get_experiment_defaults_omits_unset_revision(monkeypatch):
+    captured = _recording_client(monkeypatch, {"file": "scans/rabi.py", "class_name": "RabiFlop", "arguments": {}})
+
+    await server.get_experiment_defaults(file="scans/rabi.py", class_name="RabiFlop")
+
+    assert "revision" not in captured["params"]
+
+
 async def test_get_schedule_item(monkeypatch):
     captured = _recording_client(monkeypatch, {"status": "running", "pipeline": "main"})
 

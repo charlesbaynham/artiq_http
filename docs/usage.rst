@@ -66,6 +66,18 @@ out before running.  This removes the need to hand-build ``ndscan_params`` and
 submit via ``POST /api/schedule`` just to run a scan by ref. Omit ``repo_rev``
 to use the master's current revision (the default).
 
+To inspect an experiment's parameters on another branch before submitting, add
+a ``revision`` query parameter to the per-experiment lookups:
+
+* ``GET /api/explist/{file}/{class_name}/defaults?revision=<rev>`` — the concise
+  name → default map (MCP tool ``get_experiment_defaults``).
+* ``POST /api/explist/{file}/{class_name}/recompute?revision=<rev>`` — the full
+  raw arginfo (MCP tool ``recompute_experiment_arguments``).
+
+Both re-examine just that single experiment at *<rev>* (no full-repository
+re-scan), so they work even for an experiment that is not on the current
+revision.  Omit ``revision`` to use the master's current revision.
+
 By default ``POST /api/scan`` returns the integer Run ID (RID) as soon as the
 experiment is queued.  To block until the experiment finishes, add the
 ``wait_for_completion=true`` query parameter.  When waiting, the endpoint

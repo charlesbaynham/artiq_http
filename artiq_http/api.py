@@ -438,8 +438,64 @@ async def search_explist(
     )
 
 
+async def _examine_arginfo(file: str, class_name: str, revision: str | None) -> dict:
+    """Examine *file* at *revision* and return the arginfo for *class_name*.
+
+    This re-evaluates a single experiment from a checkout of *revision* (ARTIQ's
+    worker ``examine``), so it works for an experiment that is not present on the
+    master's current revision and does not require re-scanning the whole
+    repository.
+
+    Raises HTTPException 404 if the class is absent at that revision, or 503 if
+    the master cannot be reached.
+    """
+    if config.get("mock"):
+        from .artiq_api.persistent_subscriber import subscriber_manager
+
+        arginfo = subscriber_manager.examine_experiment(file, class_name, revision)
+        if arginfo is None:
+            raise HTTPException(404, f"Experiment {file}/{class_name} not found")
+        return arginfo
+
+    try:
+        description = await api.control_schedule.examine_experiment(file, revision)
+    except Exception as e:  # noqa: BLE001 - surface any RPC/connection failure as 503
+        raise HTTPException(503, f"Failed to examine experiment: {str(e)}")
+
+    if class_name not in description:
+        raise HTTPException(404, f"Experiment {file}/{class_name} not found at revision {revision or 'current'}")
+    return description[class_name].get("arginfo", {})
+
+
 @router.get("/explist/{file:path}/{class_name}/defaults")
-async def get_explist_defaults(file: str, class_name: str) -> api.models.ExperimentDefaults:
+async def get_explist_defaults(
+    file: str,
+    class_name: str,
+    revision: str | None = None,
+) -> api.models.ExperimentDefaults:
+    """Return an experiment's argument defaults (a concise name -> default map).
+
+    By default the defaults are read from the master's statically-scanned current
+    revision. Pass *revision* to instead re-examine the experiment at a specific
+    git revision/branch/tag and extract its defaults — letting you query the
+    parameters of an experiment that exists only on another branch, without
+    re-scanning the whole repository. Pass the same value as ``repo_rev`` when
+    submitting so the experiment runs from it.
+
+    Args:
+        file: Experiment file path, relative to the repository root.
+        class_name: Experiment class name.
+        revision: Git revision/branch/tag to examine. Omit to use the master's
+            current revision.
+    """
+    if revision is not None:
+        arginfo = await _examine_arginfo(file, class_name, revision)
+        return api.models.ExperimentDefaults(
+            file=file,
+            class_name=class_name,
+            arguments=api.notifiers.extract_arginfo_defaults(arginfo),
+        )
+
     explist = await api.notifiers.get_explist()
     for exp in explist.experiments:
         if exp.file == file and exp.class_name == class_name:
@@ -485,27 +541,8 @@ async def recompute_explist_arginfo(
         revision: Git revision/branch/tag to examine. Omit to use the master's
             current revision.
     """
-    if config.get("mock"):
-        from .artiq_api.persistent_subscriber import subscriber_manager
-
-        arginfo = subscriber_manager.examine_experiment(file, class_name, revision)
-        if arginfo is None:
-            raise HTTPException(404, f"Experiment {file}/{class_name} not found")
-        return api.models.ExperimentArginfo(file=file, class_name=class_name, arginfo=arginfo)
-
-    try:
-        description = await api.control_schedule.examine_experiment(file, revision)
-    except Exception as e:  # noqa: BLE001 - surface any RPC/connection failure as 503
-        raise HTTPException(503, f"Failed to examine experiment: {str(e)}")
-
-    if class_name not in description:
-        raise HTTPException(404, f"Experiment {file}/{class_name} not found at revision {revision or 'current'}")
-
-    return api.models.ExperimentArginfo(
-        file=file,
-        class_name=class_name,
-        arginfo=description[class_name].get("arginfo", {}),
-    )
+    arginfo = await _examine_arginfo(file, class_name, revision)
+    return api.models.ExperimentArginfo(file=file, class_name=class_name, arginfo=arginfo)
 
 
 async def _validate_expid_ndscan(expid: api.models.ExpID) -> None:
