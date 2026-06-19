@@ -53,6 +53,19 @@ All values must be in SI units as declared by the experiment parameter schema.
 A parameter must not appear in both ``axes`` and ``fixed_params``; the server
 returns HTTP 422 if an overlap is detected.
 
+Scanning an experiment by ref
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To scan an experiment that exists only on another branch (i.e. not on the
+master's current revision), add an optional ``repo_rev`` field (a commit hash,
+branch, or tag).  The server re-examines the experiment at that revision — the
+same mechanism behind the dashboard's "Recompute all arguments" — builds the
+``ndscan_params`` from *that* revision's arguments, validates against them, and
+sets ``repo_rev`` on the submitted experiment so the master checks the revision
+out before running.  This removes the need to hand-build ``ndscan_params`` and
+submit via ``POST /api/schedule`` just to run a scan by ref. Omit ``repo_rev``
+to use the master's current revision (the default).
+
 By default ``POST /api/scan`` returns the integer Run ID (RID) as soon as the
 experiment is queued.  To block until the experiment finishes, add the
 ``wait_for_completion=true`` query parameter.  When waiting, the endpoint
@@ -91,4 +104,5 @@ Both tools call ``POST /api/scan`` internally and return the RID.  Like the
 ``submit_experiment`` tool, they accept ``wait_for_completion`` (default
 ``False``) and ``timeout_seconds`` (default 600, capped at 21600); when waiting
 they return a result dict (``rid``, ``status``, ``timed_out``, ``error``)
-instead of a bare RID.
+instead of a bare RID.  Both also accept an optional ``repo_rev`` to scan an
+experiment by ref (see "Scanning an experiment by ref" above).

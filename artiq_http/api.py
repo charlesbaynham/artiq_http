@@ -656,18 +656,30 @@ async def submit_experiment(
     return rid
 
 
-async def _build_scan_expid(req: api.models.ScanSubmitRequest) -> api.models.ExpID:
+async def _build_scan_expid(
+    req: api.models.ScanSubmitRequest,
+) -> tuple[api.models.ExpID, dict]:
     """Build an ExpID with ndscan_params from a high-level ScanSubmitRequest.
+
+    Returns the ExpID together with the arginfo it was built from, so the caller
+    can validate against the same revision without re-examining (which, for a
+    by-ref scan, would mean a second git checkout on the master).
 
     Raises HTTPException 404 if the experiment is not found, 422 if it has no
     ndscan schemata or if the scan parameters are otherwise invalid.
     """
     axes = [axis.model_dump() for axis in req.axes]
     try:
-        ndscan_params = await api.ndscan_builder.build_ndscan_params(
-            file=req.file,
-            class_name=req.class_name,
-            axes=axes,
+        arginfo = await api.ndscan_builder.fetch_scan_arginfo(
+            req.file,
+            req.class_name,
+            req.repo_rev,
+        )
+        ndscan_params = api.ndscan_builder.build_ndscan_params_from_arginfo(
+            arginfo,
+            req.file,
+            req.class_name,
+            axes,
             fixed_params=req.fixed_params,
             num_repeats=req.num_repeats,
         )
@@ -677,11 +689,13 @@ async def _build_scan_expid(req: api.models.ScanSubmitRequest) -> api.models.Exp
             raise HTTPException(404, msg)
         raise HTTPException(422, msg)
 
-    return api.models.ExpID(
+    expid = api.models.ExpID(
         file=req.file,
         class_name=req.class_name,
         arguments={"ndscan_params": ndscan_params},
+        repo_rev=req.repo_rev,
     )
+    return expid, arginfo
 
 
 @router.post("/scan")
@@ -711,8 +725,13 @@ async def submit_scan(
     if config.get("mock"):
         raise HTTPException(503, "Mock mode: experiment control not available")
 
-    expid = await _build_scan_expid(req)
-    await _validate_expid_ndscan(expid)
+    expid, arginfo = await _build_scan_expid(req)
+    # Validate against the arginfo the params were built from. For a by-ref scan
+    # this is the revision's arginfo (not the master's current one), so FQNs are
+    # cross-checked against the experiment actually being run.
+    error = api.ndscan_validation.validate_ndscan_params(expid.arguments, arginfo)
+    if error:
+        raise HTTPException(422, error)
     try:
         rid = await api.control_schedule.submit_experiment(
             expid,

@@ -98,6 +98,48 @@ async def test_submit_1d_scan_omits_unset_due_date(monkeypatch):
     assert "due_date" not in captured["json"]
 
 
+async def test_submit_1d_scan_forwards_repo_rev(monkeypatch):
+    captured = _recording_client(monkeypatch, 5)
+
+    await server.submit_1d_scan(
+        file="scans/rabi.py",
+        class_name="RabiFlop",
+        axis_fqn="rabi.frequency",
+        scan_type="linear",
+        scan_range={"start": 0.0, "stop": 1.0, "num_points": 3},
+        repo_rev="feature-branch",
+    )
+
+    assert captured["json"]["repo_rev"] == "feature-branch"
+
+
+async def test_submit_1d_scan_omits_unset_repo_rev(monkeypatch):
+    captured = _recording_client(monkeypatch, 5)
+
+    await server.submit_1d_scan(
+        file="scans/rabi.py",
+        class_name="RabiFlop",
+        axis_fqn="rabi.frequency",
+        scan_type="linear",
+        scan_range={"start": 0.0, "stop": 1.0, "num_points": 3},
+    )
+
+    assert "repo_rev" not in captured["json"]
+
+
+async def test_submit_multi_axis_scan_forwards_repo_rev(monkeypatch):
+    captured = _recording_client(monkeypatch, 6)
+
+    await server.submit_multi_axis_scan(
+        file="scans/rabi.py",
+        class_name="RabiFlop",
+        axes=[{"fqn": "rabi.frequency", "type": "linear", "range": {"start": 0.0, "stop": 1.0, "num_points": 3}}],
+        repo_rev="feature-branch",
+    )
+
+    assert captured["json"]["repo_rev"] == "feature-branch"
+
+
 async def test_submit_multi_axis_scan_forwards_due_date(monkeypatch):
     captured = _recording_client(monkeypatch, 6)
 
