@@ -38,6 +38,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from . import control_schedule
 from .ndscan_validation import _extract_instances_from_arginfo, _extract_schemata_from_arginfo
 from .notifiers import get_explist
 
@@ -152,52 +153,63 @@ def _build_axis(axis: dict, fqn_to_paths: dict[str, list[str]]) -> dict:
     return {"type": gtype, "range": range_out, "fqn": fqn, "path": path}
 
 
-async def build_ndscan_params(
+async def fetch_scan_arginfo(
+    file: str,
+    class_name: str,
+    repo_rev: str | None = None,
+) -> dict:
+    """Fetch the arginfo for an experiment, optionally at a specific revision.
+
+    When *repo_rev* is ``None`` the arginfo is read from the cached explist (the
+    master's current revision).  When *repo_rev* is given the experiment is
+    re-examined at that git revision/branch/tag — the same mechanism behind the
+    dashboard's "Recompute all arguments" — so an experiment that does not exist
+    on the current revision can still be scanned *by ref*.
+
+    Args:
+        file: Experiment file path (e.g. "scans/rabi.py").
+        class_name: Experiment class name (e.g. "RabiFlop").
+        repo_rev: Git revision/branch/tag to examine, or ``None`` for the
+            master's current revision.
+
+    Returns:
+        The experiment's arginfo dict.
+
+    Raises:
+        ValueError: If the experiment is not found (in the explist, or at the
+            requested revision).
+    """
+    if repo_rev is None:
+        explist = await get_explist()
+        for exp in explist.experiments:
+            if exp.file == file and exp.class_name == class_name:
+                return exp.arginfo or {}
+        raise ValueError(f"Experiment {file}/{class_name} not found in explist")
+
+    description = await control_schedule.examine_experiment(file, repo_rev)
+    if class_name not in description:
+        raise ValueError(f"Experiment {file}/{class_name} not found at revision {repo_rev}")
+    return description[class_name].get("arginfo") or {}
+
+
+def build_ndscan_params_from_arginfo(
+    arginfo: dict,
     file: str,
     class_name: str,
     axes: list[dict],
     fixed_params: dict[str, Any] | None = None,
     num_repeats: int = 1,
 ) -> str:
-    """Build the ``ndscan_params`` argument value (a PYON/JSON string).
+    """Assemble the ``ndscan_params`` value from already-fetched *arginfo*.
 
-    Fetches the experiment's arginfo to confirm it is an ndscan experiment, then
-    assembles the minimal ``{overrides, scan}`` params dict in ndscan's decoded
-    wire format and returns it JSON-encoded (valid PYON for primitive content).
-
-    Args:
-        file: Experiment file path (e.g. "scans/rabi.py").
-        class_name: Experiment class name (e.g. "RabiFlop").
-        axes: List of high-level scan-axis dicts, each with ``fqn``, ``type``
-            (ndscan generator name), and ``range`` keys.
-        fixed_params: Dict mapping FQN to a fixed override value.  The value is
-            normally the scalar to hold the parameter at; its instance path is
-            resolved automatically from the experiment's ``instances`` map.  To
-            pin an ambiguous FQN to a specific instance path, pass
-            ``{"value": <v>, "path": <instance_path>}`` instead of a bare scalar.
-            Each becomes ``{fqn: [{"path": <resolved>, "value": value}]}`` in
-            ``overrides``.
-        num_repeats: Number of repeat runs (default: 1).
-
-    Returns:
-        The ndscan_params value as a JSON string, ready to submit as
-        ``arguments={"ndscan_params": <this string>}``.
+    See :func:`build_ndscan_params` for the full contract; this variant takes the
+    arginfo directly so callers that have already fetched it (e.g. to validate
+    against the same revision) do not re-fetch.
 
     Raises:
-        ValueError: If the experiment is not found in the explist, does not have
-            ndscan schemata, or an axis is malformed.
+        ValueError: If the experiment has no ndscan schemata or an axis is
+            malformed.
     """
-    explist = await get_explist()
-
-    arginfo = None
-    for exp in explist.experiments:
-        if exp.file == file and exp.class_name == class_name:
-            arginfo = exp.arginfo
-            break
-
-    if arginfo is None:
-        raise ValueError(f"Experiment {file}/{class_name} not found in explist")
-
     # Confirm this is an ndscan experiment (has scannable schemata).  We don't
     # embed the schemata in the value — ndscan rebuilds them from the fragment.
     schemata = _extract_schemata_from_arginfo(arginfo)
@@ -225,3 +237,47 @@ async def build_ndscan_params(
     }
 
     return json.dumps(params_data)
+
+
+async def build_ndscan_params(
+    file: str,
+    class_name: str,
+    axes: list[dict],
+    fixed_params: dict[str, Any] | None = None,
+    num_repeats: int = 1,
+    repo_rev: str | None = None,
+) -> str:
+    """Build the ``ndscan_params`` argument value (a PYON/JSON string).
+
+    Fetches the experiment's arginfo to confirm it is an ndscan experiment, then
+    assembles the minimal ``{overrides, scan}`` params dict in ndscan's decoded
+    wire format and returns it JSON-encoded (valid PYON for primitive content).
+
+    Args:
+        file: Experiment file path (e.g. "scans/rabi.py").
+        class_name: Experiment class name (e.g. "RabiFlop").
+        axes: List of high-level scan-axis dicts, each with ``fqn``, ``type``
+            (ndscan generator name), and ``range`` keys.
+        fixed_params: Dict mapping FQN to a fixed override value.  The value is
+            normally the scalar to hold the parameter at; its instance path is
+            resolved automatically from the experiment's ``instances`` map.  To
+            pin an ambiguous FQN to a specific instance path, pass
+            ``{"value": <v>, "path": <instance_path>}`` instead of a bare scalar.
+            Each becomes ``{fqn: [{"path": <resolved>, "value": value}]}`` in
+            ``overrides``.
+        num_repeats: Number of repeat runs (default: 1).
+        repo_rev: Git revision/branch/tag to source the experiment's arginfo
+            from.  ``None`` uses the master's current revision; otherwise the
+            experiment is re-examined at *repo_rev* so an experiment present only
+            on another branch can be scanned by ref.
+
+    Returns:
+        The ndscan_params value as a JSON string, ready to submit as
+        ``arguments={"ndscan_params": <this string>}``.
+
+    Raises:
+        ValueError: If the experiment is not found, does not have ndscan
+            schemata, or an axis is malformed.
+    """
+    arginfo = await fetch_scan_arginfo(file, class_name, repo_rev)
+    return build_ndscan_params_from_arginfo(arginfo, file, class_name, axes, fixed_params, num_repeats)

@@ -81,19 +81,33 @@ async def search_experiments(query: str) -> dict[str, Any]:
 
 
 @mcp.tool()
-async def get_experiment_defaults(file: str, class_name: str) -> dict[str, Any]:
+async def get_experiment_defaults(
+    file: str,
+    class_name: str,
+    revision: str | None = None,
+) -> dict[str, Any]:
     """Get the default argument values for a specific experiment.
+
+    By default the defaults come from the master's current revision. Pass
+    *revision* to re-examine the experiment at a specific git revision/branch/tag
+    and get its defaults instead — this works for an experiment that exists only
+    on another branch (not the current one) and does not re-scan the whole
+    repository. It returns the concise name -> default map; for the full raw
+    arginfo at a revision use ``recompute_experiment_arguments``.
 
     Args:
         file: Relative path to the experiment file, e.g. "idle.py" or "scans/rabi.py".
         class_name: Python class name of the experiment, e.g. "Idle" or "RabiFlop".
+        revision: Git revision/branch/tag to examine. Omit to use the master's
+            current revision.
 
     Returns a dict with 'file', 'class_name', and 'arguments' (dict of name -> default value).
     """
     encoded_file = quote(file, safe="/")
     encoded_class = quote(class_name, safe="")
+    params = {"revision": revision} if revision is not None else None
     async with _client() as c:
-        r = await c.get(f"/api/explist/{encoded_file}/{encoded_class}/defaults")
+        r = await c.get(f"/api/explist/{encoded_file}/{encoded_class}/defaults", params=params)
         r.raise_for_status()
         return r.json()
 
@@ -257,6 +271,7 @@ async def submit_1d_scan(
     scan_range: dict[str, Any],
     fixed_params: dict[str, Any] | None = None,
     num_repeats: int = 1,
+    repo_rev: str | None = None,
     pipeline: str = "main",
     priority: int = 0,
     flush: bool = False,
@@ -288,6 +303,11 @@ async def submit_1d_scan(
         fixed_params: Optional dict of {fqn: value} for parameters to hold
             fixed at a specific value during the scan.  Must not overlap with axis_fqn.
         num_repeats: Number of times to repeat the full scan (default 1).
+        repo_rev: Git revision (commit hash, branch, or tag) of the experiment
+            repository to check out before building and running the scan. Omit or
+            pass None to use the master's current revision. Use this to scan an
+            experiment that exists only on another branch (by ref) — the scan
+            parameters are built from that revision's arguments.
         pipeline: Scheduling pipeline name (default "main").
         priority: Scheduling priority — higher runs sooner (default 0).
         flush: Flush the pipeline before submitting (default False).
@@ -313,6 +333,8 @@ async def submit_1d_scan(
         "priority": priority,
         "flush": flush,
     }
+    if repo_rev is not None:
+        payload["repo_rev"] = repo_rev
     if due_date is not None:
         payload["due_date"] = due_date
     return await _post_scan(payload, wait_for_completion, timeout_seconds)
@@ -345,6 +367,7 @@ async def submit_multi_axis_scan(
     axes: list[dict[str, Any]],
     fixed_params: dict[str, Any] | None = None,
     num_repeats: int = 1,
+    repo_rev: str | None = None,
     pipeline: str = "main",
     priority: int = 0,
     flush: bool = False,
@@ -371,6 +394,11 @@ async def submit_multi_axis_scan(
         fixed_params: Optional dict of {fqn: value} for parameters to hold
             fixed during the scan.  Must not overlap with any axis fqn.
         num_repeats: Number of times to repeat the full scan (default 1).
+        repo_rev: Git revision (commit hash, branch, or tag) of the experiment
+            repository to check out before building and running the scan. Omit or
+            pass None to use the master's current revision. Use this to scan an
+            experiment that exists only on another branch (by ref) — the scan
+            parameters are built from that revision's arguments.
         pipeline: Scheduling pipeline name (default "main").
         priority: Scheduling priority — higher runs sooner (default 0).
         flush: Flush the pipeline before submitting (default False).
@@ -396,6 +424,8 @@ async def submit_multi_axis_scan(
         "priority": priority,
         "flush": flush,
     }
+    if repo_rev is not None:
+        payload["repo_rev"] = repo_rev
     if due_date is not None:
         payload["due_date"] = due_date
     return await _post_scan(payload, wait_for_completion, timeout_seconds)

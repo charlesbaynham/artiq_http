@@ -98,6 +98,48 @@ async def test_submit_1d_scan_omits_unset_due_date(monkeypatch):
     assert "due_date" not in captured["json"]
 
 
+async def test_submit_1d_scan_forwards_repo_rev(monkeypatch):
+    captured = _recording_client(monkeypatch, 5)
+
+    await server.submit_1d_scan(
+        file="scans/rabi.py",
+        class_name="RabiFlop",
+        axis_fqn="rabi.frequency",
+        scan_type="linear",
+        scan_range={"start": 0.0, "stop": 1.0, "num_points": 3},
+        repo_rev="feature-branch",
+    )
+
+    assert captured["json"]["repo_rev"] == "feature-branch"
+
+
+async def test_submit_1d_scan_omits_unset_repo_rev(monkeypatch):
+    captured = _recording_client(monkeypatch, 5)
+
+    await server.submit_1d_scan(
+        file="scans/rabi.py",
+        class_name="RabiFlop",
+        axis_fqn="rabi.frequency",
+        scan_type="linear",
+        scan_range={"start": 0.0, "stop": 1.0, "num_points": 3},
+    )
+
+    assert "repo_rev" not in captured["json"]
+
+
+async def test_submit_multi_axis_scan_forwards_repo_rev(monkeypatch):
+    captured = _recording_client(monkeypatch, 6)
+
+    await server.submit_multi_axis_scan(
+        file="scans/rabi.py",
+        class_name="RabiFlop",
+        axes=[{"fqn": "rabi.frequency", "type": "linear", "range": {"start": 0.0, "stop": 1.0, "num_points": 3}}],
+        repo_rev="feature-branch",
+    )
+
+    assert captured["json"]["repo_rev"] == "feature-branch"
+
+
 async def test_submit_multi_axis_scan_forwards_due_date(monkeypatch):
     captured = _recording_client(monkeypatch, 6)
 
@@ -110,6 +152,27 @@ async def test_submit_multi_axis_scan_forwards_due_date(monkeypatch):
 
     assert captured["url"].path == "/api/scan"
     assert captured["json"]["due_date"] == 88.0
+
+
+async def test_get_experiment_defaults_forwards_revision(monkeypatch):
+    captured = _recording_client(monkeypatch, {"file": "scans/rabi.py", "class_name": "RabiFlop", "arguments": {}})
+
+    await server.get_experiment_defaults(
+        file="scans/rabi.py",
+        class_name="RabiFlop",
+        revision="feature-branch",
+    )
+
+    assert captured["url"].path == "/api/explist/scans/rabi.py/RabiFlop/defaults"
+    assert captured["params"]["revision"] == "feature-branch"
+
+
+async def test_get_experiment_defaults_omits_unset_revision(monkeypatch):
+    captured = _recording_client(monkeypatch, {"file": "scans/rabi.py", "class_name": "RabiFlop", "arguments": {}})
+
+    await server.get_experiment_defaults(file="scans/rabi.py", class_name="RabiFlop")
+
+    assert "revision" not in captured["params"]
 
 
 async def test_get_schedule_item(monkeypatch):

@@ -270,6 +270,38 @@ async def test_build_ndscan_params_experiment_not_found(mock_get_explist):
         await build_ndscan_params(file="missing.py", class_name="MissingExp", axes=[])
 
 
+@patch("artiq_http.artiq_api.ndscan_builder.control_schedule.examine_experiment", new_callable=AsyncMock)
+async def test_build_ndscan_params_by_ref_examines_revision(mock_examine):
+    """With repo_rev set the builder sources arginfo by examining that revision."""
+    mock_examine.return_value = {"NDScanExp": {"arginfo": NDSCAN_ARGINFO}}
+
+    result = await build_ndscan_params(
+        file="ndscan_exp.py",
+        class_name="NDScanExp",
+        axes=[{"fqn": "test.frequency", "type": "linear", "range": {"start": 0.0, "stop": 100.0, "num_points": 10}}],
+        repo_rev="feature-branch",
+    )
+
+    # Examined the file at the requested revision (not the cached explist).
+    mock_examine.assert_awaited_once_with("ndscan_exp.py", "feature-branch")
+    axis = json.loads(result)["scan"]["axes"][0]
+    assert axis["fqn"] == "test.frequency"
+
+
+@patch("artiq_http.artiq_api.ndscan_builder.control_schedule.examine_experiment", new_callable=AsyncMock)
+async def test_build_ndscan_params_by_ref_missing_class(mock_examine):
+    """ValueError when the class is absent at the requested revision."""
+    mock_examine.return_value = {"OtherExp": {"arginfo": NDSCAN_ARGINFO}}
+
+    with pytest.raises(ValueError, match="not found at revision feature-branch"):
+        await build_ndscan_params(
+            file="ndscan_exp.py",
+            class_name="NDScanExp",
+            axes=[],
+            repo_rev="feature-branch",
+        )
+
+
 @patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
 async def test_build_ndscan_params_no_schemata(mock_get_explist):
     """ValueError when experiment has no ndscan schemata."""

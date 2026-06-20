@@ -157,6 +157,15 @@ class ScanSubmitRequest(BaseModel):
         ),
     )
     num_repeats: int = Field(default=1, ge=1, description="Number of times to repeat the scan (default 1)")
+    repo_rev: Optional[str] = Field(
+        default=None,
+        description=(
+            "Git revision (commit hash, branch, or tag) of the experiment repository to "
+            "check out before building the scan and running it. Omit to use the master's "
+            "current revision. Use this to scan an experiment that exists only on another "
+            "branch (by ref) without hand-building ndscan_params."
+        ),
+    )
     pipeline: str = Field(default="main", description="Scheduling pipeline name (default 'main')")
     priority: int = Field(default=0, description="Scheduling priority — higher runs sooner (default 0)")
     flush: bool = Field(default=False, description="Flush the pipeline before submitting (default False)")
