@@ -31,6 +31,86 @@ def _client(timeout: float = 30.0) -> httpx.AsyncClient:
 
 
 # ---------------------------------------------------------------------------
+# Response trimming helpers
+#
+# Several ARTIQ responses are dominated by bulk that an agent rarely needs up
+# front: a running ndscan scan carries its entire ``ndscan_params`` schemata
+# (every parameter's description, type and spec) inside the schedule item's
+# expid, and the experiment list repeats arginfo/docstrings for every class.
+# Returning that by default makes the schedule and explist tools enormous, so
+# the listing tools below trim to a compact view and expose a ``verbose`` flag
+# (or a per-experiment tool) for the full detail.
+# ---------------------------------------------------------------------------
+
+
+def _summarize_expid(expid: dict[str, Any]) -> dict[str, Any]:
+    """Return a compact view of an expid with the bulky arguments dropped.
+
+    Keeps the experiment identity (``file``, ``class_name``, ``repo_rev``) and
+    replaces ``arguments`` with a lightweight description: an ``is_scan`` flag
+    when ndscan_params is present, plus the names of any other arguments. The
+    full ndscan_params schemata are omitted — use the schedule tools'
+    ``verbose=True`` to get them back.
+    """
+    if not isinstance(expid, dict):
+        return expid
+    summary: dict[str, Any] = {
+        "file": expid.get("file"),
+        "class_name": expid.get("class_name"),
+    }
+    if expid.get("repo_rev") is not None:
+        summary["repo_rev"] = expid["repo_rev"]
+    arguments = expid.get("arguments")
+    if isinstance(arguments, dict):
+        if "ndscan_params" in arguments:
+            summary["is_scan"] = True
+        other_keys = sorted(k for k in arguments if k != "ndscan_params")
+        if other_keys:
+            summary["argument_keys"] = other_keys
+    return summary
+
+
+def _summarize_schedule_item(item: dict[str, Any]) -> dict[str, Any]:
+    """Return a compact view of a schedule item (bulky expid arguments dropped)."""
+    if not isinstance(item, dict):
+        return item
+    summary: dict[str, Any] = {
+        "pipeline": item.get("pipeline"),
+        "priority": item.get("priority"),
+        "status": item.get("status"),
+        "due_date": item.get("due_date"),
+        "flush": item.get("flush"),
+    }
+    if item.get("repo_msg") is not None:
+        summary["repo_msg"] = item["repo_msg"]
+    summary["expid"] = _summarize_expid(item.get("expid") or {})
+    return summary
+
+
+def _summarize_experiment(exp: dict[str, Any]) -> dict[str, Any]:
+    """Return a compact experiment-list entry: identity plus a one-line summary.
+
+    Keeps ``name``, ``file``, ``class_name`` and the first non-empty line of the
+    docstring as ``summary``. The per-experiment parameter schema (arginfo),
+    scheduler defaults and full docstring are dropped — fetch them for a single
+    experiment with ``get_experiment_arginfo`` / ``get_experiment_defaults``.
+    """
+    if not isinstance(exp, dict):
+        return exp
+    summary: dict[str, Any] = {
+        "name": exp.get("name"),
+        "file": exp.get("file"),
+        "class_name": exp.get("class_name"),
+    }
+    docstring = exp.get("docstring")
+    if docstring:
+        first_line = next((line.strip() for line in docstring.splitlines() if line.strip()), "")
+        if first_line:
+            summary["summary"] = first_line
+    return summary
+
+
+# ---------------------------------------------------------------------------
 # Health
 # ---------------------------------------------------------------------------
 
@@ -52,32 +132,57 @@ async def check_health() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
+_VERBOSE_EXPLIST_FIELDS = "name,file,class_name,docstring,arginfo,scheduler_defaults"
+
+
 @mcp.tool()
-async def list_experiments() -> dict[str, Any]:
-    """List all experiments available in the ARTIQ repository.
+async def list_experiments(verbose: bool = False) -> dict[str, Any]:
+    """List the experiments available in the ARTIQ repository (compact by default).
+
+    By default each entry is trimmed to 'name', 'file', 'class_name' and a
+    one-line 'summary' (the first line of the docstring), so the list stays small
+    even for a large repository. The per-experiment parameter schema (arginfo) is
+    NOT included — fetch it for a single experiment with get_experiment_arginfo()
+    or get_experiment_defaults().
+
+    Args:
+        verbose: If True, return the full entries (docstrings, arginfo with
+            ndscan params filtered to the always-shown set, and scheduler_defaults).
+            This can be large; prefer the per-experiment tools for full detail.
 
     Returns a dict with 'experiments' (list), 'scanning' (bool), and 'current_rev' (str|null).
-    Each experiment entry has 'name', 'file', 'class_name', 'arginfo', and 'scheduler_defaults'.
     """
+    params = {"fields": _VERBOSE_EXPLIST_FIELDS} if verbose else None
     async with _client() as c:
-        r = await c.get("/api/explist")
+        r = await c.get("/api/explist", params=params)
         r.raise_for_status()
-        return r.json()
+        data = r.json()
+    if not verbose:
+        data["experiments"] = [_summarize_experiment(exp) for exp in data.get("experiments", [])]
+    return data
 
 
 @mcp.tool()
-async def search_experiments(query: str) -> dict[str, Any]:
+async def search_experiments(query: str, verbose: bool = False) -> dict[str, Any]:
     """Search experiments by name, file path, or class name (case-insensitive substring match).
 
     Args:
         query: Substring to search for.
+        verbose: If True, return full entries (docstrings, arginfo, scheduler_defaults)
+            instead of the compact form. See list_experiments() for the trade-off.
 
     Returns a filtered experiment list in the same format as list_experiments().
     """
+    params: dict[str, Any] = {"q": query}
+    if verbose:
+        params["fields"] = _VERBOSE_EXPLIST_FIELDS
     async with _client() as c:
-        r = await c.get("/api/explist/search", params={"q": query})
+        r = await c.get("/api/explist/search", params=params)
         r.raise_for_status()
-        return r.json()
+        data = r.json()
+    if not verbose:
+        data["experiments"] = [_summarize_experiment(exp) for exp in data.get("experiments", [])]
+    return data
 
 
 @mcp.tool()
@@ -166,33 +271,48 @@ async def recompute_experiment_arguments(file: str, class_name: str, revision: s
 
 
 @mcp.tool()
-async def get_schedule() -> dict[str, Any]:
+async def get_schedule(verbose: bool = False) -> dict[str, Any]:
     """Get the current ARTIQ experiment schedule (all queued and running experiments).
 
-    Returns a dict mapping RID (str) -> schedule item.
-    Each item has 'pipeline', 'priority', 'status', 'expid', 'due_date', 'flush'.
+    Returns a dict mapping RID (str) -> schedule item. By default each item is
+    compact: 'pipeline', 'priority', 'status', 'due_date', 'flush' and an 'expid'
+    trimmed to 'file', 'class_name', 'repo_rev' and — for ndscan scans — an
+    'is_scan' flag plus any non-ndscan 'argument_keys'. The bulky experiment
+    arguments (in particular a running scan's full ndscan_params schemata) are
+    omitted so the schedule stays small.
+
+    Args:
+        verbose: If True, return the full, untrimmed items including every expid
+            argument. Prefer get_schedule_item(rid, verbose=True) to inspect the
+            full arguments of a single run.
     """
     async with _client() as c:
         r = await c.get("/api/schedule")
         r.raise_for_status()
-        return r.json()
+        schedule = r.json()
+    if verbose:
+        return schedule
+    return {rid: _summarize_schedule_item(item) for rid, item in schedule.items()}
 
 
 @mcp.tool()
-async def get_schedule_item(rid: int) -> dict[str, Any]:
+async def get_schedule_item(rid: int, verbose: bool = False) -> dict[str, Any]:
     """Get a single schedule item by its Run ID (RID).
 
     Args:
         rid: Run ID of the experiment to look up.
+        verbose: If True, return the full item including the complete expid
+            arguments (a running scan's ndscan_params can be large). If False
+            (default), return the compact form described in get_schedule().
 
-    Returns a dict with 'pipeline', 'priority', 'status', 'expid', 'due_date',
-    and 'flush'. Raises an error if the RID is not currently in the schedule
-    (e.g. it already completed or was never submitted).
+    Returns the schedule item dict. Raises an error if the RID is not currently
+    in the schedule (e.g. it already completed or was never submitted).
     """
     async with _client() as c:
         r = await c.get(f"/api/schedule/{rid}")
         r.raise_for_status()
-        return r.json()
+        item = r.json()
+    return item if verbose else _summarize_schedule_item(item)
 
 
 @mcp.tool()
