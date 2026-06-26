@@ -129,3 +129,6 @@ ENV/
 # Local tooling scratch dir
 .tmp/
 .worktrees/
+
+# Agent scheduler runtime state (cron locks / scheduled tasks)
+.agents/

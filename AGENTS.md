@@ -67,6 +67,19 @@ treat these as parity gaps): `GET /api/datasets` full dump (too large — use th
 (SSE streaming, not MCP-shaped), the `fields`/`full` query filters on the
 `explist` endpoints (MCP returns the curated form), and `GET /api/` (hello-world).
 
+**Compact-by-default rule:** the listing tools return trimmed payloads so an
+agent is not flooded by bulk it rarely needs (chiefly a running ndscan scan's
+full `ndscan_params` schemata, which ride along in the schedule item's expid).
+`get_schedule` / `get_schedule_item` drop the bulky expid arguments (keeping
+`file`, `class_name`, `repo_rev`, an `is_scan` flag and any non-ndscan
+`argument_keys`); `list_experiments` / `search_experiments` trim each entry to
+identity plus a one-line docstring `summary`. Each tool takes `verbose=True` to
+restore the full payload, and the per-experiment tools
+(`get_experiment_defaults`, `get_experiment_arginfo`,
+`recompute_experiment_arguments`) remain the way to pull full detail for a
+single experiment. Preserve this default when adding or changing listing tools:
+new bulky fields belong behind `verbose`, not in the default response.
+
 ## Development Guidelines
 
 - Follow PEP 8 style guidelines
