@@ -168,9 +168,9 @@ function Plot1D({
   const xTicks = niceTicks(xMin, xMax, 6);
   const yTicks = niceTicks(yMin, yMax, 5);
 
-  const handleMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const px = e.clientX - rect.left;
+  // Place the cursor from a client-x coordinate (shared by mouse + touch).
+  const setCursorFromClientX = (clientX, rect) => {
+    const px = clientX - rect.left;
     if (px < padL || px > padL + innerW) {
       setCursor(null);
       return;
@@ -178,7 +178,17 @@ function Plot1D({
     const xVal = xMin + ((px - padL) / innerW) * (xMax - xMin);
     setCursor({ x: xVal, px });
   };
+  const handleMove = (e) =>
+    setCursorFromClientX(e.clientX, e.currentTarget.getBoundingClientRect());
   const handleLeave = () => setCursor(null);
+  // Touch devices can't hover, so tapping / dragging along the plot scrubs the
+  // cursor readout instead. We don't preventDefault so vertical page scrolling
+  // still works when the gesture is a scroll rather than a scrub.
+  const handleTouch = (e) => {
+    const t = e.touches && e.touches[0];
+    if (!t) return;
+    setCursorFromClientX(t.clientX, e.currentTarget.getBoundingClientRect());
+  };
 
   // Report the curve point (mean, sorted by x) nearest the cursor's x. Using
   // the curve rather than the raw array index keeps the readout correct even
@@ -240,7 +250,15 @@ function Plot1D({
           height={size.h}
           onMouseMove={handleMove}
           onMouseLeave={handleLeave}
-          style={{ position: "absolute", top: 0, left: 0, cursor: "crosshair" }}
+          onTouchStart={handleTouch}
+          onTouchMove={handleTouch}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            cursor: "crosshair",
+            touchAction: "pan-y",
+          }}
         >
           {/* grid */}
           <g>
@@ -573,7 +591,7 @@ function CursorReadout({ cursor, xLabel, cursorReadouts, ghostReadouts }) {
         </>
       ) : (
         <span className="p-dim" style={{ fontSize: 11.5 }}>
-          hover the plot to read values
+          hover or tap the plot to read values
         </span>
       )}
     </div>

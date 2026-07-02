@@ -277,6 +277,23 @@
   min-width: 0;
 }
 
+/* On-plot height controls — hidden on desktop (which resizes via the panel's
+   drag handle / large default height); shown on mobile where CSS `resize` is
+   unusable on touch. Positioned over the plot like the fullscreen button. */
+.plots-app .p-plot-size-ctl {
+  display: none;
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 10;
+  flex-direction: column;
+  gap: 4px;
+}
+.plots-app .p-plot-size-ctl .p-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .plots-app .p-panel-h {
   display: flex;
   align-items: center;
@@ -399,13 +416,30 @@
   }
   /* The plot needs an explicit, definite height so its ResizeObserver-driven
        SVG sizes correctly in the content-sized column (a min-height alone can
-       resolve to 0 during reflow). !important overrides the inline minHeight:0. */
+       resolve to 0 during reflow). !important overrides the inline minHeight:0.
+       This panel is the fixed scroll viewport; the stacked plots inside it are
+       sized by --p-plot-h (adjusted via the on-plot +/- buttons) and scroll. */
   .plots-app .p-plot-panel {
     flex: 0 0 auto;
     height: 56vh !important;
     min-height: 320px !important;
-    resize: vertical;
     overflow: hidden;
+  }
+  .plots-app .p-plot-size-ctl {
+    display: flex;
+  }
+  /* Stacked 1D plots: each gets a definite, user-controlled height so its
+       x-axis + cursor readout always fit (the SVG never overflows its clip box
+       and hides the axis behind the readout), and they scroll within the panel.
+       A single plot still grows to fill the panel (flex-grow) but never shrinks
+       below --p-plot-h. Overrides the inline flex/min-height set in the JSX. */
+  .plots-app .p-stack {
+    height: 100% !important;
+    overflow-y: auto !important;
+  }
+  .plots-app .p-stack-item {
+    flex: 1 0 auto !important;
+    min-height: var(--p-plot-h, 320px) !important;
   }
   /* The image section flows with its content rather than being trapped in the
        plot panel's resizable scroll box. */

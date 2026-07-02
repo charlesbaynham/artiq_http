@@ -12,7 +12,14 @@ import { useCallback, useRef, useState } from "react";
 // SVG larger than its clipped container and cutting off the x-axis labels. The
 // callback ref disconnects the old observer and observes whichever node is
 // currently mounted, keeping the measured size in sync with what's on screen.
-export function useMeasuredSize(minW = 360, minH = 220) {
+//
+// The minimums are only a floor to avoid a degenerate zero-size SVG during
+// reflow — they must stay SMALL. If the floor exceeds a genuinely short
+// container (e.g. one of several stacked plots on a phone), the SVG is drawn
+// taller/wider than its `overflow:hidden` box and the x-axis is pushed below
+// the clip line, hidden behind the cursor readout. So keep these well under any
+// real container height a stacked mobile plot can have.
+export function useMeasuredSize(minW = 200, minH = 120) {
   const [size, setSize] = useState({ w: 800, h: 460 });
   const roRef = useRef(null);
 

@@ -24,6 +24,12 @@ import {
   saveChannelVisibility,
   channelPriority,
   defaultVisibleChannels,
+  loadPlotHeight,
+  savePlotHeight,
+  clampPlotHeight,
+  PLOT_HEIGHT_MIN,
+  PLOT_HEIGHT_MAX,
+  PLOT_HEIGHT_STEP,
 } from "./utils";
 import { groupChannels } from "./grouping";
 import { copyPlotToClipboard } from "./copyPlot";
@@ -410,6 +416,19 @@ function PlotsApp() {
     return groups;
   }, [channelGroups, plot1dChannels]);
 
+  // ── Mobile plot height ───────────────────────────────────────────────────
+  // CSS `resize` handles are unusable on touch, so on narrow viewports we drive
+  // each stacked plot's height from a persisted pixel value (via the
+  // `--p-plot-h` custom property) that the user nudges with on-plot +/- buttons.
+  const [plotHeight, setPlotHeight] = useState(loadPlotHeight);
+  const adjustPlotHeight = useCallback((delta) => {
+    setPlotHeight((h) => {
+      const next = clampPlotHeight(h + delta);
+      savePlotHeight(next);
+      return next;
+    });
+  }, []);
+
   // ── Native fullscreen for the plot panel ────────────────────────────────
   const plotPanelRef = useRef(null);
   const [isPlotFullscreen, setIsPlotFullscreen] = useState(false);
@@ -577,7 +596,7 @@ function PlotsApp() {
   }
 
   return (
-    <div className="plots-app">
+    <div className="plots-app" style={{ "--p-plot-h": `${plotHeight}px` }}>
       <TopBar
         recentRuns={recentRuns}
         currentPrefix={activePrefix}
@@ -626,6 +645,47 @@ function PlotsApp() {
               sseError={sseError}
               timeseries0D={timeseries0D}
             />
+            {renderGroups && renderGroups.length > 0 && (
+              <div className="p-plot-size-ctl">
+                <button
+                  className="p-btn icon"
+                  title="Make plots taller"
+                  aria-label="make plots taller"
+                  onClick={() => adjustPlotHeight(PLOT_HEIGHT_STEP)}
+                  disabled={plotHeight >= PLOT_HEIGHT_MAX}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                </button>
+                <button
+                  className="p-btn icon"
+                  title="Make plots shorter"
+                  aria-label="make plots shorter"
+                  onClick={() => adjustPlotHeight(-PLOT_HEIGHT_STEP)}
+                  disabled={plotHeight <= PLOT_HEIGHT_MIN}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                </button>
+              </div>
+            )}
             <button
               className="p-btn ghost icon"
               title={
@@ -777,6 +837,7 @@ function StackedPlots1D({ groups, xs, xLabel, scanned, ghosts }) {
   const single = groups.length === 1;
   return (
     <div
+      className="p-stack"
       style={{
         height: "100%",
         overflowY: single ? "hidden" : "auto",
@@ -802,6 +863,7 @@ function StackedPlots1D({ groups, xs, xLabel, scanned, ghosts }) {
         return (
           <div
             key={key}
+            className="p-stack-item"
             style={{
               flex: single ? 1 : "1 1 0",
               minHeight: single ? 0 : 160,
