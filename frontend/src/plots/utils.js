@@ -96,6 +96,37 @@ export function saveChannelVisibility(fragmentFqn, visibility) {
   }
 }
 
+// LocalStorage helper — per-device mobile plot height (px). Drives the
+// `--p-plot-h` CSS variable so the height the user picks with the on-plot
+// size controls survives reloads.
+const LS_PLOT_HEIGHT = "artiq_http.plots.mobileHeight";
+export const PLOT_HEIGHT_MIN = 220;
+export const PLOT_HEIGHT_MAX = 800;
+export const PLOT_HEIGHT_STEP = 80;
+export const PLOT_HEIGHT_DEFAULT = 320;
+
+export function clampPlotHeight(px) {
+  if (!isFinite(px)) return PLOT_HEIGHT_DEFAULT;
+  return Math.max(PLOT_HEIGHT_MIN, Math.min(PLOT_HEIGHT_MAX, Math.round(px)));
+}
+
+export function loadPlotHeight() {
+  try {
+    const raw = localStorage.getItem(LS_PLOT_HEIGHT);
+    return raw ? clampPlotHeight(parseInt(raw, 10)) : PLOT_HEIGHT_DEFAULT;
+  } catch {
+    return PLOT_HEIGHT_DEFAULT;
+  }
+}
+
+export function savePlotHeight(px) {
+  try {
+    localStorage.setItem(LS_PLOT_HEIGHT, String(clampPlotHeight(px)));
+  } catch {
+    // ignore quota / disabled storage
+  }
+}
+
 // ndscan exposes a per-channel `display_hints.priority`: higher means more
 // important, and a negative priority means "hidden by default" (the user can
 // still enable it). Default 0 when unspecified. See ndscan's
