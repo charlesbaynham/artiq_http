@@ -552,6 +552,106 @@ async def submit_multi_axis_scan(
 
 
 @mcp.tool()
+async def submit_batch(
+    file: str,
+    class_name: str,
+    variants: list[dict[str, Any]],
+    axes: list[dict[str, Any]] | None = None,
+    num_repeats: int = 1,
+    repo_rev: str | None = None,
+    pipeline: str = "main",
+    priority: int = 0,
+    flush: bool = False,
+) -> list[dict[str, Any]]:
+    """Submit many variants of one experiment in a SINGLE MCP call.
+
+    This is the batch counterpart of submit_1d_scan / submit_multi_axis_scan: it
+    fans out over a list of ``variants`` — each carrying its own ``fixed_params``
+    — and submits one scan per variant on the same gated ndscan-building path
+    (POST /api/scan). Use it whenever you would otherwise fire a run of
+    near-identical submissions (e.g. a dozen filler runs, or the same experiment
+    at a set of held-fixed parameter values): one call here replaces N separate
+    submit calls, so there is no incentive to bypass the safety-gated MCP path
+    with a hand-rolled REST loop.
+
+    All variants share the experiment identity (``file``, ``class_name``),
+    ``repo_rev``, ``pipeline``, ``flush`` and — importantly — a single
+    ``priority``. Priority is deliberately batch-wide and cannot be set
+    per-variant, so a negative-priority queue floor stays satisfied for the whole
+    batch in one place. ``axes`` and ``num_repeats`` are batch-wide defaults that
+    an individual variant may override.
+
+    With the default empty ``axes`` each variant is a plain single submission
+    (ndscan "single" no-axes mode — no scan). Provide shared ``axes`` (or
+    per-variant ``axes``) to make each variant a scan instead.
+
+    Args:
+        file: Relative path to the experiment file, e.g. "scans/rabi.py".
+        class_name: Python class name of the experiment, e.g. "RabiFlop".
+        variants: List of per-variant dicts. Each dict may contain:
+            - "fixed_params" (dict, usually required): {fqn: value} overrides to
+              hold fixed for this variant. To disambiguate an FQN present at
+              multiple instance paths, use {"value": <v>, "path": <instance_path>}
+              instead of a bare value (same shape as submit_1d_scan's fixed_params).
+            - "axes" (list, optional): override the batch ``axes`` for this
+              variant. Each axis is {"fqn", "type", "range"} exactly as in
+              submit_multi_axis_scan.
+            - "num_repeats" (int, optional): override the batch ``num_repeats``.
+            - "due_date" (float, optional): Unix timestamp; earliest run time for
+              this variant.
+        axes: Shared scan axes applied to every variant that does not override
+            them. Default None/empty = no scan axis (each variant runs once).
+            Each axis is {"fqn", "type", "range"} as in submit_multi_axis_scan.
+        num_repeats: Shared repeat count for variants that do not override it
+            (default 1).
+        repo_rev: Git revision (commit hash, branch, or tag) to check out before
+            building and running every variant. Omit or pass None to use the
+            master's current revision.
+        pipeline: Scheduling pipeline name for the whole batch (default "main").
+        priority: Scheduling priority for the WHOLE batch — a single int applied
+            to every variant (default 0). Cannot be overridden per variant.
+        flush: Flush the pipeline before submitting (applied to every variant,
+            default False).
+
+    Returns:
+        A list with one result dict per variant, in input order. Each has:
+            - "index" (int): the variant's position in ``variants``.
+            - "ok" (bool): whether that variant submitted successfully.
+            - "rid" (int): the Run ID, present when ok is True.
+            - "error" (str): the failure message, present when ok is False.
+        A failure on one variant does NOT abort the rest — every variant is
+        attempted and reported individually.
+    """
+    shared_axes = axes if axes is not None else []
+    results: list[dict[str, Any]] = []
+    for index, variant in enumerate(variants):
+        try:
+            if not isinstance(variant, dict):
+                raise TypeError(f"variant must be a dict, got {type(variant).__name__}")
+            payload: dict[str, Any] = {
+                "file": file,
+                "class_name": class_name,
+                "axes": variant.get("axes", shared_axes),
+                "fixed_params": variant.get("fixed_params"),
+                "num_repeats": variant.get("num_repeats", num_repeats),
+                "pipeline": pipeline,
+                "priority": priority,
+                "flush": flush,
+            }
+            if repo_rev is not None:
+                payload["repo_rev"] = repo_rev
+            if variant.get("due_date") is not None:
+                payload["due_date"] = variant["due_date"]
+            # Reuse the existing scan path so the whole batch stays on the gated,
+            # ndscan-building POST /api/scan endpoint (never wait per variant).
+            rid = await _post_scan(payload, wait_for_completion=False, timeout_seconds=600.0)
+            results.append({"index": index, "ok": True, "rid": rid})
+        except Exception as exc:  # noqa: BLE001 - report per-variant, don't abort the batch
+            results.append({"index": index, "ok": False, "error": f"{type(exc).__name__}: {exc}"})
+    return results
+
+
+@mcp.tool()
 async def cancel_experiment(rid: int, force: bool = False) -> str:
     """Cancel a queued or running experiment.
 

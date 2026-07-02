@@ -61,6 +61,15 @@ particular:
 - A new HTTP endpoint that an MCP client could reasonably use should get a
   corresponding tool.
 
+`submit_batch` is an MCP-only convenience: it fans out over a list of
+`variants` (each with its own `fixed_params`) and submits one scan per variant
+by reusing the existing `POST /api/scan` path — there is no dedicated batch HTTP
+endpoint, so this is not a parity gap. Priority is deliberately batch-wide (a
+single value for the whole call, never per-variant) so a negative-priority queue
+floor stays satisfied in one place; keep it that way. It exists so agents submit
+many near-identical runs in one gated MCP call rather than bypassing the safety
+gate with a hand-rolled REST loop.
+
 The following HTTP features are intentionally **not** exposed via MCP (do not
 treat these as parity gaps): `GET /api/datasets` full dump (too large — use the
 `list_dataset_names` / `get_dataset_values` tools instead), `GET /api/datasets/stream/...`
