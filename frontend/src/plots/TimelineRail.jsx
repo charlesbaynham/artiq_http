@@ -126,7 +126,16 @@ function TimelineRow({
               e.stopPropagation();
               onToggleGhost(r.prefix);
             }}
-            style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
+            style={{
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              // Icon is 13x13, but the clickable box is enlarged to ~40x40 so
+              // it's reachable with a fingertip on touch devices.
+              minWidth: 40,
+              minHeight: 40,
+            }}
             title={isGhost ? "remove ghost overlay" : "add ghost overlay"}
           >
             <GhostIcon on={isGhost} />

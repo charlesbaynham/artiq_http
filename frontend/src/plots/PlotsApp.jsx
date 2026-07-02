@@ -410,8 +410,6 @@ function PlotsApp() {
     return groups;
   }, [channelGroups, plot1dChannels]);
 
-  const primaryChannelKey = plot1dChannels?.[0]?.key ?? null;
-
   // ── Native fullscreen for the plot panel ────────────────────────────────
   const plotPanelRef = useRef(null);
   const [isPlotFullscreen, setIsPlotFullscreen] = useState(false);
@@ -477,8 +475,9 @@ function PlotsApp() {
       const needed = ghostPrefixes.filter((p) => !ghostData[p]);
       if (!needed.length) return;
       try {
-        // Each ghost needs axis_0 + per-channel values. We fetch the primary
-        // channel for ghost rendering — keeping payloads small.
+        // Each ghost needs axis_0 + every channel's values, since different
+        // channels can land on different stacked plots (grouped by scale) and
+        // each of those plots needs its own ghost curve.
         const queries = needed.flatMap((p) => [
           `${p}.points.axis_0`,
           ...channelKeys.map((k) => `${p}.points.channel_${k}`),
@@ -489,11 +488,11 @@ function PlotsApp() {
           const next = { ...prev };
           for (const p of needed) {
             const xs = vals[`${p}.points.axis_0`]?.[1] || [];
-            const primary = channelKeys[0];
-            const values = primary
-              ? vals[`${p}.points.channel_${primary}`]?.[1] || []
-              : [];
-            next[p] = { xs, values, rid: extractRid(p) };
+            const channels = {};
+            for (const k of channelKeys) {
+              channels[k] = vals[`${p}.points.channel_${k}`]?.[1] || [];
+            }
+            next[p] = { xs, channels, rid: extractRid(p) };
           }
           return next;
         });
@@ -514,7 +513,7 @@ function PlotsApp() {
     if (dims !== "1D") return [];
     return ghostPrefixes
       .map((p) => ghostData[p])
-      .filter((g) => g && g.values && g.values.length);
+      .filter((g) => g && g.xs && g.xs.length && g.channels);
   }, [ghostPrefixes, ghostData, dims]);
 
   // ── Status string for the top bar ────────────────────────────────────────
@@ -621,7 +620,6 @@ function PlotsApp() {
               dims={dims}
               channelDescriptors={channelDescriptors}
               renderGroups={renderGroups}
-              primaryChannelKey={primaryChannelKey}
               metric2D={metric2D}
               ghosts={ghostsForPlot}
               status={status}
@@ -758,14 +756,7 @@ function ActiveHeader({ prefix, rid, fragmentFqn, dims }) {
 // of descriptor arrays (already filtered to groups that have a visible channel).
 // A single group fills the panel; multiple groups stack and scroll so each keeps
 // its own independent y-scale.
-function StackedPlots1D({
-  groups,
-  xs,
-  xLabel,
-  scanned,
-  ghosts,
-  primaryChannelKey,
-}) {
+function StackedPlots1D({ groups, xs, xLabel, scanned, ghosts }) {
   if (!groups || !groups.length) {
     return (
       <div
@@ -795,9 +786,19 @@ function StackedPlots1D({
     >
       {groups.map((descs) => {
         const key = descs.map((d) => d.key).join("|");
-        const hasPrimary =
-          primaryChannelKey != null &&
-          descs.some((d) => d.key === primaryChannelKey);
+        // Each stacked group gets its own ghost curve, keyed off that group's
+        // own primary (first visible) channel — a ghost run may not have data
+        // on every channel, and different groups plot different channels.
+        const groupPrimaryKey = (descs.find((d) => d.on) || descs[0])?.key;
+        const groupGhosts = groupPrimaryKey
+          ? (ghosts || [])
+              .map((g) => ({
+                xs: g.xs,
+                values: g.channels?.[groupPrimaryKey] || [],
+                rid: g.rid,
+              }))
+              .filter((g) => g.values.length)
+          : [];
         return (
           <div
             key={key}
@@ -811,7 +812,7 @@ function StackedPlots1D({
               xLabel={xLabel}
               yLabel="value"
               channels={descs}
-              ghosts={hasPrimary ? ghosts : []}
+              ghosts={groupGhosts}
               scanned={scanned}
             />
           </div>
@@ -827,7 +828,6 @@ StackedPlots1D.propTypes = {
   xLabel: PropTypes.string,
   scanned: PropTypes.bool,
   ghosts: PropTypes.array,
-  primaryChannelKey: PropTypes.string,
 };
 
 function PlotBody({
@@ -835,7 +835,6 @@ function PlotBody({
   dims,
   channelDescriptors,
   renderGroups,
-  primaryChannelKey,
   metric2D,
   ghosts,
   status,
@@ -905,7 +904,6 @@ function PlotBody({
           xLabel="elapsed / s"
           scanned={false}
           ghosts={[]}
-          primaryChannelKey={primaryChannelKey}
         />
       );
     }
@@ -925,7 +923,6 @@ function PlotBody({
         xLabel={axisLabel(axis)}
         scanned
         ghosts={ghosts}
-        primaryChannelKey={primaryChannelKey}
       />
     );
   }
@@ -967,7 +964,6 @@ PlotBody.propTypes = {
   dims: PropTypes.string,
   channelDescriptors: PropTypes.array.isRequired,
   renderGroups: PropTypes.array,
-  primaryChannelKey: PropTypes.string,
   metric2D: PropTypes.string,
   ghosts: PropTypes.array,
   status: PropTypes.string,
