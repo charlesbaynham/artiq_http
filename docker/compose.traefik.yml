@@ -1,0 +1,17 @@
+# Traefik edge attachment (stronlab.net gateway migration). Puts the artiq_http
+# frontend on the shared external `traefik` network and labels it for discovery.
+services:
+  frontend:
+    networks:
+      default: {}
+      traefik: {}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.artiq.rule=Host(`artiq.stronlab.net`)
+      - traefik.http.routers.artiq.entrypoints=websecure
+      - traefik.http.routers.artiq.tls=true
+      - traefik.http.services.artiq.loadbalancer.server.port=80
+networks:
+  traefik:
+    external: true
