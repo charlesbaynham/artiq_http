@@ -52,6 +52,10 @@ class ExperimentList(BaseModel):
     current_rev: Optional[str]
     scanning: bool
     experiments: List[ExperimentEntry] = []
+    #: Revision the GUI should fall back to when the "Rev / ref" field is left blank
+    #: and no lab-wide default revision is configured. Mirrors ``current_rev`` unless
+    #: ``ARTIQ_HTTP_DEFAULT_REVISION`` overrides it (see artiq_http/config.py).
+    default_revision_fallback: Optional[str] = None
 
 
 class ExperimentDefaults(BaseModel):

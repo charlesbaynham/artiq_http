@@ -150,9 +150,12 @@ function App() {
     const uniqueId = `${exp.file}:${exp.class_name}`;
 
     // Prefer the lab-wide default revision if one is set, otherwise fall back to
-    // the master's current revision.
+    // whatever the backend says to use for a blank revision (normally the master's
+    // current revision, or a configured override such as "master" - see
+    // ARTIQ_HTTP_DEFAULT_REVISION).
     const effectiveRev =
-      (defaultRevision && defaultRevision.trim()) || explist.current_rev;
+      (defaultRevision && defaultRevision.trim()) ||
+      explist.default_revision_fallback;
 
     setSelectedExperiment(uniqueId);
     setRepoRev(effectiveRev);
@@ -286,7 +289,7 @@ function App() {
                 <DefaultRevision
                   value={defaultRevision}
                   onChange={setDefaultRevision}
-                  currentRev={explist.current_rev}
+                  currentRev={explist.default_revision_fallback}
                 />
                 <NewExperiment
                   explist={explist}

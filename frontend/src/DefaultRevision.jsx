@@ -10,11 +10,13 @@ import InputGroup from "react-bootstrap/InputGroup";
  * submission is pre-filled with, so users on a per-branch workflow don't have to
  * override the revision on each submission. The value is persisted in
  * localStorage (see useLocalStorageState) and applies until cleared. An empty
- * value falls back to the master's current revision (HEAD).
+ * value falls back to whatever the backend reports as the blank-revision default
+ * (normally the master's current revision, unless overridden - see
+ * ARTIQ_HTTP_DEFAULT_REVISION).
  *
  * @param {string} value - current default revision.
  * @param {(v: string) => void} onChange - setter for the persisted default.
- * @param {string} [currentRev] - the master's current revision, shown as a hint.
+ * @param {string} [currentRev] - the backend's blank-revision fallback, shown as a hint.
  */
 function DefaultRevision({ value, onChange, currentRev }) {
   // Local buffer so typing doesn't thrash localStorage on every keystroke; the
@@ -48,9 +50,7 @@ function DefaultRevision({ value, onChange, currentRev }) {
             }
           }}
           placeholder={
-            currentRev
-              ? `current revision (${currentRev.slice(0, 12)})`
-              : "current revision"
+            currentRev ? `default (${currentRev.slice(0, 12)})` : "default"
           }
           aria-label="Default branch or revision for experiment submissions"
         />
@@ -58,7 +58,7 @@ function DefaultRevision({ value, onChange, currentRev }) {
           <Button
             variant="outline-secondary"
             onClick={() => onChange("")}
-            title="Clear the default and fall back to the master's current revision"
+            title="Clear the default and fall back to the backend's configured default"
           >
             Clear
           </Button>
@@ -67,7 +67,7 @@ function DefaultRevision({ value, onChange, currentRev }) {
       <Form.Text>
         Applied to every experiment you configure below. Set it once (e.g. your
         working branch) and each submission defaults to it. Leave blank to use
-        the master's current revision.
+        the backend's configured default{currentRev ? ` (${currentRev})` : ""}.
       </Form.Text>
     </Form.Group>
   );

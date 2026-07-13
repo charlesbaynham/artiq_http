@@ -165,6 +165,60 @@ def test_explist_search_case_insensitive(mock_get_explist):
 
 
 # ---------------------------------------------------------------------------
+# GET /api/explist - default_revision_fallback
+# ---------------------------------------------------------------------------
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+def test_explist_default_revision_fallback_uses_current_rev_by_default(mock_get_explist):
+    """With no ARTIQ_HTTP_DEFAULT_REVISION configured, blank-revision fallback is current_rev."""
+    explist = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**EXPERIMENT_ENTRY)],
+    )
+    mock_get_explist.return_value = explist
+    response = client.get("/api/explist")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["current_rev"] == "abc123"
+    assert data["default_revision_fallback"] == "abc123"
+
+
+@patch.dict("artiq_http.api.config", {"default_revision": "master"})
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+def test_explist_default_revision_fallback_uses_configured_override(mock_get_explist):
+    """ARTIQ_HTTP_DEFAULT_REVISION overrides the blank-revision fallback to a fixed ref."""
+    explist = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**EXPERIMENT_ENTRY)],
+    )
+    mock_get_explist.return_value = explist
+    response = client.get("/api/explist")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["current_rev"] == "abc123"
+    assert data["default_revision_fallback"] == "master"
+
+
+@patch.dict("artiq_http.api.config", {"default_revision": "master"})
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+def test_explist_search_default_revision_fallback_uses_configured_override(mock_get_explist):
+    """The override also applies to GET /api/explist/search."""
+    explist = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**EXPERIMENT_ENTRY)],
+    )
+    mock_get_explist.return_value = explist
+    response = client.get("/api/explist/search?q=simple")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["default_revision_fallback"] == "master"
+
+
+# ---------------------------------------------------------------------------
 # GET /api/explist/{file:path}/{class_name}/defaults
 # ---------------------------------------------------------------------------
 
