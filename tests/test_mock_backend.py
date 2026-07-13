@@ -300,6 +300,7 @@ def test_explist_returns_mock_experiment(mock_client):
     assert data["scanning"] is False
     class_names = {exp["class_name"] for exp in data["experiments"]}
     assert class_names == {"MockRepeatExperiment", "MockFreqScan"}
+    assert data["default_revision_fallback"] == data["current_rev"]
 
 
 def test_schedule_empty_in_mock_mode(mock_client):

@@ -402,6 +402,7 @@ async def get_explist(
         current_rev=explist.current_rev,
         scanning=explist.scanning,
         experiments=[_filter_experiment_fields(exp, requested, full) for exp in explist.experiments],
+        default_revision_fallback=config.get("default_revision") or explist.current_rev,
     )
 
 
@@ -435,6 +436,7 @@ async def search_explist(
         current_rev=explist.current_rev,
         scanning=explist.scanning,
         experiments=[_filter_experiment_fields(exp, requested, full) for exp in filtered_exps],
+        default_revision_fallback=config.get("default_revision") or explist.current_rev,
     )
 
 

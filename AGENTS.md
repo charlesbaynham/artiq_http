@@ -39,6 +39,23 @@ See README.rst for instructions
 - `tests/` - Test suite
 - `docs/` - Sphinx documentation
 
+## Configuration
+
+`artiq_http/config.py` reads settings from environment variables (e.g. via a `.env`
+file loaded by the process manager, or `docker/compose.yml`):
+
+- `ARTIQ_HTTP_HOST`, `ARTIQ_HTTP_PORT_NOTIFIERS`, `ARTIQ_HTTP_PORT_CLIENTS`,
+  `ARTIQ_HTTP_PORT_BROADCAST` - ARTIQ master connection details
+- `ARTIQ_HTTP_OLD_ARTIQ_SUPPORT` - compatibility toggle for older ARTIQ versions
+- `ARTIQ_HTTP_MOCK` - run against the mock backend instead of a real ARTIQ master
+- `ARTIQ_HTTP_DEFAULT_REVISION` - git revision/branch the GUI's "Rev / ref" field
+  falls back to when left blank and no lab-wide default revision is set (see
+  `DefaultRevision.jsx`). Empty (default) preserves the historic behaviour of
+  falling back to the master's current revision (`current_rev`); set it to e.g.
+  `master` to instead always target that ref regardless of whichever revision the
+  ARTIQ master currently has checked out. Exposed to the frontend as
+  `default_revision_fallback` on `GET /api/explist`.
+
 ## MCP Server
 
 `mcp_server/server.py` is a hand-written [FastMCP](https://github.com/modelcontextprotocol/python-sdk)

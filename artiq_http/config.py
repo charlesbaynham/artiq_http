@@ -7,4 +7,10 @@ config = {
     "port_broadcast": int(os.getenv("ARTIQ_HTTP_PORT_BROADCAST", "1067")),
     "old_artiq_support": os.getenv("ARTIQ_HTTP_OLD_ARTIQ_SUPPORT", "false").lower() in ("true", "1", "yes"),
     "mock": os.getenv("ARTIQ_HTTP_MOCK", "false").lower() in ("true", "1", "yes"),
+    # Revision/branch to fall back to in the GUI when the user leaves the "Rev / ref"
+    # field blank and no lab-wide default revision is set. Empty (default) preserves
+    # the historic behaviour of falling back to the master's current revision. Set to
+    # a branch name (e.g. "master") to instead always target that ref regardless of
+    # whatever revision the ARTIQ master currently has checked out.
+    "default_revision": os.getenv("ARTIQ_HTTP_DEFAULT_REVISION", ""),
 }

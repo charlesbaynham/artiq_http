@@ -36,6 +36,9 @@ def test_get_explist(client):
     assert "experiments" in data
     assert "scanning" in data
     assert "current_rev" in data
+    # No ARTIQ_HTTP_DEFAULT_REVISION configured for this stack, so the blank-revision
+    # fallback the GUI uses should mirror the master's current revision.
+    assert data["default_revision_fallback"] == data["current_rev"]
 
     # Check if our expected experiments are there
     exp_names = [exp["file"] for exp in data["experiments"]]

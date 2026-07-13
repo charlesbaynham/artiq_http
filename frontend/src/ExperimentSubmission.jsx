@@ -23,7 +23,8 @@ function ExperimentSubmission({
 
   // The git revision/branch the form is configured against. Editable so the user
   // can point the experiment at a different branch and recompute its arguments.
-  // Falls back to the lab-wide default revision, then the master's current one.
+  // Falls back to the lab-wide default revision, then the backend's configured
+  // blank-revision fallback (see explist.default_revision_fallback).
   const trimmedDefault = (defaultRevision || "").trim();
   const [revision, setRevision] = React.useState(
     repo_rev ?? (trimmedDefault || ""),
@@ -39,14 +40,16 @@ function ExperimentSubmission({
   const expData = findExperiment(experiment);
 
   // Fetch arginfo lazily when the selected experiment changes, and (re)initialise
-  // the revision field from the experiment's incoming repo_rev / the master's
-  // current revision.
+  // the revision field from the experiment's incoming repo_rev / the backend's
+  // configured blank-revision fallback.
   React.useEffect(() => {
     if (!expData) {
       setArginfo(null);
       return;
     }
-    setRevision(repo_rev ?? (trimmedDefault || explist?.current_rev || ""));
+    setRevision(
+      repo_rev ?? (trimmedDefault || explist?.default_revision_fallback || ""),
+    );
     setRecomputeError("");
     setArginfoLoading(true);
     setArginfo(null);
@@ -105,7 +108,7 @@ function ExperimentSubmission({
           type="text"
           value={revision}
           onChange={(e) => setRevision(e.target.value)}
-          placeholder="current revision"
+          placeholder="default revision"
           disabled={recomputing}
         />
         <Button
@@ -124,8 +127,8 @@ function ExperimentSubmission({
       </InputGroup>
       <Form.Text>
         Re-evaluate the experiment's arguments and defaults at the given git
-        revision/branch, and submit from it. Leave blank for the master's
-        current revision.
+        revision/branch, and submit from it. Leave blank for the backend's
+        configured default revision.
       </Form.Text>
       {recomputeError && (
         <div className="text-danger small mt-1">{recomputeError}</div>
