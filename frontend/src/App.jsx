@@ -14,7 +14,9 @@ import NDScanPlotCollection from "./NDScanPlotCollection";
 import ConnectionErrorModal from "./ConnectionErrorModal";
 import ErrorBoundary from "./ErrorBoundary";
 import Logs from "./Logs";
+import DefaultRevision from "./DefaultRevision";
 import { get_health, get_explist } from "./api/client";
+import useLocalStorageState from "./hooks/useLocalStorageState";
 import MobileNavigation from "./MobileNavigation";
 
 function PlotFullscreen() {
@@ -65,6 +67,12 @@ const HEALTH_CHECK_INTERVAL = 5000; // 5 seconds
 function App() {
   const [selectedExperiment, setSelectedExperiment] = useState(null);
   const [repoRev, setRepoRev] = useState(null);
+  // Lab-wide default revision/branch for experiment submissions, persisted so
+  // it survives reloads and applies to every submission until changed.
+  const [defaultRevision, setDefaultRevision] = useLocalStorageState(
+    "artiq_http.default_revision",
+    "",
+  );
   const [connectionError, setConnectionError] = useState(null); // null, "backend", or "artiq"
 
   const location = useLocation();
@@ -141,12 +149,17 @@ function App() {
     const exp = node.experiment;
     const uniqueId = `${exp.file}:${exp.class_name}`;
 
+    // Prefer the lab-wide default revision if one is set, otherwise fall back to
+    // the master's current revision.
+    const effectiveRev =
+      (defaultRevision && defaultRevision.trim()) || explist.current_rev;
+
     setSelectedExperiment(uniqueId);
-    setRepoRev(explist.current_rev);
+    setRepoRev(effectiveRev);
 
     const params = new URLSearchParams();
     params.set("experiment", uniqueId);
-    if (explist.current_rev) params.set("rev", explist.current_rev);
+    if (effectiveRev) params.set("rev", effectiveRev);
     navigate({ pathname: "/configure", search: params.toString() });
 
     // Scroll to Configure Submission section
@@ -270,6 +283,11 @@ function App() {
           <Col>
             <CollapsibleSection title="Schedule new">
               <ErrorBoundary>
+                <DefaultRevision
+                  value={defaultRevision}
+                  onChange={setDefaultRevision}
+                  currentRev={explist.current_rev}
+                />
                 <NewExperiment
                   explist={explist}
                   onSelect={handleSelect}
@@ -294,6 +312,7 @@ function App() {
                   explist={explist}
                   experiment={selectedExperiment}
                   repo_rev={repoRev}
+                  defaultRevision={defaultRevision}
                 />
               </ErrorBoundary>
             </CollapsibleSection>
