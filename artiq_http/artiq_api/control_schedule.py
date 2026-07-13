@@ -4,6 +4,17 @@ from ..config import config
 from .models import ExpID
 
 
+class ExperimentNotFoundError(Exception):
+    """The experiment could not be examined at the requested revision.
+
+    Raised when the master was reached but the ``examine`` worker failed —
+    typically because the experiment file does not exist at that git
+    revision (not all experiments exist on all branches). This is distinct
+    from a failure to reach the master at all, which propagates as the
+    original transport/connection error so callers can map it to a 503.
+    """
+
+
 async def submit_experiment(
     expid: ExpID,
     pipeline: str = "main",
@@ -48,6 +59,15 @@ async def examine_experiment(filename: str, revision: str | None = None) -> dict
     try:
         # use_repository=True so the master resolves and checks out the revision.
         return remote.examine(filename, True, revision)
+    except (OSError, EOFError):
+        # Transport/connection failure — the master is unreachable. Let this
+        # propagate so callers can surface it as a 503.
+        raise
+    except Exception as e:
+        # The examine ran on the master but failed. The common cause is that
+        # the file does not exist at this revision (experiments differ between
+        # branches); the worker raises rather than returning an empty result.
+        raise ExperimentNotFoundError(f"Could not examine '{filename}' at revision {revision or 'current'}: {e}") from e
     finally:
         remote.close_rpc()
 

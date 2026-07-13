@@ -287,6 +287,24 @@ def test_submit_scan_unknown_experiment(client):
     assert response.status_code == 404, response.text
 
 
+def test_submit_scan_unknown_experiment_by_ref(client):
+    """POST /api/scan by-ref for a non-existent experiment returns 404, not 500.
+
+    With ``repo_rev`` set the server examines the experiment at that revision
+    instead of consulting the cached explist. A missing file makes the master's
+    examine worker raise; this must surface as a 404 rather than an internal
+    server error (experiments differ between branches).
+    """
+    req = {
+        "file": "does_not_exist.py",
+        "class_name": "NoSuchExperiment",
+        "repo_rev": "master",
+        "axes": [{"fqn": "x.y", "type": "linear", "range": {"start": 0.0, "stop": 1.0, "num_points": 2}}],
+    }
+    response = client.post("/api/scan", json=req)
+    assert response.status_code == 404, response.text
+
+
 def test_submit_scan_unknown_fqn(client):
     """POST /api/scan referencing a parameter the experiment lacks returns 422."""
     req = {

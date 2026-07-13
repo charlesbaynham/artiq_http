@@ -446,8 +446,9 @@ async def _examine_arginfo(file: str, class_name: str, revision: str | None) -> 
     master's current revision and does not require re-scanning the whole
     repository.
 
-    Raises HTTPException 404 if the class is absent at that revision, or 503 if
-    the master cannot be reached.
+    Raises HTTPException 404 if the experiment file or class is absent at that
+    revision (experiments differ between branches), or 503 if the master cannot
+    be reached.
     """
     if config.get("mock"):
         from .artiq_api.persistent_subscriber import subscriber_manager
@@ -459,6 +460,11 @@ async def _examine_arginfo(file: str, class_name: str, revision: str | None) -> 
 
     try:
         description = await api.control_schedule.examine_experiment(file, revision)
+    except api.control_schedule.ExperimentNotFoundError:
+        raise HTTPException(
+            404,
+            f"Experiment {file}/{class_name} not found at revision {revision or 'current'}",
+        )
     except Exception as e:  # noqa: BLE001 - surface any RPC/connection failure as 503
         raise HTTPException(503, f"Failed to examine experiment: {str(e)}")
 

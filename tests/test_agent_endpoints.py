@@ -227,6 +227,45 @@ def test_explist_defaults_at_revision_unknown_class(mock_examine):
     assert response.status_code == 404
 
 
+@patch("artiq_http.api.api.control_schedule.examine_experiment", new_callable=AsyncMock)
+def test_explist_defaults_at_revision_missing_file(mock_examine):
+    """GET .../defaults?revision=X returns 404 (not 500) when the file is absent.
+
+    The master's examine worker raises when the experiment file does not exist
+    at the revision (experiments differ between branches); control_schedule
+    wraps that as ExperimentNotFoundError, which must surface as a 404.
+    """
+    from artiq_http.artiq_api.control_schedule import ExperimentNotFoundError
+
+    mock_examine.side_effect = ExperimentNotFoundError("boom")
+    response = client.get("/api/explist/simple_exp.py/SimpleExp/defaults", params={"revision": "feature-branch"})
+    assert response.status_code == 404
+
+
+@patch("artiq_http.api.api.control_schedule.examine_experiment", new_callable=AsyncMock)
+def test_explist_recompute_at_revision_missing_file(mock_examine):
+    """POST .../recompute returns 404 (not 500) when the file is absent at the revision."""
+    from artiq_http.artiq_api.control_schedule import ExperimentNotFoundError
+
+    mock_examine.side_effect = ExperimentNotFoundError("boom")
+    response = client.post(
+        "/api/explist/simple_exp.py/SimpleExp/recompute",
+        params={"revision": "feature-branch"},
+    )
+    assert response.status_code == 404
+
+
+@patch("artiq_http.api.api.control_schedule.examine_experiment", new_callable=AsyncMock)
+def test_explist_recompute_master_unreachable(mock_examine):
+    """POST .../recompute still returns 503 when the master cannot be reached."""
+    mock_examine.side_effect = ConnectionRefusedError("master down")
+    response = client.post(
+        "/api/explist/simple_exp.py/SimpleExp/recompute",
+        params={"revision": "feature-branch"},
+    )
+    assert response.status_code == 503
+
+
 @patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
 def test_explist_defaults_ndscan_experiment(mock_get_explist):
     """GET /api/explist/ndscan_exp.py/NDScanExp/defaults returns ndscan parameter defaults from schemata.
