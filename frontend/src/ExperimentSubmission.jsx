@@ -9,7 +9,12 @@ import { isNDScanExperiment, getStorageKey } from "./api/ndscan";
 import { getExperimentStorageKey } from "./api/experiments";
 import { get_explist_arginfo, recompute_arguments } from "./api/client";
 
-function ExperimentSubmission({ explist, experiment, repo_rev }) {
+function ExperimentSubmission({
+  explist,
+  experiment,
+  repo_rev,
+  defaultRevision,
+}) {
   // experiment is now a string ID: "file:class_name"
   // explist contains { experiments: [...] }
 
@@ -18,7 +23,11 @@ function ExperimentSubmission({ explist, experiment, repo_rev }) {
 
   // The git revision/branch the form is configured against. Editable so the user
   // can point the experiment at a different branch and recompute its arguments.
-  const [revision, setRevision] = React.useState(repo_rev ?? "");
+  // Falls back to the lab-wide default revision, then the master's current one.
+  const trimmedDefault = (defaultRevision || "").trim();
+  const [revision, setRevision] = React.useState(
+    repo_rev ?? (trimmedDefault || ""),
+  );
   const [recomputing, setRecomputing] = React.useState(false);
   const [recomputeError, setRecomputeError] = React.useState("");
 
@@ -37,7 +46,7 @@ function ExperimentSubmission({ explist, experiment, repo_rev }) {
       setArginfo(null);
       return;
     }
-    setRevision(repo_rev ?? explist?.current_rev ?? "");
+    setRevision(repo_rev ?? (trimmedDefault || explist?.current_rev || ""));
     setRecomputeError("");
     setArginfoLoading(true);
     setArginfo(null);

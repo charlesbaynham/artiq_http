@@ -779,6 +779,20 @@ a:hover {
    Experiment browser & tree
    ========================================================================== */
 
+.default-revision {
+    margin-bottom: 4px;
+}
+
+.default-revision__label {
+    font-family: var(--font-sans);
+    font-size: var(--fs-eyebrow);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
 .experiment-browser {
     border-top: 1px solid var(--border-subtle);
     padding-top: 18px;
