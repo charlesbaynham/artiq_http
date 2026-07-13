@@ -90,10 +90,14 @@ parameters are accepted by ``POST /api/schedule``.
 Error codes
 ^^^^^^^^^^^
 
-* ``404`` — experiment not found in the explist.
+* ``404`` — experiment not found: either absent from the explist, or (for a
+  by-ref scan with ``repo_rev``) absent at that revision.  Because experiments
+  differ between branches, scanning one that does not exist at the requested
+  revision is reported as ``404`` rather than an internal error.
 * ``422`` — validation failure (invalid scan type, unknown FQN, range error,
   axis/fixed overlap, non-ndscan experiment, etc.).  The ``detail`` field
   contains a human-readable message.
+* ``503`` — the ARTIQ master could not be reached.
 
 Raw submission with ndscan_params
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -302,6 +302,30 @@ async def test_build_ndscan_params_by_ref_missing_class(mock_examine):
         )
 
 
+@patch("artiq_http.artiq_api.ndscan_builder.control_schedule.examine_experiment", new_callable=AsyncMock)
+async def test_build_ndscan_params_by_ref_missing_file(mock_examine):
+    """ValueError (mapped to 404 upstream) when the experiment file is absent.
+
+    When the file does not exist at the revision the master's examine worker
+    raises rather than returning an empty description; control_schedule wraps
+    that as ExperimentNotFoundError, which the builder surfaces as a
+    ``not found`` ValueError so the API returns 404 instead of 500.
+    """
+    from artiq_http.artiq_api.control_schedule import ExperimentNotFoundError
+
+    mock_examine.side_effect = ExperimentNotFoundError(
+        "Could not examine 'ndscan_exp.py' at revision feature-branch: boom"
+    )
+
+    with pytest.raises(ValueError, match="not found at revision feature-branch"):
+        await build_ndscan_params(
+            file="ndscan_exp.py",
+            class_name="NDScanExp",
+            axes=[],
+            repo_rev="feature-branch",
+        )
+
+
 @patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
 async def test_build_ndscan_params_no_schemata(mock_get_explist):
     """ValueError when experiment has no ndscan schemata."""

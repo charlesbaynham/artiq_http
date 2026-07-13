@@ -186,7 +186,10 @@ async def fetch_scan_arginfo(
                 return exp.arginfo or {}
         raise ValueError(f"Experiment {file}/{class_name} not found in explist")
 
-    description = await control_schedule.examine_experiment(file, repo_rev)
+    try:
+        description = await control_schedule.examine_experiment(file, repo_rev)
+    except control_schedule.ExperimentNotFoundError as e:
+        raise ValueError(f"Experiment {file}/{class_name} not found at revision {repo_rev}") from e
     if class_name not in description:
         raise ValueError(f"Experiment {file}/{class_name} not found at revision {repo_rev}")
     return description[class_name].get("arginfo") or {}
