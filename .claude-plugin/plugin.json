@@ -1,11 +1,11 @@
 {
   "name": "artiq-http",
-  "version": "0.26.0",
+  "version": "0.26.1",
   "description": "MCP server and skill for controlling an ARTIQ quantum physics experiment system via its HTTP API. Provides tools for experiment discovery, submission, scheduling, and dataset access.",
   "mcpServers": {
     "artiq": {
       "type": "http",
-      "url": "https://artiq.baynham.me/mcp"
+      "url": "https://artiq.stronlab.net/mcp"
     }
   }
 }
