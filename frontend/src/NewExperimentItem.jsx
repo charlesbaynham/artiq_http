@@ -40,6 +40,10 @@ function NewExperimentItem(props) {
     const stored = loadExperimentState(file, class_name);
     return stored?.pipeline ?? "main";
   });
+  const [priority, setPriority] = React.useState(() => {
+    const stored = loadExperimentState(file, class_name);
+    return stored?.priority ?? 0;
+  });
 
   // Toast state for error messages
   const [showError, setShowError] = React.useState(false);
@@ -47,8 +51,8 @@ function NewExperimentItem(props) {
 
   // Save to localStorage when state changes
   React.useEffect(() => {
-    saveExperimentState(file, class_name, { argValues, pipeline });
-  }, [file, class_name, argValues, pipeline]);
+    saveExperimentState(file, class_name, { argValues, pipeline, priority });
+  }, [file, class_name, argValues, pipeline, priority]);
 
   // Group arguments for display
   const groupedArgs = React.useMemo(() => groupArguments(arginfo), [arginfo]);
@@ -152,6 +156,23 @@ function NewExperimentItem(props) {
           </Form.Text>
         </Form.Group>
 
+        <Form.Group className="mt-3 mb-3">
+          <Form.Label>Priority</Form.Label>
+          <Form.Control
+            type="number"
+            step="1"
+            value={priority}
+            onChange={(e) => {
+              const v = e.target.value;
+              setPriority(v === "" ? 0 : parseInt(v, 10));
+            }}
+            placeholder="0"
+          />
+          <Form.Text>
+            Higher values run sooner. Can be negative. Default: 0.
+          </Form.Text>
+        </Form.Group>
+
         <div className="d-grid mt-4">
           <SubmitNewButton
             file={file}
@@ -159,6 +180,7 @@ function NewExperimentItem(props) {
             repo_rev={repo_rev}
             arguments={getSubmissionArguments()}
             pipeline={pipeline}
+            priority={priority}
             onError={handleError}
             className="btn-lg"
           />

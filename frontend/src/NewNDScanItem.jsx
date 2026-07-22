@@ -61,6 +61,10 @@ function NewNDScanItem(props) {
     const stored = loadExperimentState(file, class_name);
     return stored ? stored.pipeline : "main";
   });
+  const [priority, setPriority] = React.useState(() => {
+    const stored = loadExperimentState(file, class_name);
+    return stored ? stored.priority ?? 0 : 0;
+  });
 
   // Helper functions for managing visible FQNs
   const addFQNToVisibleParams = (fqn) => {
@@ -119,8 +123,8 @@ function NewNDScanItem(props) {
         visibleFqns: [...visibleFqns],
         useDefaultVisibility,
       });
-      // Also save pipeline state using the general helper
-      saveExperimentState(file, class_name, { pipeline });
+      // Also save pipeline + priority state using the general helper
+      saveExperimentState(file, class_name, { pipeline, priority });
     }
   }, [
     ndscanOverrides,
@@ -130,6 +134,7 @@ function NewNDScanItem(props) {
     visibleFqns,
     useDefaultVisibility,
     pipeline,
+    priority,
   ]);
 
   // Build FQN to path mapping for ndscan
@@ -585,6 +590,23 @@ function NewNDScanItem(props) {
           </Form.Text>
         </Form.Group>
 
+        <Form.Group className="mt-3 mb-2">
+          <Form.Label>Priority</Form.Label>
+          <Form.Control
+            type="number"
+            step="1"
+            value={priority}
+            onChange={(e) => {
+              const v = e.target.value;
+              setPriority(v === "" ? 0 : parseInt(v, 10));
+            }}
+            placeholder="0"
+          />
+          <Form.Text className="text-muted">
+            Higher values run sooner. Can be negative. Default: 0.
+          </Form.Text>
+        </Form.Group>
+
         <div className="d-grid mt-4">
           <SubmitNewButton
             file={file}
@@ -592,6 +614,7 @@ function NewNDScanItem(props) {
             repo_rev={repo_rev}
             arguments={getSubmissionArguments()}
             pipeline={pipeline}
+            priority={priority}
             onError={handleError}
             className="btn-lg"
           />
