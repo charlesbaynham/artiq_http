@@ -45,6 +45,7 @@ export function queue_experiment(
   repo_rev,
   args = {},
   pipeline = "main",
+  priority = 0,
 ) {
   const expid = {
     log_level: 30,
@@ -56,7 +57,7 @@ export function queue_experiment(
 
   return api_fetch("api/schedule", {
     method: "POST",
-    params: { pipeline },
+    params: { pipeline, priority },
     headers: {
       "Content-Type": "application/json",
     },

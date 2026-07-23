@@ -16,6 +16,7 @@ function SubmitNewButton(props) {
       props.repo_rev,
       props.arguments || {},
       props.pipeline || "main",
+      props.priority ?? 0,
     )
       .then((data) => {
         setLoading(false);
