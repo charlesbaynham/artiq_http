@@ -132,3 +132,7 @@ ENV/
 
 # Agent scheduler runtime state (cron locks / scheduled tasks)
 .agents/
+
+# Playwright screenshot/verification scratch scripts (dot-prefixed, transient)
+/.probe*.mjs
+/frontend/.*.mjs
