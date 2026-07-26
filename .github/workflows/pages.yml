@@ -173,6 +173,16 @@ jobs:
           touch site/.nojekyll
           mkdir -p site/demo
           cp -r frontend/dist/. site/demo/
+
+          # GitHub Pages has no SPA rewrite rules and serves only the *site
+          # root* 404.html (a 404.html inside site/demo/ is never consulted),
+          # so a deep link like /<repo>/demo/plots would hit GitHub's own error
+          # page. This root 404 hands demo routes to the SPA as ?spa=<route>
+          # (index.html restores the real path before mounting) and leaves
+          # everything else as an ordinary not-found for the docs.
+          REPO='${{ github.event.repository.name }}'
+          python3 scripts/make_pages_404.py --repo "$REPO" --out site/404.html
+
           echo "Assembled site tree:"
           find site -maxdepth 2 -mindepth 1 -printf '%y %p\n' | sort | head -40
 
