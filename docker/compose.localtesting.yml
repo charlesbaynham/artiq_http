@@ -1,7 +1,7 @@
 services:
   # Test ARTIQ Master Server
   artiq-test-master:
-    image: artiq-test-master:latest
+    image: ghcr.io/charlesbaynham/artiq_http/test-master:latest
     container_name: artiq-test-master
     expose:
       - "3250"
