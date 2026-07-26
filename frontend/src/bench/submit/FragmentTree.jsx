@@ -17,7 +17,7 @@ import React, {
 } from "react";
 import PropTypes from "prop-types";
 
-import { Caption, Mono, Pill } from "../ui/primitives";
+import { Caption, Mono, Pill, Spacer } from "../ui/primitives";
 
 /** Row geometry — fixed so the window can be computed without measuring. */
 export const BRANCH_H = 25;
@@ -167,6 +167,10 @@ LeafRow.propTypes = {
  * @param {Array<string>} props.expanded - persisted expanded branch paths
  * @param {boolean} props.filtering - a query is active (branches auto-expand)
  * @param {Map<string,object>} props.entriesByFqn
+ * @param {() => void} [props.onClose] - present only when the tree is being
+ *   rendered inside the 900–1200px filter-bar slide-over (IMPL-SPEC §11);
+ *   renders a `✕` in the header so the overlay's close affordance is obvious
+ *   even though a backdrop click and Esc also close it.
  */
 function FragmentTree({
   nodes,
@@ -179,6 +183,7 @@ function FragmentTree({
   onPin,
   onUnpin,
   onPromote,
+  onClose,
 }) {
   const scrollRef = useRef(null);
   const [view, setView] = useState({ top: 0, height: 480 });
@@ -265,6 +270,20 @@ function FragmentTree({
       <div className="b-panel-h">
         <Caption>fragments</Caption>
         <Mono className="bw-tree__count">· {matchCount} matches</Mono>
+        {onClose ? (
+          <>
+            <Spacer />
+            <button
+              type="button"
+              className="bw-tree__close"
+              onClick={onClose}
+              title="Close (Esc)"
+              aria-label="Close fragment tree"
+            >
+              ✕
+            </button>
+          </>
+        ) : null}
       </div>
       <div
         className="bw-tree__body b-scroll"
@@ -314,6 +333,7 @@ FragmentTree.propTypes = {
   onPin: PropTypes.func,
   onUnpin: PropTypes.func,
   onPromote: PropTypes.func,
+  onClose: PropTypes.func,
 };
 
 export default FragmentTree;

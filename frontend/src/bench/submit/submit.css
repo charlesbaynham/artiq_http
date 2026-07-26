@@ -232,6 +232,8 @@
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
+  /* Anchors the 900–1200px slide-over (.bw-tree-overlay) below. */
+  position: relative;
 }
 
 /* ── Fragment tree ────────────────────────────────────────────────────────── */
@@ -399,6 +401,29 @@
   border-top: 1px solid var(--b-border);
   font-size: 10.5px;
   color: var(--b-fg-muted);
+}
+
+/* The ✕ in the tree header — only rendered when the tree is hosted inside
+   the 900–1200px slide-over (`onClose` passed to FragmentTree). */
+.bench .bw-tree__close {
+  font-family: var(--b-font-mono);
+  font-size: 12px;
+  line-height: 1;
+  color: var(--b-fg-faint);
+  background: transparent;
+  border: none;
+  padding: 3px 4px;
+  cursor: pointer;
+  border-radius: var(--b-r-ctl);
+  flex-shrink: 0;
+  transition:
+    color var(--b-t-fast),
+    background var(--b-t-fast);
+}
+
+.bench .bw-tree__close:hover {
+  color: var(--b-fg);
+  background: var(--b-well);
 }
 
 .bench .bw-tree__empty {
@@ -872,5 +897,76 @@
 }
 
 /* The tree is a fixed 262px by design. Responsive collapse of the whole pane
-   (IMPL-SPEC §11) is the shell's business — it owns the breakpoints, and a
-   viewport media query here would fire even when the pane itself is roomy. */
+   (IMPL-SPEC §11) is the shell's business — it owns the breakpoints (see
+   `useIsMedium` in bench/state/useMediaQuery.js), not a viewport media query
+   here, which would fire even when the pane itself is roomy. What follows is
+   the 900–1200px slide-over itself: SubmitPane decides *when* to render it
+   (via `useIsMedium`), this file only styles it once it exists. */
+
+/* ── Filter-bar trigger (900–1200px only) ─────────────────────────────────── */
+
+.bench .bw-tree-trigger svg {
+  flex-shrink: 0;
+}
+
+/* ── Fragment tree slide-over (900–1200px) ────────────────────────────────
+   Always mounted while the pane is in the medium band (not just while open)
+   so the slide/backdrop transitions run both ways; closed state is purely
+   `transform`/`opacity` + `pointer-events: none`, so it costs nothing extra
+   visually or interaction-wise while hidden. `.bench *` in bench.css already
+   collapses all transition durations under `prefers-reduced-motion`, so the
+   slide/fade below is skipped automatically — no separate handling needed
+   here. */
+
+.bench .bw-tree-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  pointer-events: none;
+}
+
+.bench .bw-tree-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.bench .bw-tree-overlay.is-open .bw-tree-overlay__backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.bench .bw-tree-overlay__panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 262px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--b-surface);
+  border-right: 1px solid var(--b-border-strong);
+  box-shadow: var(--b-shadow-sheet);
+  transform: translateX(-100%);
+  pointer-events: none;
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.bench .bw-tree-overlay.is-open .bw-tree-overlay__panel {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* The tree fills the panel's full height instead of the fixed 262px
+   flex-basis it uses in the row-flex `.bw-body` — the panel is a column-flex
+   container, so that basis would otherwise be read as a height. */
+.bench .bw-tree-overlay__panel .bw-tree {
+  width: 100%;
+  height: 100%;
+  flex: 1 1 auto;
+  border-right: none;
+}

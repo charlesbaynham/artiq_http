@@ -230,6 +230,22 @@ export function IconSwap(props) {
 }
 IconSwap.propTypes = iconPropTypes;
 
+/** Fragment tree — a branching hierarchy. Filter-bar trigger for the
+ * 900–1200px slide-over (IMPL-SPEC §11). */
+export function IconTree(props) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="4.5" r="2" />
+      <circle cx="6" cy="19.5" r="2" />
+      <circle cx="18" cy="19.5" r="2" />
+      <path d="M12 6.5v4" />
+      <path d="M12 10.5H6v7" />
+      <path d="M12 10.5h6v7" />
+    </Svg>
+  );
+}
+IconTree.propTypes = iconPropTypes;
+
 export default {
   IconBench,
   IconRuns,
@@ -245,4 +261,5 @@ export default {
   IconCopy,
   IconExpand,
   IconSwap,
+  IconTree,
 };

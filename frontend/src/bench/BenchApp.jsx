@@ -25,6 +25,7 @@ import Logs from "../Logs";
 import "./shell.css";
 
 import { SessionProvider, useSession } from "./state/SessionContext";
+import { LiveRunProvider } from "./state/LiveRunContext";
 import { useSchedule } from "./state/useSchedule";
 import { useIsMobile, useIsNarrow } from "./state/useMediaQuery";
 
@@ -225,7 +226,11 @@ function BenchWorkspace({ explist, isOnline }) {
   const pathname = location.pathname;
 
   return (
-    <>
+    // One shared live-run subscription for the whole desktop workspace
+    // (TopBar's live-status readout, SubmitPane's duration estimate,
+    // LivePane's plot card) instead of each calling useLiveRun() itself —
+    // see LiveRunContext's docstring (IMPL-SPEC §6/§7 wave-2 polish).
+    <LiveRunProvider scheduleItems={scheduleItems}>
       <TopBar
         isOnline={isOnline}
         scheduleItems={scheduleItems}
@@ -317,7 +322,7 @@ function BenchWorkspace({ explist, isOnline }) {
         onClose={() => setPaletteOpen(false)}
         explist={explist}
       />
-    </>
+    </LiveRunProvider>
   );
 }
 

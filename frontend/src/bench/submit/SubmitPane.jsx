@@ -29,8 +29,11 @@ import {
   parseNdscanParams,
 } from "../../api/ndscan";
 import { useSession } from "../state/SessionContext";
-import { estimatePointDuration, useLiveRun } from "../state/useLiveRun";
+import { useLiveRunContext } from "../state/LiveRunContext";
+import { estimatePointDuration } from "../state/useLiveRun";
+import { useIsMedium } from "../state/useMediaQuery";
 import { Caption, Mono, Pill, Skeleton, Spacer } from "../ui/primitives";
+import { IconTree } from "../ui/icons";
 import FragmentTree from "./FragmentTree";
 import SubmitFooter from "./SubmitFooter";
 import WorkingSet from "./WorkingSet";
@@ -343,9 +346,61 @@ function SubmitPane({ explist, onSubmitted }) {
     [state.workingSet],
   );
 
+  /* ── Fragment tree slide-over (900–1200px, IMPL-SPEC §11) ─────────────────
+   * Below 1200px the pane shrinks and the 262px tree stops fitting inline;
+   * above 900px it isn't narrow enough for the tabbed mobile-ish layout
+   * either, so `useIsMedium` (the shell's one breakpoint helper — no
+   * duplicated matchMedia logic) picks out exactly that band. In it, the
+   * tree renders only inside a slide-over triggered from the filter bar
+   * instead of inline. */
+  const isMedium = useIsMedium();
+  const [treeOverlayOpen, setTreeOverlayOpen] = useState(false);
+  const treeTriggerRef = useRef(null);
+  const treeOverlayRef = useRef(null);
+  const wasOverlayOpenRef = useRef(false);
+
+  // Leaving the 900–1200px band — wider or narrower — always closes it: the
+  // tree goes back to being inline (or the pane becomes a tab) either way.
+  useEffect(() => {
+    if (!isMedium) setTreeOverlayOpen(false);
+  }, [isMedium]);
+
+  const closeTreeOverlay = useCallback(() => setTreeOverlayOpen(false), []);
+
+  // Focus the overlay when it opens; return focus to the trigger when it
+  // closes. Guarded so mounting/breakpoint churn that never actually opened
+  // it doesn't go stealing focus.
+  useEffect(() => {
+    if (treeOverlayOpen) {
+      wasOverlayOpenRef.current = true;
+      treeOverlayRef.current?.focus();
+    } else if (wasOverlayOpenRef.current) {
+      wasOverlayOpenRef.current = false;
+      treeTriggerRef.current?.focus();
+    }
+  }, [treeOverlayOpen]);
+
+  // Esc closes it from anywhere in the pane (pinning stays open — only Esc
+  // and the backdrop close it).
+  useEffect(() => {
+    if (!treeOverlayOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setTreeOverlayOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [treeOverlayOpen]);
+
   /* ── Duration estimate ──────────────────────────────────────────────────── */
 
-  const { progress } = useLiveRun({ pinnedRid: state.pinnedLiveRid });
+  // Shared workspace-wide subscription (LiveRunContext, mounted by BenchApp)
+  // rather than a standalone `useLiveRun()` call — see that context's
+  // docstring for why (IMPL-SPEC §6/§7 wave-2 polish: one EventSource for
+  // the whole workspace instead of three).
+  const { progress } = useLiveRunContext();
   const secondsPerPoint = estimatePointDuration(progress, null);
   const durationSeconds = useMemo(() => {
     if (secondsPerPoint == null || !experiment) return null;
@@ -528,6 +583,47 @@ function SubmitPane({ explist, onSubmitted }) {
 
   /* ── Render ─────────────────────────────────────────────────────────────── */
 
+  // Shared between the inline tree (>=1200px or <900px) and the 900–1200px
+  // slide-over — same loading/tree markup either way, just a different host
+  // and an optional close affordance (only present inside the overlay).
+  const renderTreePanel = (onClose) =>
+    loading ? (
+      <div className="bw-tree">
+        <div className="b-panel-h">
+          <Caption>fragments</Caption>
+          {onClose ? (
+            <>
+              <Spacer />
+              <button
+                type="button"
+                className="bw-tree__close"
+                onClick={onClose}
+                title="Close (Esc)"
+                aria-label="Close fragment tree"
+              >
+                ✕
+              </button>
+            </>
+          ) : null}
+        </div>
+        <Skeleton rows={8} height={40} />
+      </div>
+    ) : (
+      <FragmentTree
+        nodes={filtered}
+        matchCount={matchCount}
+        expanded={expandedBranches}
+        filtering={query.trim() !== ""}
+        query={query}
+        entriesByFqn={entriesByFqn}
+        onToggleBranch={(path) => toggleBranch(path)}
+        onPin={onPin}
+        onUnpin={onUnpinParam}
+        onPromote={onPromoteParam}
+        onClose={onClose}
+      />
+    );
+
   const query = state.filterQuery;
   const queryWidth = `${Math.min(Math.max(query.length, 3), 26)}ch`;
 
@@ -631,6 +727,22 @@ function SubmitPane({ explist, onSubmitted }) {
             <Mono className="bw-filter__count" title="Total parameters">
               {params.length}
             </Mono>
+            {isMedium ? (
+              <button
+                type="button"
+                ref={treeTriggerRef}
+                className={`b-pill bw-tree-trigger${
+                  treeOverlayOpen ? " is-active" : ""
+                }`}
+                onClick={() => setTreeOverlayOpen((v) => !v)}
+                aria-haspopup="dialog"
+                aria-expanded={treeOverlayOpen}
+                title="Show the fragment tree"
+              >
+                <IconTree size={13} />
+                fragments {matchCount}
+              </button>
+            ) : null}
           </>
         ) : null}
       </div>
@@ -658,27 +770,7 @@ function SubmitPane({ explist, onSubmitted }) {
         />
       ) : (
         <div className="bw-body">
-          {loading ? (
-            <div className="bw-tree">
-              <div className="b-panel-h">
-                <Caption>fragments</Caption>
-              </div>
-              <Skeleton rows={8} height={40} />
-            </div>
-          ) : (
-            <FragmentTree
-              nodes={filtered}
-              matchCount={matchCount}
-              expanded={expandedBranches}
-              filtering={query.trim() !== ""}
-              query={query}
-              entriesByFqn={entriesByFqn}
-              onToggleBranch={(path) => toggleBranch(path)}
-              onPin={onPin}
-              onUnpin={onUnpinParam}
-              onPromote={onPromoteParam}
-            />
-          )}
+          {!isMedium ? renderTreePanel(null) : null}
           <WorkingSet
             entries={state.workingSet}
             errors={errors}
@@ -691,6 +783,27 @@ function SubmitPane({ explist, onSubmitted }) {
             appliedPresetName={appliedPreset}
             actions={wsActions}
           />
+          {isMedium ? (
+            <div
+              className={`bw-tree-overlay${treeOverlayOpen ? " is-open" : ""}`}
+            >
+              <div
+                className="bw-tree-overlay__backdrop"
+                onClick={closeTreeOverlay}
+                aria-hidden="true"
+              />
+              <div
+                className="bw-tree-overlay__panel"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Fragment tree"
+                ref={treeOverlayRef}
+                tabIndex={-1}
+              >
+                {renderTreePanel(closeTreeOverlay)}
+              </div>
+            </div>
+          ) : null}
         </div>
       )}
 

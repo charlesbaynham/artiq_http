@@ -7,28 +7,26 @@
  *
  * `scheduleItems` is passed in from `BenchApp` (a single `useSchedule()` call
  * shared with the live pane) so the top bar doesn't open a second polling
- * loop just to count the queue. The live-run progress readout still needs
- * its own `useLiveRun()` call — it subscribes to the resolved run's own SSE
- * stream, which can't be shared.
+ * loop just to count the queue. The live-run progress readout reads from
+ * `LiveRunContext` (mounted by `BenchApp`) rather than calling `useLiveRun()`
+ * itself, so the top bar, submit pane and live pane share one `EventSource`
+ * to the resolved run's SSE stream instead of each opening its own.
  */
 import React, { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 
 import { Pill, Spacer } from "./ui/primitives";
 import { useSession } from "./state/SessionContext";
-import { formatDuration, useLiveRun } from "./state/useLiveRun";
+import { useLiveRunContext } from "./state/LiveRunContext";
+import { formatDuration } from "./state/useLiveRun";
 import { isLiveStatus } from "./state/useSchedule";
 
 function cx(...parts) {
   return parts.filter(Boolean).join(" ");
 }
 
-function LiveStatus({ scheduleItems }) {
-  const { state } = useSession();
-  const liveRun = useLiveRun({
-    pinnedRid: state.pinnedLiveRid,
-    scheduleItems,
-  });
+function LiveStatus() {
+  const liveRun = useLiveRunContext();
   const live = isLiveStatus(liveRun.status) && liveRun.rid != null;
 
   if (!live) {
@@ -59,8 +57,6 @@ function LiveStatus({ scheduleItems }) {
     </div>
   );
 }
-
-LiveStatus.propTypes = { scheduleItems: PropTypes.array };
 
 function SessionSwitcher() {
   const session = useSession();
@@ -155,7 +151,7 @@ function TopBar({ isOnline, scheduleItems, onOpenPalette, onQueueClick }) {
 
       <SessionSwitcher />
 
-      <LiveStatus scheduleItems={scheduleItems} />
+      <LiveStatus />
 
       <Spacer />
 

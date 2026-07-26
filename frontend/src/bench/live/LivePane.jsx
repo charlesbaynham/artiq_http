@@ -8,15 +8,18 @@
  * "expand to full workspace" state (BenchApp — wave-2 polish, replacing the
  * live plot card's old browser-Fullscreen-API `⤢`). This component reads
  * `pinnedLiveRid` / `ghostRid` / `selectedImageKeys` from the session store
- * and resolves which run to watch via `useLiveRun`.
+ * and reads the resolved run from `LiveRunContext` (mounted by `BenchApp`)
+ * rather than calling `useLiveRun` itself, so this pane, `TopBar` and
+ * `SubmitPane` share one `EventSource` for the watched run instead of each
+ * opening its own.
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import PropTypes from "prop-types";
 
 import { extractRid } from "../../plots/utils";
 import { useSession } from "../state/SessionContext";
-import { useLiveRun } from "../state/useLiveRun";
+import { useLiveRunContext } from "../state/LiveRunContext";
 import ImagesCard from "./ImagesCard";
 import LivePlotCard from "./LivePlotCard";
 import QueueCard from "./QueueCard";
@@ -33,24 +36,17 @@ function LivePane({
     useSession();
   const { pinnedLiveRid, ghostRid, selectedImageKeys } = state;
 
-  // Raw SSE payload forwarded up from the embedded PlotsApp inside
-  // LivePlotCard (its `onData`), so the call to `useLiveRun` below — which
-  // drives the readout row — reuses that subscription instead of opening a
-  // second EventSource to the same prefix (IMPL-SPEC §7 wave-2 polish).
-  const [feed, setFeed] = useState(null); // { prefix, data } | null
-  const handlePlotData = useCallback((prefix, rawData) => {
-    setFeed((prev) =>
-      prev && prev.prefix === prefix && prev.data === rawData
-        ? prev
-        : { prefix, data: rawData },
-    );
-  }, []);
-
-  const liveRun = useLiveRun({
-    pinnedRid: pinnedLiveRid,
-    scheduleItems,
-    feed,
-  });
+  // The embedded PlotsApp inside LivePlotCard already holds a subscription
+  // to the watched run's prefix (its `onData`); `reportFeed` forwards that
+  // raw SSE payload up into LiveRunContext's shared `useLiveRun()` call
+  // instead of this pane opening a second EventSource to the same prefix
+  // (IMPL-SPEC §7 wave-2 polish — see LiveRunContext's docstring).
+  const liveRun = useLiveRunContext();
+  const { reportFeed } = liveRun;
+  const handlePlotData = useCallback(
+    (prefix, rawData) => reportFeed(prefix, rawData),
+    [reportFeed],
+  );
 
   // A pin that doesn't resolve to any discovered run is a genuinely empty
   // state (IMPL-SPEC §12): `useLiveRun` otherwise silently falls back to the
