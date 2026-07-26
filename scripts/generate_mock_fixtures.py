@@ -83,8 +83,11 @@ def _write_json(path: Path, data: Any, *, compact: bool = False) -> None:
     if compact:
         text = json.dumps(data, separators=(",", ":"), allow_nan=False)
     else:
-        text = json.dumps(data, indent=2, allow_nan=False) + "\n"
-    path.write_text(text, encoding="utf-8")
+        text = json.dumps(data, indent=2, allow_nan=False)
+    # Always end with a trailing newline: the repo's pre-commit `end-of-file-fixer`
+    # hook enforces this on every text file, so a fixture written without one would
+    # immediately drift from what's committed the moment it's swept into a commit.
+    path.write_text(text + "\n", encoding="utf-8")
 
 
 async def _capture_snapshot() -> Dict[str, Any]:

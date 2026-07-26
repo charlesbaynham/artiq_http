@@ -131,6 +131,35 @@ server (e.g. behind your own reverse proxy that serves the frontend separately):
     # Run on a custom port
     uv run aqctl_artiq_http --port 8080
 
+**Static demo (GitHub Pages, no backend):**
+
+The redesigned frontend also builds as a fully static site with no Python backend at
+all — a browser-side adapter (``frontend/src/api/mockAdapter.js``) answers every
+``/api/*`` call from JSON fixtures generated from ``artiq_http/mock_backend.py``.
+
+.. code-block:: bash
+
+    # Regenerate the static fixtures after any mock_backend.py change
+    uv run python scripts/generate_mock_fixtures.py
+    uv run pytest tests/test_mock_fixtures.py   # fails if the fixtures are stale
+
+    # Build the static demo
+    cd frontend
+    npm run build:mock                          # -> frontend/dist/
+
+    # Serve it locally (no backend running)
+    npx --yes http-server dist -p 4180
+
+``.github/workflows/pages.yml`` deploys this to GitHub Pages using the
+Actions-artifact mechanism. **Repo Settings → Pages → Source must be set to
+"GitHub Actions"** (not "Deploy from a branch") for this to work. Only one
+deployment can be live at a time: pushing to ``master`` deploys master (the resting
+state), a manual ``workflow_dispatch`` run deploys whichever branch you pick, and
+adding the ``deploy-pages`` label to a PR deploys that PR's head and comments the
+preview link on it. See ``AGENTS.md`` ("Static Mock / GitHub Pages Demo") for the
+full contract, including a known conflict with the docs' existing Pages deployment
+in ``ci.yml`` that needs a decision from whoever owns that job.
+
 **Documentation:**
 
 .. code-block:: bash

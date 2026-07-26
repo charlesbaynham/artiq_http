@@ -1,0 +1,212 @@
+name: Deploy Pages (static mock demo)
+
+# Deploys the redesigned bench UI as a fully static demo (VITE_MOCK=1, no
+# Python backend) to GitHub Pages, using the modern artifact-based Pages
+# deployment (actions/upload-pages-artifact + actions/deploy-pages) rather
+# than a gh-pages branch. Both of these are first-party `actions/`-org
+# actions, so they satisfy this repo's "no third-party marketplace actions"
+# rule for CI.
+#
+# CAVEAT THE REPO OWNER MUST DECIDE ON: a GitHub repo has exactly one Pages
+# site. `ci.yml`'s `deploy-docs` job *already* publishes the Sphinx docs to
+# that same site via the same Actions-artifact mechanism, triggered on every
+# push to master. This workflow's push trigger (below) will race it: whichever
+# of the two workflows finishes last on a given master push "wins" the Pages
+# slot, and the site will flip unpredictably between the docs and this demo.
+# Resolving that is out of this workflow's scope (`ci.yml` belongs to a
+# different area of the project) -- pick one of: stop deploying docs to Pages
+# (e.g. host them elsewhere), merge both artifacts into a single deploy step
+# that places the demo under a subpath, or drop this workflow's automatic
+# push trigger and only ever deploy the demo via `workflow_dispatch` /
+# the `deploy-pages` PR label.
+#
+# Because only one deployment can be live at a time, there are no per-PR
+# preview subdirectories. Deployment is manually fired:
+#   1. push to the default branch      -> build & deploy (this is the
+#                                          "resting" state: master is live
+#                                          unless someone deliberately
+#                                          replaces it)
+#   2. workflow_dispatch                -> deploy whatever ref is chosen in
+#                                          the Actions "Run workflow" branch
+#                                          dropdown (defaults to the default
+#                                          branch)
+#   3. a pull_request gets the          -> deploy that PR's head, so a PR can
+#      `deploy-pages` label                claim the live slot for review.
+#      applied                            Fork PRs are refused (no write
+#                                          token for a fork's untrusted code;
+#                                          see the fork-check step) -- this
+#                                          deliberately does NOT use
+#                                          `pull_request_target`.
+#
+# Repo settings prerequisite: Settings -> Pages -> Build and deployment
+# -> Source must be "GitHub Actions" (not "Deploy from a branch").
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch: {}
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    # Skip irrelevant PR-label events at the job level (any label other than
+    # deploy-pages); the fork-vs-same-repo check happens *inside* the job
+    # (not here) so it can still write a visible job-summary line explaining
+    # the skip, rather than the run just not appearing at all.
+    if: >
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.label.name == 'deploy-pages')
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      proceed: ${{ steps.fork-check.outputs.proceed }}
+      page_url: ${{ steps.deployment.outputs.page_url }}
+      head_ref: ${{ steps.resolve-ref.outputs.ref }}
+      head_sha: ${{ steps.resolve-ref.outputs.sha }}
+    steps:
+      - name: Refuse fork PRs (no write token for untrusted code)
+        id: fork-check
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] && \
+             [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### 🚫 Pages deploy skipped"
+              echo
+              echo "This PR's head is in a fork (\`${{ github.event.pull_request.head.repo.full_name }}\`)."
+              echo "Deploying fork code to GitHub Pages with this workflow's privileged token would let"
+              echo "untrusted code publish under this repo's Pages site, so the deploy did not run."
+              echo
+              echo "A maintainer can push the branch to this repository, or check it out locally and run"
+              echo "this workflow via \`workflow_dispatch\` against it, to preview it instead."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.fork-check.outputs.proceed == 'true'
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
+
+      - name: Resolve deployed ref/sha
+        if: steps.fork-check.outputs.proceed == 'true'
+        id: resolve-ref
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "ref=${{ github.event.pull_request.head.ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: astral-sh/setup-uv@v5
+        if: steps.fork-check.outputs.proceed == 'true'
+
+      - name: Install Python dependencies
+        if: steps.fork-check.outputs.proceed == 'true'
+        run: uv sync --extra dev
+
+      - name: Verify mock fixtures are not stale (drift guard before deploying)
+        if: steps.fork-check.outputs.proceed == 'true'
+        run: |
+          uv run python scripts/generate_mock_fixtures.py --out /tmp/fixture_check
+          diff -r frontend/public/mock /tmp/fixture_check
+
+      - uses: actions/setup-node@v4
+        if: steps.fork-check.outputs.proceed == 'true'
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        if: steps.fork-check.outputs.proceed == 'true'
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build static mock demo
+        if: steps.fork-check.outputs.proceed == 'true'
+        working-directory: frontend
+        env:
+          VITE_BASE: /${{ github.event.repository.name }}/
+        run: npm run build:mock
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.fork-check.outputs.proceed == 'true'
+        with:
+          path: frontend/dist
+
+      - uses: actions/deploy-pages@v4
+        if: steps.fork-check.outputs.proceed == 'true'
+        id: deployment
+
+      - name: Job summary
+        if: steps.fork-check.outputs.proceed == 'true'
+        run: |
+          {
+            echo "### ✅ GitHub Pages deploy"
+            echo
+            echo "- Event: \`${{ github.event_name }}\`"
+            echo "- Ref: \`${{ steps.resolve-ref.outputs.ref }}\`"
+            echo "- Commit: \`${{ steps.resolve-ref.outputs.sha }}\`"
+            echo "- Live at: ${{ steps.deployment.outputs.page_url }}"
+            echo
+            echo "Only one deployment can be live on GitHub Pages at a time. Pushing to"
+            echo "\`${{ github.event.repository.default_branch }}\` (or re-running this workflow via"
+            echo "\`workflow_dispatch\` against it) restores master as the live site."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  comment:
+    needs: deploy
+    if: github.event_name == 'pull_request' && needs.deploy.outputs.proceed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post or update sticky PR comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+          HEAD_REF: ${{ needs.deploy.outputs.head_ref }}
+          HEAD_SHA: ${{ needs.deploy.outputs.head_sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          MARKER="<!-- artiq-http-pages-deploy -->"
+          BODY="$(cat <<EOF
+          $MARKER
+          ### 📄 GitHub Pages now shows this PR
+
+          This workflow **replaced** the live GitHub Pages deployment with this PR's static mock demo
+          (mock data, no ARTIQ master).
+
+          - Ref: \`$HEAD_REF\`
+          - Commit: \`$HEAD_SHA\`
+          - Live at: $PAGE_URL
+
+          Only one deployment can be live on GitHub Pages at a time. Pushing to \`$DEFAULT_BRANCH\` (or
+          re-running this workflow via \`workflow_dispatch\` against it) restores master as the live site.
+          EOF
+          )"
+
+          EXISTING_ID="$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -1)"
+
+          if [ -n "$EXISTING_ID" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$EXISTING_ID" -f body="$BODY"
+          else
+            gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$BODY"
+          fi

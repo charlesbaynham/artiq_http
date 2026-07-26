@@ -171,6 +171,82 @@ The mock **schedule starts pre-populated**: RID `4823` is a *running* `RabiFlop`
 
 The mock backend lives in `artiq_http/mock_backend.py`. It replaces the global `subscriber_manager` singleton at startup, so all API paths behave normally.
 
+## Static Mock / GitHub Pages Demo
+
+The redesigned bench also runs as a **fully static site with no Python backend at all** —
+this is what's deployed to GitHub Pages. It is a from-scratch reimplementation of the mock
+backend contract in the browser, not a build of `artiq_http.mock_backend` itself (there is
+no server process on Pages).
+
+- `scripts/generate_mock_fixtures.py` imports `artiq_http.mock_backend` directly (no running
+  server) and writes JSON fixtures to `frontend/public/mock/` — `explist.json`,
+  `arginfo/<slug>.json` per experiment, `schedule.json`, `dataset_names.json`,
+  `datasets.json` (initial dataset snapshot, incl. camera images), `logs.json`,
+  `health.json`. `<slug>` is a filesystem-safe encoding of `<file>:<class_name>`
+  (`file.replace("/", "_") + "__" + class_name`); the exact same algorithm is reimplemented
+  in `frontend/src/api/mockAdapter.js`'s `slugify()` — keep both in sync if you change it.
+  Regenerate after any `mock_backend.py` change:
+
+  ```bash
+  uv run python scripts/generate_mock_fixtures.py
+  ```
+
+  `tests/test_mock_fixtures.py` regenerates into a tmp dir and fails the build if that
+  produces a diff against the committed fixtures, so the Python and JS mocks cannot
+  silently drift apart. The fixtures are deterministic (seeded RNG, frozen clock) so
+  regenerating with no source changes reproduces byte-identical output.
+- `frontend/src/api/mockAdapter.js` is the browser-side adapter: when
+  `import.meta.env.VITE_MOCK === "1"` it patches `window.fetch` (intercepting same-origin
+  `/api/*` requests only — everything else, including the fixture JSON itself, passes
+  through to the real `fetch`) and replaces `window.EventSource` with a shim that replays
+  and then animates the fixture data for `/api/datasets/stream/<prefix>`, reproducing
+  `sse.py`'s `init`/`update`/`delete`/`heartbeat`/`error` protocol exactly. It implements
+  the full explist/arginfo/defaults/recompute/schedule/scan/cancel/datasets/logs/health/
+  presets surface, hand-rolled against the same Python modules it mirrors
+  (`ndscan_builder.py`, `ndscan_validation.py`, `notifiers.py`) — no MSW, no new
+  dependencies. Presets are backed by `localStorage` (`artiq_http.bench.mockPresets`) since
+  there is no server to persist them to. Submitting a scan allocates a RID from `4825` and
+  starts it as `running` immediately (not `pending`, unlike the Python mock) so the
+  queue → live-plot loop is visible without a second poll — the point of this build is that
+  the whole workflow is clickable end to end with nothing running.
+- `npm run build:mock` (`VITE_MOCK=1 vite build`, then copies `dist/index.html` to
+  `dist/404.html` since GitHub Pages has no SPA rewrite rules and the app uses
+  `BrowserRouter`) builds the demo. `VITE_BASE` sets the deployed subpath (default `/`);
+  `vite.config.js` also excludes the adapter entirely from a plain `npm run build` via a
+  small resolver plugin, so the production bundle never ships the mock code or the demo
+  banner even as an unused chunk.
+- The demo banner (`● demo — mock data, no ARTIQ master`, dismissible) is mounted by the
+  adapter itself as a plain DOM node, not a React component, so it works regardless of
+  which part of the bench UI is rendered underneath.
+
+### Deployment
+
+`.github/workflows/pages.yml` deploys via the modern **artifact-based** GitHub Pages
+mechanism (`actions/upload-pages-artifact` + `actions/deploy-pages`, both first-party
+`actions/`-org actions), not a `gh-pages` branch. Because a repo has exactly one Pages
+site, only one deployment can be live at a time — there are no per-PR preview
+subdirectories. **Repo setting required:** Settings → Pages → Source must be set to
+**"GitHub Actions"** (not "Deploy from a branch") before any of this works.
+
+Deployment is manually fired:
+
+1. Push to `master` → builds and deploys. This is the resting state — master is live
+   unless someone deliberately replaces it.
+2. `workflow_dispatch` (the Actions "Run workflow" button) → deploys whichever branch is
+   selected in the dropdown (defaults to `master`).
+3. Adding the `deploy-pages` label to a PR → deploys that PR's head and posts/updates a
+   single sticky comment on the PR linking the live demo. Fork PRs are refused (no write
+   token for untrusted code) and the refusal is logged in the job summary, not silent.
+
+**Known conflict the repo owner must resolve:** `ci.yml`'s `deploy-docs` job already
+publishes the Sphinx docs to the same GitHub Pages site via the same Actions-artifact
+mechanism, on every push to `master`. `pages.yml`'s push trigger races it — whichever
+workflow finishes last on a given push wins the single Pages slot. This is called out in
+a comment at the top of `pages.yml`; resolving it (move docs elsewhere, merge both
+artifacts under separate subpaths, or drop this workflow's automatic push trigger) is a
+decision for whoever owns the docs deployment, not something this package could resolve
+unilaterally.
+
 ## Reference repos
 
 This projects relies on interfacing with the ARTIQ and ndscan packages, even though they are not direct dependencies. To facilitate development, this project includes reference clones of both packages in `.claude/deps/` (updated by a Claude Code hook on startup). These are read-only and should be consulted for reference only.
