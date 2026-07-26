@@ -639,7 +639,7 @@
   min-width: 78px;
 }
 
-.bench .bw-fixed__val--text .b-input {
+.bench .bw-fixed__val.bw-fixed__val--text .b-input {
   text-align: left;
 }
 

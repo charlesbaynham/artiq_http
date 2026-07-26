@@ -20,12 +20,8 @@ import QueueCard from "./QueueCard";
 import "./live.css";
 
 function LivePane({ scheduleItems = [], cancel, loading = false }) {
-  const {
-    state,
-    setPinnedLiveRid,
-    setGhostRid,
-    setSelectedImageKeys,
-  } = useSession();
+  const { state, setPinnedLiveRid, setGhostRid, setSelectedImageKeys } =
+    useSession();
   const { pinnedLiveRid, ghostRid, selectedImageKeys } = state;
 
   const liveRun = useLiveRun({ pinnedRid: pinnedLiveRid, scheduleItems });

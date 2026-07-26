@@ -432,6 +432,13 @@ function SubmitPane({ explist, onSubmitted }) {
   const [submitRid, setSubmitRid] = useState(null);
   const [submitError, setSubmitError] = useState(null);
 
+  // A submit confirmation belongs to the experiment it was made for.
+  useEffect(() => {
+    setAppliedPreset(null);
+    setSubmitRid(null);
+    setSubmitError(null);
+  }, [experimentKey]);
+
   const submitDisabled =
     !experiment || !valid || !online || loading || Boolean(loadError);
   const disabledReason = !experiment

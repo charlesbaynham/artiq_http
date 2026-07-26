@@ -8,11 +8,21 @@
  * is driven off this component's own SVG rather than the desktop's).
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 
-import { get_explist_arginfo, get_logs, queue_experiment } from "../../api/client";
+import {
+  get_explist_arginfo,
+  get_logs,
+  queue_experiment,
+} from "../../api/client";
 import { copyPlotToClipboard } from "../../plots/copyPlot";
 import useLiveRun, { formatDuration } from "../state/useLiveRun";
 import { buildParamModel } from "../submit/params";
@@ -43,6 +53,11 @@ function RunDetail({ rid, items = [], cancel, onBack }) {
   const [tab, setTab] = useState("Plot");
   const navigate = useNavigate();
   const plotWrapRef = useRef(null);
+  // "Already fired" guards for the two async tabs below — see the comment on
+  // the Parameters effect for why this, rather than a status-in-deps effect,
+  // is needed against `useSchedule`'s 1s polling.
+  const fetchedParamsRef = useRef(null);
+  const fetchedLogsRef = useRef(null);
 
   const scheduleItem = useMemo(
     () => items.find((i) => Number(i.rid) === Number(rid)) || null,
@@ -61,7 +76,9 @@ function RunDetail({ rid, items = [], cancel, onBack }) {
   const axisLabel = axisParam
     ? `${axisParam.fqn}${axisParam.unit ? ` · ${axisParam.unit}` : ""}`
     : null;
-  const totalChannels = liveRun.channels ? Object.keys(liveRun.channels).length : 0;
+  const totalChannels = liveRun.channels
+    ? Object.keys(liveRun.channels).length
+    : 0;
 
   /* ── Cancel / Repeat ───────────────────────────────────────────────── */
 
@@ -90,7 +107,12 @@ function RunDetail({ rid, items = [], cancel, onBack }) {
     setBusy(true);
     setActionMessage(null);
     try {
-      const { file, class_name, repo_rev, arguments: args } = scheduleItem.expid;
+      const {
+        file,
+        class_name,
+        repo_rev,
+        arguments: args,
+      } = scheduleItem.expid;
       const newRid = await queue_experiment(
         file,
         class_name,
@@ -147,22 +169,41 @@ function RunDetail({ rid, items = [], cancel, onBack }) {
         setCopyStatus("Copy failed");
       }
     }
-  }, [liveRun.prefix, liveRun.plot, primaryChannel, rid, className, xValues.length]);
+  }, [
+    liveRun.prefix,
+    liveRun.plot,
+    primaryChannel,
+    rid,
+    className,
+    xValues.length,
+  ]);
 
   /* ── Parameters tab ────────────────────────────────────────────────── */
 
   const [paramInfo, setParamInfo] = useState({ status: "idle", params: [] });
+  const expFile = scheduleItem?.expid?.file;
+  const expClassName = scheduleItem?.expid?.class_name;
 
   useEffect(() => {
-    if (tab !== "Parameters" || !scheduleItem?.expid?.file || paramInfo.status !== "idle") {
+    if (tab !== "Parameters" || !expFile) return undefined;
+    // Deliberately *not* keyed on `paramInfo.status`: `useSchedule` hands us
+    // a new `items` array (and so a new `scheduleItem`/`expFile` identity)
+    // every poll, so a status-in-deps effect would see its own `"loading"`
+    // update as a fresh trigger, cancel the in-flight fetch on the resulting
+    // re-run, and never actually land a result. A ref-backed "already fired
+    // for this run" guard sidesteps that self-cancelling loop.
+    if (fetchedParamsRef.current === expFile + "|" + expClassName)
       return undefined;
-    }
+    fetchedParamsRef.current = expFile + "|" + expClassName;
     let cancelled = false;
     setParamInfo({ status: "loading", params: [] });
-    get_explist_arginfo(scheduleItem.expid.file, scheduleItem.expid.class_name)
+    get_explist_arginfo(expFile, expClassName)
       .then((res) => {
         if (cancelled) return;
-        setParamInfo({ status: "ready", params: buildParamModel(res?.arginfo) });
+        setParamInfo({
+          status: "ready",
+          params: buildParamModel(res?.arginfo),
+        });
       })
       .catch(() => {
         if (!cancelled) setParamInfo({ status: "error", params: [] });
@@ -170,7 +211,8 @@ function RunDetail({ rid, items = [], cancel, onBack }) {
     return () => {
       cancelled = true;
     };
-  }, [tab, scheduleItem, paramInfo.status]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, expFile, expClassName]);
 
   const descByFqn = useMemo(() => {
     const map = new Map();
@@ -201,7 +243,11 @@ function RunDetail({ rid, items = [], cancel, onBack }) {
   const [logsState, setLogsState] = useState({ status: "idle", lines: [] });
 
   useEffect(() => {
-    if (tab !== "Logs" || logsState.status !== "idle") return undefined;
+    if (tab !== "Logs") return undefined;
+    // See the Parameters effect above for why this guard is a ref rather
+    // than `logsState.status` in the dependency array.
+    if (fetchedLogsRef.current === rid) return undefined;
+    fetchedLogsRef.current = rid;
     let cancelled = false;
     setLogsState({ status: "loading", lines: [] });
     get_logs()
@@ -223,12 +269,17 @@ function RunDetail({ rid, items = [], cancel, onBack }) {
     return () => {
       cancelled = true;
     };
-  }, [tab, rid, logsState.status]);
+  }, [tab, rid]);
 
   return (
     <div className="bm-detail">
       <div className="bm-topbar">
-        <button type="button" className="bm-back" onClick={onBack} aria-label="Back">
+        <button
+          type="button"
+          className="bm-back"
+          onClick={onBack}
+          aria-label="Back"
+        >
           ‹
         </button>
         <Mono className="bm-detail__title b-ellipsis">
@@ -264,7 +315,9 @@ function RunDetail({ rid, items = [], cancel, onBack }) {
                 newestMarkerRadius={4}
               />
               {axisLabel && (
-                <div className="bm-plot-axislabel b-mono b-muted">{axisLabel}</div>
+                <div className="bm-plot-axislabel b-mono b-muted">
+                  {axisLabel}
+                </div>
               )}
             </div>
             <div className="bm-pill-row">
@@ -285,10 +338,14 @@ function RunDetail({ rid, items = [], cancel, onBack }) {
                 <div key={fqn} className="bm-param-row">
                   <div className="bm-param-row__head">
                     <Mono className="bm-param-row__fqn">{fqn}</Mono>
-                    <Mono className="bm-param-row__value">{JSON.stringify(value)}</Mono>
+                    <Mono className="bm-param-row__value">
+                      {JSON.stringify(value)}
+                    </Mono>
                   </div>
                   {descByFqn.get(fqn) && (
-                    <div className="bm-param-row__desc">{descByFqn.get(fqn)}</div>
+                    <div className="bm-param-row__desc">
+                      {descByFqn.get(fqn)}
+                    </div>
                   )}
                 </div>
               ))
@@ -298,26 +355,34 @@ function RunDetail({ rid, items = [], cancel, onBack }) {
                   <div key={axis.fqn} className="bm-param-row">
                     <div className="bm-param-row__head">
                       <Mono className="bm-param-row__fqn">{axis.fqn}</Mono>
-                      <Mono className="bm-param-row__value">{axisSummary(axis)}</Mono>
-                    </div>
-                    {descByFqn.get(axis.fqn) && (
-                      <div className="bm-param-row__desc">{descByFqn.get(axis.fqn)}</div>
-                    )}
-                  </div>
-                ))}
-                {Object.entries(parametersView.overrides).map(([fqn, value]) => (
-                  <div key={fqn} className="bm-param-row">
-                    <div className="bm-param-row__head">
-                      <Mono className="bm-param-row__fqn">{fqn}</Mono>
                       <Mono className="bm-param-row__value">
-                        {overrideValueText(value)}
+                        {axisSummary(axis)}
                       </Mono>
                     </div>
-                    {descByFqn.get(fqn) && (
-                      <div className="bm-param-row__desc">{descByFqn.get(fqn)}</div>
+                    {descByFqn.get(axis.fqn) && (
+                      <div className="bm-param-row__desc">
+                        {descByFqn.get(axis.fqn)}
+                      </div>
                     )}
                   </div>
                 ))}
+                {Object.entries(parametersView.overrides).map(
+                  ([fqn, value]) => (
+                    <div key={fqn} className="bm-param-row">
+                      <div className="bm-param-row__head">
+                        <Mono className="bm-param-row__fqn">{fqn}</Mono>
+                        <Mono className="bm-param-row__value">
+                          {overrideValueText(value)}
+                        </Mono>
+                      </div>
+                      {descByFqn.get(fqn) && (
+                        <div className="bm-param-row__desc">
+                          {descByFqn.get(fqn)}
+                        </div>
+                      )}
+                    </div>
+                  ),
+                )}
                 {!parametersView.axes.length &&
                   !Object.keys(parametersView.overrides).length && (
                     <div className="bm-hint b-muted">

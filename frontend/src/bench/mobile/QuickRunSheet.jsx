@@ -21,7 +21,13 @@
  * still submitted exactly as saved in the preset.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import PropTypes from "prop-types";
 
 import {
@@ -30,7 +36,11 @@ import {
   submit_scan,
   queue_experiment,
 } from "../../api/client";
-import { isNDScanExperiment, parseNdscanParams, buildFqnToPathMap } from "../../api/ndscan";
+import {
+  isNDScanExperiment,
+  parseNdscanParams,
+  buildFqnToPathMap,
+} from "../../api/ndscan";
 import {
   buildParamModel,
   buildScanRequest,
@@ -85,9 +95,11 @@ function presetSubtitle(preset) {
 }
 
 function isDefaultPillName(name) {
-  return String(name || "")
-    .trim()
-    .toLowerCase() === "default";
+  return (
+    String(name || "")
+      .trim()
+      .toLowerCase() === "default"
+  );
 }
 
 /** One tweak-drawer row: leaf name + description over a value input. Numeric
@@ -102,14 +114,18 @@ function TweakRow({ entry, value, onChange }) {
     else onChange(raw);
   };
 
-  const leaf = String(entry.fqn || "").split(".").pop();
+  const leaf = String(entry.fqn || "")
+    .split(".")
+    .pop();
 
   if (entry.type === "bool") {
     return (
       <label className="bm-tweak-row">
         <span className="bm-tweak-row__info">
           <Mono className="bm-tweak-row__name">{leaf}</Mono>
-          <span className="bm-tweak-row__desc b-ellipsis">{entry.description}</span>
+          <span className="bm-tweak-row__desc b-ellipsis">
+            {entry.description}
+          </span>
         </span>
         <input
           type="checkbox"
@@ -124,7 +140,9 @@ function TweakRow({ entry, value, onChange }) {
     <div className="bm-tweak-row">
       <span className="bm-tweak-row__info">
         <Mono className="bm-tweak-row__name">{leaf}</Mono>
-        <span className="bm-tweak-row__desc b-ellipsis">{entry.description}</span>
+        <span className="bm-tweak-row__desc b-ellipsis">
+          {entry.description}
+        </span>
       </span>
       <input
         className="bm-tweak-row__input"
@@ -331,7 +349,9 @@ function QuickRunSheet({ explist, onClose, onSubmitted }) {
     .filter(Boolean)
     .join(" ");
   const sheetStyle =
-    isDragging && dragY > 0 ? { transform: `translateY(${dragY}px)` } : undefined;
+    isDragging && dragY > 0
+      ? { transform: `translateY(${dragY}px)` }
+      : undefined;
 
   return (
     <>
@@ -376,7 +396,9 @@ function QuickRunSheet({ explist, onClose, onSubmitted }) {
               >
                 <span className="bm-fav-row__info">
                   <Mono className="bm-fav-row__name">{preset.class_name}</Mono>
-                  <span className="bm-fav-row__sub">{presetSubtitle(preset)}</span>
+                  <span className="bm-fav-row__sub">
+                    {presetSubtitle(preset)}
+                  </span>
                 </span>
                 <Pill
                   active={!defaultPill}
@@ -401,7 +423,10 @@ function QuickRunSheet({ explist, onClose, onSubmitted }) {
             >
               <Caption>tweak before running</Caption>
               <div className="b-spacer" />
-              <IconChevron direction={drawerOpen ? "down" : "right"} size={11} />
+              <IconChevron
+                direction={drawerOpen ? "down" : "right"}
+                size={11}
+              />
             </button>
             {drawerOpen && (
               <div className="bm-tweak-drawer__body">
@@ -424,7 +449,9 @@ function QuickRunSheet({ explist, onClose, onSubmitted }) {
           </div>
         )}
 
-        {submitError && <div className="bm-hint bm-hint--error">{submitError}</div>}
+        {submitError && (
+          <div className="bm-hint bm-hint--error">{submitError}</div>
+        )}
 
         <BenchButton
           variant="primary"

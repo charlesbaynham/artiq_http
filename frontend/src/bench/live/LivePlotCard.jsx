@@ -292,7 +292,7 @@ function LivePlotCard({
           </div>
         )}
 
-        {readout && (
+        {hasPlot && readout && (
           <div className="bl-readout">
             <Mono className="bl-readout__item">
               <span className="b-muted">x</span> {formatNum(readout.x)}

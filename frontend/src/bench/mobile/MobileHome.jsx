@@ -55,7 +55,12 @@ function useCameraNames() {
 function CameraTile({ name }) {
   const { data } = useSSEDataset(name, { enabled: !!name });
   if (!name) {
-    return <div className="bm-camera-tile bm-camera-tile--empty" aria-hidden="true" />;
+    return (
+      <div
+        className="bm-camera-tile bm-camera-tile--empty"
+        aria-hidden="true"
+      />
+    );
   }
   const pixels = data?.[name]?.[1] ?? null;
   return (
@@ -101,7 +106,9 @@ function MobileHome({
   const progress = liveRun?.progress;
   const done = progress?.done ?? 0;
   const total = progress?.total;
-  const doneLabel = Number.isFinite(total) ? `${done} / ${total} pts` : `${done} pts`;
+  const doneLabel = Number.isFinite(total)
+    ? `${done} / ${total} pts`
+    : `${done} pts`;
   const etaLabel =
     progress?.remainingSeconds != null
       ? `~${formatDuration(progress.remainingSeconds, { spaced: true })} left`
@@ -111,7 +118,8 @@ function MobileHome({
     <>
       <div className="bm-topbar">
         <span className="bm-wordmark">
-          ARTIQ<span className="bm-wordmark__dot" aria-hidden="true" />
+          ARTIQ
+          <span className="bm-wordmark__dot" aria-hidden="true" />
         </span>
         <div className="b-spacer" />
         <Pill status={isOnline} danger={!isOnline}>
@@ -129,9 +137,13 @@ function MobileHome({
             <div className="bm-active-card__head">
               <Pill status>● {activeItem.status}</Pill>
               <div className="b-spacer" />
-              <Mono className="bm-active-card__rid b-muted">RID {activeRid}</Mono>
+              <Mono className="bm-active-card__rid b-muted">
+                RID {activeRid}
+              </Mono>
             </div>
-            <Mono className="bm-active-card__name">{scheduleName(activeItem)}</Mono>
+            <Mono className="bm-active-card__name">
+              {scheduleName(activeItem)}
+            </Mono>
             {progress?.fraction != null && (
               <div className="bm-progress">
                 <div
@@ -157,7 +169,11 @@ function MobileHome({
 
         <div className="bm-plot-card">
           <div className="bm-plot-well">
-            <Sparkline xValues={xValues} yValues={yValues} viewBoxHeight={130} />
+            <Sparkline
+              xValues={xValues}
+              yValues={yValues}
+              viewBoxHeight={130}
+            />
           </div>
         </div>
 
