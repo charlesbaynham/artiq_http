@@ -75,28 +75,41 @@ function standardError(values) {
  * Returns null when there isn't a 1D scan with at least one point yet — the
  * card omits the row entirely rather than printing placeholders.
  */
+// ndscan publishes raw SI values while `unit` is a display unit (us, MHz);
+// `spec.scale` converts between them. The readout prints the unit, so it has to
+// divide too — otherwise a microsecond axis reads "0.000 us". Matches what the
+// embedded plot does to its own axis.
+function displayScale(spec) {
+  const s = Number(spec?.scale);
+  return Number.isFinite(s) && s !== 0 ? s : 1;
+}
+
 function deriveReadout(plot) {
   if (!plot || plot.dims !== "1D") return null;
   const xs = plot.axisValues?.[0];
   if (!xs || !xs.length) return null;
 
   const lastIdx = xs.length - 1;
-  const x = xs[lastIdx];
-  const unit = plot.axes?.[0]?.param?.unit || "";
+  const axisParam = plot.axes?.[0]?.param;
+  const xScale = displayScale(axisParam?.spec);
+  const xRaw = xs[lastIdx];
+  const x = xRaw / xScale;
+  const unit = axisParam?.unit || "";
 
   const key = primaryChannelKey(plot);
   if (key == null)
     return { x, unit, channelKey: null, value: null, sigma: null };
 
+  const cScale = displayScale(plot.channels?.[key]);
   const values = plot.channelData?.[key]?.values || [];
   const value = values[lastIdx];
 
-  const eps = 1e-9 * Math.max(1, Math.abs(x));
+  const eps = 1e-9 * Math.max(1, Math.abs(xRaw));
   const atX = [];
   for (let i = 0; i < xs.length; i++) {
-    if (Math.abs(xs[i] - x) <= eps) {
+    if (Math.abs(xs[i] - xRaw) <= eps) {
       const v = values[i];
-      if (Number.isFinite(v)) atX.push(v);
+      if (Number.isFinite(v)) atX.push(v / cScale);
     }
   }
 
@@ -104,7 +117,7 @@ function deriveReadout(plot) {
     x,
     unit,
     channelKey: key,
-    value: Number.isFinite(value) ? value : null,
+    value: Number.isFinite(value) ? value / cScale : null,
     sigma: standardError(atX),
   };
 }

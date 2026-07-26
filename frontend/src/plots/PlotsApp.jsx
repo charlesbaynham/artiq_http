@@ -48,6 +48,25 @@ function axisLabel(axis) {
   return unit ? `${base} / ${unit}` : base;
 }
 
+// ndscan publishes raw SI values (seconds, Hz) while a parameter's `unit` is a
+// *display* unit (us, MHz); `spec.scale` is the factor between them. The labels
+// above already say "/ us", so the numbers must be divided to match — otherwise
+// a microsecond axis plots as 0.000 all the way across. Display-only: the wire
+// values and everything submitted stay raw.
+function specScale(spec) {
+  const s = Number(spec?.scale);
+  return Number.isFinite(s) && s !== 0 ? s : 1;
+}
+
+function axisScale(axis) {
+  return specScale(axis?.param?.spec);
+}
+
+function scaleValues(values, scale) {
+  if (scale === 1 || !Array.isArray(values)) return values;
+  return values.map((v) => (typeof v === "number" ? v / scale : v));
+}
+
 function channelUnit(spec) {
   if (!spec || typeof spec !== "object") return "";
   const unit = spec.unit;
@@ -307,7 +326,9 @@ function PlotsApp({
     for (const k of keys) {
       const v = rawActiveData?.[`${activePrefix}.point.${k}`]?.[1];
       if (v !== undefined) {
-        snap[k] = v;
+        // Store in display units so the 0D series matches its channel label.
+        const scale = specScale(active.channels[k]);
+        snap[k] = typeof v === "number" ? v / scale : v;
         hasAny = true;
       }
     }
@@ -333,6 +354,20 @@ function PlotsApp({
   }, [history0D, active]);
 
   // ── Build channel descriptors with resolved colors ──────────────────────
+  // Display scales for the active run, kept in a ref because the ghost-loading
+  // effect below deliberately re-keys off signatures rather than listing every
+  // dep, and would otherwise close over a stale `active`.
+  const scalesRef = useRef({ axis: 1, channels: {} });
+  scalesRef.current = {
+    axis: axisScale(active?.axes?.[0]),
+    channels: Object.fromEntries(
+      Object.entries(active?.channels || {}).map(([k, spec]) => [
+        k,
+        specScale(spec),
+      ]),
+    ),
+  };
+
   const channelDescriptors = useMemo(() => {
     if (!active) return [];
     return channelKeys.map((key, i) => {
@@ -341,13 +376,15 @@ function PlotsApp({
       const colorVar = CHANNEL_COLOR_VARS[i % CHANNEL_COLOR_VARS.length];
       const isMetric = dims === "2D" && key === metric2D;
       const on = dims === "2D" ? isMetric : !!visibility[key];
+      const scale = specScale(spec);
       return {
         key,
         on,
         color: `var(${colorVar})`,
         unit: channelUnit(spec),
-        values: cdata.values || [],
-        point: cdata.point,
+        values: scaleValues(cdata.values || [], scale),
+        point:
+          typeof cdata.point === "number" ? cdata.point / scale : cdata.point,
       };
     });
   }, [active, channelKeys, visibility, dims, metric2D]);
@@ -506,10 +543,19 @@ function PlotsApp({
         setGhostData((prev) => {
           const next = { ...prev };
           for (const p of needed) {
-            const xs = vals[`${p}.points.axis_0`]?.[1] || [];
+            // Ghosts overlay the active run's plot, so they must be scaled the
+            // same way or the comparison trace lands in the wrong place.
+            const scales = scalesRef.current;
+            const xs = scaleValues(
+              vals[`${p}.points.axis_0`]?.[1] || [],
+              scales.axis,
+            );
             const channels = {};
             for (const k of channelKeys) {
-              channels[k] = vals[`${p}.points.channel_${k}`]?.[1] || [];
+              channels[k] = scaleValues(
+                vals[`${p}.points.channel_${k}`]?.[1] || [],
+                scales.channels[k] ?? 1,
+              );
             }
             next[p] = { xs, channels, rid: extractRid(p) };
           }
@@ -1075,8 +1121,8 @@ function PlotBody({
     return <Plot0D channels={channels} />;
   }
   if (dims === "1D") {
-    const xs = active.axisValues[0] || [];
     const axis = active.axes[0];
+    const xs = scaleValues(active.axisValues[0] || [], axisScale(axis));
     return (
       <StackedPlots1D
         groups={renderGroups}
@@ -1088,10 +1134,19 @@ function PlotBody({
     );
   }
   if (dims === "2D") {
-    const xs = active.axisValues[0] || [];
-    const ys = active.axisValues[1] || [];
+    const xs = scaleValues(
+      active.axisValues[0] || [],
+      axisScale(active.axes[0]),
+    );
+    const ys = scaleValues(
+      active.axisValues[1] || [],
+      axisScale(active.axes[1]),
+    );
     const metric = metric2D || Object.keys(active.channels)[0];
-    const values = active.channelData[metric]?.values || [];
+    const values = scaleValues(
+      active.channelData[metric]?.values || [],
+      specScale(active.channels[metric]),
+    );
     return (
       <Plot2D
         xs={xs}
