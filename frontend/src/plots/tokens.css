@@ -640,6 +640,50 @@
   aspect-ratio: 1;
 }
 
+/* ── Embedding (PlotsApp forcedPrefix/showTopBar/showRails/showImages/compact
+   props) — additive only; none of this changes /plots, which never carries
+   these classes. ───────────────────────────────────────────────────────── */
+
+/* showRails=false: collapse the 3-column work grid to one column. */
+.plots-app.is-norails .p-work {
+  grid-template-columns: 1fr;
+}
+
+/* compact=true: fill the host's pane instead of the fixed-size standalone
+   panel (720px tall, capped at viewport height, with its own border/frame). */
+.plots-app.is-compact {
+  height: 100%;
+  max-height: none;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+}
+/* Without images/rails competing for space, the plot panel is typically the
+   last (only) child of .p-center, which normally gets a 320px min-height and
+   a manual vertical resize handle — appropriate for the standalone page, not
+   for a small embedded pane where the panel should just fill what's left. */
+.plots-app.is-compact .p-center > .p-panel:last-child {
+  min-height: 0;
+  resize: none;
+}
+.plots-app.is-compact .p-plot-panel {
+  min-height: 0;
+}
+
+/* The standalone mobile layout below sets .p-plot-panel's height with
+   !important (a definite height is required for its ResizeObserver-driven
+   SVG to size correctly in a content-sized flex column). That rule targets
+   viewport width, not container width, so it would also fire for a narrow
+   compact embed placed in a narrow-viewport host. Override it there so the
+   embedded panel fills its pane instead of pinning to 56vh/320px; higher
+   selector specificity wins outright since both sides carry !important. */
+@media (max-width: 900px) {
+  .plots-app.is-compact .p-plot-panel {
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+}
+
 /* fullscreen route override */
 .plots-fullscreen-wrap .plots-app {
   height: 100vh;

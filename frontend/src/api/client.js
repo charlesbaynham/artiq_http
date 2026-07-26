@@ -18,13 +18,63 @@ export function get_sse_url(prefix) {
   return `${baseURL}/api/datasets/stream/${encodeURIComponent(prefix)}`;
 }
 
+/**
+ * Turn FastAPI's error body into a single human-readable string.
+ *
+ * `detail` is a string for HTTPException, but a list of
+ * `{loc, msg, type}` objects for a 422 validation error — so it has to be
+ * flattened rather than interpolated.
+ */
+function formatErrorDetail(detail) {
+  if (detail == null) return null;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    const parts = detail
+      .map((d) => {
+        if (typeof d === "string") return d;
+        const loc = Array.isArray(d?.loc) ? d.loc.join(".") : null;
+        const msg = d?.msg || d?.message;
+        if (msg) return loc ? `${loc}: ${msg}` : msg;
+        return JSON.stringify(d);
+      })
+      .filter(Boolean);
+    return parts.length ? parts.join("; ") : null;
+  }
+  if (typeof detail === "object") {
+    return detail.msg || detail.message || JSON.stringify(detail);
+  }
+  return String(detail);
+}
+
 export async function api_fetch(endpoint, options = {}) {
   const { params, ...fetchOptions } = options;
   const url = make_query_url(endpoint, params);
 
   const response = await fetch(url, fetchOptions);
   if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    // Surface the master's own message: FastAPI puts it in `detail`, and
+    // discarding it (as this used to) makes every failure unactionable.
+    let body = null;
+    try {
+      body = await response.json();
+    } catch {
+      body = null;
+    }
+    const message =
+      formatErrorDetail(body?.detail) ||
+      (typeof body?.message === "string" ? body.message : null) ||
+      `API error: ${response.status} ${response.statusText}`;
+    const err = new Error(message);
+    err.status = response.status;
+    err.body = body;
+    throw err;
+  }
+  // 204 / empty bodies (e.g. DELETE) have nothing to parse.
+  if (
+    response.status === 204 ||
+    response.headers.get("content-length") === "0"
+  ) {
+    return null;
   }
   return response.json();
 }
@@ -65,8 +115,73 @@ export function queue_experiment(
   });
 }
 
+/**
+ * Alias for `queue_experiment` under the name IMPL-SPEC §5 uses. Same
+ * signature; both names are exported so legacy pages keep working.
+ */
+export const submit_experiment = queue_experiment;
+
+/**
+ * Submit an ndscan scan via `POST /api/scan`.
+ *
+ * The server resolves each axis's sub-fragment `path` from the experiment's
+ * `instances` map, so sub-fragment scans work without the frontend guessing.
+ *
+ * @param {object} body - a `ScanSubmitRequest`:
+ *   `{file, class_name, axes: [{fqn, type, range, path?}], fixed_params,
+ *     num_repeats, repo_rev, pipeline, priority, flush, due_date}`.
+ *   Axis order matters: axis 1 (outer) first.
+ * @param {{wait_for_completion?: boolean}} [opts] - when true, posts to
+ *   `api/scan/submit-and-wait` and resolves once the run has finished.
+ */
+export function submit_scan(body, { wait_for_completion = false } = {}) {
+  const endpoint = wait_for_completion
+    ? "api/scan/submit-and-wait"
+    : "api/scan";
+  return api_fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
 export function get_schedule() {
   return api_fetch("api/schedule");
+}
+
+/* ── Presets (lab-wide, stored server-side) ───────────────────────────────── */
+
+/**
+ * @param {{file?: string, class_name?: string, favourites_only?: boolean}} [params]
+ */
+export function get_presets(params = {}) {
+  const clean = {};
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== "") clean[k] = v;
+  }
+  return api_fetch("api/presets", { params: clean });
+}
+
+export function create_preset(body) {
+  return api_fetch("api/presets", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function update_preset(id, body) {
+  return api_fetch(`api/presets/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function delete_preset(id) {
+  return api_fetch(`api/presets/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
 }
 
 export function get_explist() {
