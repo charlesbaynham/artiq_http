@@ -1,0 +1,341 @@
+/*
+ * Live pane — column 3 (IMPL-SPEC §14). Owned by the live agent; imported
+ * directly by `LivePane.jsx`. Class prefix `.bl-`. Relies on the shared
+ * token layer and `.b-*` classes from `bench.css` — nothing here redefines
+ * those.
+ */
+
+.bl-pane {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+/* ── Live plot card ───────────────────────────────────────────────────────── */
+
+.bl-live-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.bl-live-card:fullscreen,
+.bl-live-card:-webkit-full-screen {
+  border-radius: 0;
+  background: var(--b-bg);
+  padding: 0;
+}
+
+.bl-live-head {
+  flex: 0 0 auto;
+}
+
+.bl-live-title {
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.bl-icon-btn {
+  background: none;
+  border: none;
+  padding: 2px;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--b-fg-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--b-t-fast);
+}
+
+.bl-icon-btn:hover:not(:disabled) {
+  color: var(--b-fg);
+}
+
+.bl-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.bl-live-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+}
+
+.bl-plot-well {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* The embedded PlotsApp (compact) fills this well entirely. */
+.bl-plot-well .plots-app {
+  width: 100%;
+  height: 100%;
+}
+
+.bl-readout {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 2px;
+  min-width: 0;
+}
+
+.bl-readout__item {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.bl-empty {
+  flex: 1 1 auto;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  padding: 24px;
+  color: var(--b-fg-muted);
+}
+
+.bl-empty__title {
+  font-size: 12.5px;
+  color: var(--b-fg-muted);
+}
+
+.bl-empty__hint {
+  font-size: 11px;
+  color: var(--b-fg-faint);
+  max-width: 320px;
+}
+
+.bl-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--b-accent);
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ── Images card ──────────────────────────────────────────────────────────── */
+
+.bl-images-card {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.bl-images-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bl-images-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bl-img-tile {
+  flex: 1 1 88px;
+  min-width: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bl-img-tile__frame {
+  position: relative;
+  height: 88px;
+  padding: 0;
+  border-radius: var(--b-r-ctl);
+  overflow: hidden;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+}
+
+.bl-img-tile__frame canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.bl-img-tile__frame .p-img-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--b-font-mono);
+  font-size: 10px;
+  color: var(--b-fg-faint);
+}
+
+.bl-img-tile__remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(11, 13, 14, 0.75);
+  color: var(--b-fg-dim);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color var(--b-t-fast);
+}
+
+.bl-img-tile__remove:hover {
+  color: var(--b-danger);
+}
+
+.bl-img-tile__name {
+  font-size: 10.5px;
+  color: var(--b-fg-faint);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bl-images-hidden {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ── Lightbox ─────────────────────────────────────────────────────────────── */
+
+.bl-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.bl-lightbox__body {
+  background: var(--b-surface);
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-card);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  max-width: min(90vw, 640px);
+  max-height: 90vh;
+}
+
+.bl-lightbox__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bl-lightbox__frame {
+  max-width: 100%;
+  max-height: 70vh;
+  width: min(60vh, 480px);
+  border-radius: var(--b-r-ctl);
+  overflow: hidden;
+  background: var(--b-well);
+}
+
+/* ── Queue card ───────────────────────────────────────────────────────────── */
+
+.bl-queue-card {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.bl-queue-head {
+  padding: 7px 10px;
+}
+
+.bl-queue-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--b-border);
+  cursor: pointer;
+  min-width: 0;
+  transition: background var(--b-t-fast);
+}
+
+.bl-queue-row:last-child {
+  border-bottom: none;
+}
+
+.bl-queue-row:hover {
+  background: var(--b-surface-raised);
+}
+
+.bl-queue-row.is-pinned {
+  background: var(--b-accent-soft);
+}
+
+.bl-queue-row__name {
+  font-size: 11.5px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.bl-queue-row__cancel {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--b-t-fast);
+}
+
+.bl-queue-row__cancel:hover {
+  color: var(--b-danger);
+}
+
+.bl-queue-empty {
+  padding: 10px;
+  font-size: 11px;
+  text-align: center;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 700px) {
+  .bl-img-tile__remove {
+    width: 22px;
+    height: 22px;
+  }
+}

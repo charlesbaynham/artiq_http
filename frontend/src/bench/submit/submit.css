@@ -1,0 +1,869 @@
+/*
+ * Submit pane (2a column 2) — owned by the submit work package.
+ *
+ * Only what is specific to this surface lives here; tokens and the shared
+ * `.b-*` classes come from `bench/bench.css`, which this file never edits.
+ * Every measurement below is taken from the hi-fi reference markup.
+ */
+
+/* ── Pane shell ───────────────────────────────────────────────────────────── */
+
+.bench.bw-submit,
+.bench .bw-submit {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  background: var(--b-bg);
+}
+
+/* ── Header bar ───────────────────────────────────────────────────────────── */
+
+.bench .bw-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--b-border);
+  background: var(--b-surface);
+  min-width: 0;
+}
+
+.bench .bw-head__name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.bench .bw-head__file {
+  font-size: 10.5px;
+  color: var(--b-fg-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* The `ndscan` tag: accent wash + accent text, no border. */
+.bench .bw-tag-nd.b-pill {
+  background: var(--b-accent-wash);
+  border-color: transparent;
+  color: var(--b-accent);
+}
+
+.bench .bw-head__btn {
+  font-family: var(--b-font-mono);
+  font-size: 11px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--b-r-ctl);
+  background: var(--b-well);
+  color: var(--b-fg);
+  border: 1px solid var(--b-border);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: border-color var(--b-t-fast);
+}
+
+.bench .bw-head__btn:hover {
+  border-color: var(--b-border-strong);
+}
+
+.bench .bw-head__ghost {
+  font-family: var(--b-font-ui);
+  font-size: 11px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--b-r-ctl);
+  background: transparent;
+  color: var(--b-fg-dim);
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition:
+    background var(--b-t-fast),
+    color var(--b-t-fast);
+}
+
+.bench .bw-head__ghost:hover:not(:disabled) {
+  background: var(--b-well);
+}
+
+.bench .bw-head__ghost:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ── Popovers (revision picker, presets) ──────────────────────────────────── */
+
+.bench .bw-pop {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.bench .bw-pop__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  min-width: 208px;
+  max-width: 300px;
+  background: var(--b-surface);
+  border: 1px solid var(--b-border-strong);
+  border-radius: var(--b-r-card);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bench .bw-pop__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bench .bw-pop__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  font-family: var(--b-font-mono);
+  font-size: 11.5px;
+  color: var(--b-fg-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--b-r-ctl);
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.bench .bw-pop__item:hover {
+  background: var(--b-well);
+}
+
+.bench .bw-pop__item.is-active {
+  color: var(--b-accent);
+}
+
+.bench .bw-pop__x {
+  font-family: var(--b-font-mono);
+  font-size: 11px;
+  color: var(--b-fg-faint);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+
+.bench .bw-pop__x:hover {
+  color: var(--b-danger);
+}
+
+.bench .bw-pop__sep {
+  height: 1px;
+  background: var(--b-border);
+  margin: 2px 0;
+}
+
+/* ── Filter bar ───────────────────────────────────────────────────────────── */
+
+.bench .bw-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--b-border);
+  min-width: 0;
+}
+
+.bench .bw-filter .b-search {
+  flex: 1 1 auto;
+  cursor: text;
+}
+
+/* The query sizes to its content so the hint sits directly after it, as drawn. */
+.bench .bw-filter .b-search input {
+  flex: 0 1 auto;
+  min-width: 2ch;
+}
+
+.bench .bw-filter__hint {
+  font-family: var(--b-font-ui);
+  font-size: 11px;
+  color: var(--b-fg-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 1 auto;
+  pointer-events: none;
+}
+
+.bench .bw-filter .b-pill {
+  padding: 3px 8px;
+}
+
+.bench .bw-filter__count {
+  font-size: 10.5px;
+  color: var(--b-fg-faint);
+  flex-shrink: 0;
+}
+
+/* ── Two-pane body ────────────────────────────────────────────────────────── */
+
+.bench .bw-body {
+  display: flex;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* ── Fragment tree ────────────────────────────────────────────────────────── */
+
+.bench .bw-tree {
+  width: 262px;
+  flex: 0 0 262px;
+  border-right: 1px solid var(--b-border);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bench .bw-tree__count {
+  font-size: 11px;
+  color: var(--b-fg-faint);
+}
+
+.bench .bw-tree__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 4px 6px;
+}
+
+.bench .bw-tree__canvas {
+  position: relative;
+  width: 100%;
+}
+
+.bench .bw-tree__row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  border-radius: var(--b-r-ctl);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font-family: inherit;
+  overflow: hidden;
+}
+
+.bench .bw-tree__row:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.bench .bw-branch {
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+}
+
+.bench .bw-branch__caret {
+  color: var(--b-fg-muted);
+  font-size: 10px;
+  line-height: 1;
+  width: 8px;
+  flex-shrink: 0;
+}
+
+.bench .bw-branch__name {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bench .bw-branch__n {
+  font-size: 10px;
+  color: var(--b-fg-faint);
+  flex-shrink: 0;
+}
+
+.bench .bw-leaf {
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 6px;
+}
+
+.bench .bw-leaf.is-pinned {
+  background: var(--b-accent-soft);
+}
+
+.bench .bw-leaf.is-pinned:hover {
+  background: var(--b-accent-wash);
+}
+
+.bench .bw-leaf__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.bench .bw-leaf__name {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--b-fg-dim);
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bench .bw-leaf.is-pinned .bw-leaf__name {
+  color: var(--b-fg);
+  font-weight: 500;
+}
+
+.bench .bw-leaf__desc {
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: var(--b-fg-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bench .bw-leaf.is-pinned .bw-leaf__desc {
+  color: var(--b-fg-muted);
+}
+
+/* Fixed-width affordance column so rows never jitter as pins change. */
+.bench .bw-leaf__aff {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: 46px;
+}
+
+.bench .bw-glyph {
+  font-family: var(--b-font-mono);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--b-fg-faint);
+  background: transparent;
+  border: none;
+  padding: 2px 3px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: color var(--b-t-fast);
+}
+
+.bench .bw-glyph:hover:not(:disabled) {
+  color: var(--b-fg);
+}
+
+.bench .bw-glyph.is-dim,
+.bench .bw-glyph:disabled {
+  color: var(--b-fg-faint);
+  opacity: 0.5;
+  cursor: default;
+}
+
+.bench .bw-glyph.is-muted {
+  color: var(--b-fg-muted);
+}
+
+.bench .bw-tree__foot {
+  padding: 8px 10px;
+  border-top: 1px solid var(--b-border);
+  font-size: 10.5px;
+  color: var(--b-fg-muted);
+}
+
+.bench .bw-tree__empty {
+  padding: 12px 8px;
+  font-size: 11px;
+  color: var(--b-fg-faint);
+}
+
+/* ── Working set ──────────────────────────────────────────────────────────── */
+
+.bench .bw-ws {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.bench .bw-ws__count {
+  font-size: 11px;
+  color: var(--b-fg-faint);
+}
+
+.bench .bw-ws__reset {
+  font-family: var(--b-font-ui);
+  font-size: 11px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--b-r-ctl);
+  background: transparent;
+  color: var(--b-fg-muted);
+  border: 1px solid var(--b-border);
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.bench .bw-ws__reset:hover:not(:disabled) {
+  border-color: var(--b-border-strong);
+  color: var(--b-fg);
+}
+
+.bench .bw-ws__reset:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.bench .bw-ws__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bench .bw-ws__empty {
+  font-size: 11px;
+  color: var(--b-fg-faint);
+  padding: 6px 2px;
+}
+
+.bench .bw-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--b-border);
+  background: var(--b-accent-soft);
+  font-size: 10.5px;
+  color: var(--b-fg-dim);
+}
+
+/* ── Cards ────────────────────────────────────────────────────────────────── */
+
+.bench .bw-axis {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.bench .bw-fixed {
+  padding: 7px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.bench .bw-card__title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bench .bw-fqn-prefix {
+  font-size: 10px;
+  color: var(--b-fg-faint);
+}
+
+.bench .bw-fqn-leaf {
+  font-size: 12.5px;
+  font-weight: 500;
+  margin-left: -6px;
+}
+
+.bench .bw-card__desc {
+  font-size: 11px;
+  color: var(--b-fg-muted);
+  margin-top: -4px;
+}
+
+.bench .bw-fixed .bw-card__desc {
+  margin-top: 0;
+}
+
+.bench .bw-card__err {
+  font-size: 10.5px;
+  color: var(--b-danger);
+}
+
+.bench .bw-kinds {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.bench .bw-range {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bench .bw-range .b-field {
+  flex: 1 1 0;
+  align-items: flex-start;
+}
+
+.bench .bw-range .b-field__label {
+  padding-top: 4px;
+}
+
+.bench .bw-range .b-field--pts {
+  flex: 0 0 104px;
+  width: 104px;
+}
+
+.bench .bw-range .b-field--list {
+  flex: 1 1 auto;
+}
+
+/* ── Tick strip ───────────────────────────────────────────────────────────── */
+
+.bench .bw-ticks {
+  position: relative;
+  height: 22px;
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-ctl);
+  background: var(--b-well);
+  overflow: hidden;
+}
+
+.bench .bw-ticks__inner {
+  position: absolute;
+  inset: 0 8px;
+}
+
+.bench .bw-ticks__t {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: var(--b-accent);
+}
+
+.bench .bw-ticks__none {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--b-font-mono);
+  font-size: 10px;
+  color: var(--b-fg-faint);
+}
+
+/* ── Fixed-override row ───────────────────────────────────────────────────── */
+
+.bench .bw-fixed__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bench .bw-fixed__fqn {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bench .bw-fixed__fqn .bw-fqn-leaf {
+  margin-left: 0;
+  font-weight: 400;
+}
+
+.bench .bw-was {
+  font-family: var(--b-font-mono);
+  font-size: 10px;
+  color: var(--b-fg-faint);
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.bench .bw-was:hover {
+  color: var(--b-fg-dim);
+}
+
+.bench .bw-fixed__val {
+  width: 78px;
+  flex: 0 0 78px;
+}
+
+.bench .bw-fixed__val .b-input {
+  text-align: right;
+  padding: 3px 10px;
+}
+
+.bench .bw-fixed__unit {
+  font-family: var(--b-font-mono);
+  font-size: 10.5px;
+  color: var(--b-fg-muted);
+  flex-shrink: 0;
+}
+
+.bench .bw-select {
+  font-family: var(--b-font-mono);
+  font-size: 12px;
+  background: var(--b-well);
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-ctl);
+  color: var(--b-fg);
+  padding: 3px 6px;
+  max-width: 160px;
+  min-width: 78px;
+}
+
+.bench .bw-select.is-overridden {
+  border-color: var(--b-accent);
+}
+
+.bench .bw-select.is-invalid {
+  border-color: var(--b-danger);
+}
+
+.bench .bw-fixed__val--check {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 30px;
+}
+
+.bench .bw-check {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--b-accent);
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+/* ── Grid summary ─────────────────────────────────────────────────────────── */
+
+.bench .bw-grid {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  row-gap: 6px;
+  padding: 8px 10px;
+}
+
+.bench .bw-grid__product {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.bench .bw-grid__repeats {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--b-font-mono);
+  font-size: 10.5px;
+  padding: 2px 7px;
+  border-radius: var(--b-r-pill);
+  background: var(--b-well);
+  color: var(--b-fg-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.bench .bw-grid__repeats input {
+  font-family: var(--b-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+  width: 4ch;
+  background: transparent;
+  border: none;
+  color: var(--b-fg);
+  padding: 0;
+  text-align: center;
+}
+
+.bench .bw-grid__repeats input:focus {
+  outline: none;
+  color: var(--b-accent);
+}
+
+.bench .bw-inf {
+  background: transparent;
+  border: none;
+  color: var(--b-fg-muted);
+  cursor: pointer;
+  padding: 0 2px;
+  font-family: var(--b-font-mono);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.bench .bw-inf.is-on {
+  color: var(--b-accent);
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+
+.bench .bw-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-top: 1px solid var(--b-border);
+  background: var(--b-surface);
+  min-width: 0;
+}
+
+.bench .bw-foot__eta {
+  font-size: 11.5px;
+  color: var(--b-fg-muted);
+  white-space: nowrap;
+}
+
+.bench .bw-foot__err {
+  font-family: var(--b-font-ui);
+  font-size: 11px;
+  color: var(--b-danger);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.bench .bw-editpill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--b-font-mono);
+  font-size: 10.5px;
+  padding: 2px 7px;
+  border-radius: var(--b-r-pill);
+  background: var(--b-well);
+  color: var(--b-fg-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+}
+
+.bench .bw-editpill:focus-within {
+  border-color: var(--b-accent);
+}
+
+.bench .bw-editpill input {
+  font-family: var(--b-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+  background: transparent;
+  border: none;
+  color: var(--b-fg);
+  padding: 0;
+}
+
+.bench .bw-editpill input:focus {
+  outline: none;
+}
+
+/* ── Empty / no-experiment state ──────────────────────────────────────────── */
+
+.bench .bw-empty {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.bench .bw-empty__hint {
+  font-size: 11.5px;
+  color: var(--b-fg-muted);
+}
+
+.bench .bw-explist {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+}
+
+.bench .bw-explist__item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--b-r-ctl);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+}
+
+.bench .bw-explist__item:hover {
+  background: var(--b-surface);
+  border-color: var(--b-border);
+}
+
+.bench .bw-explist__name {
+  font-family: var(--b-font-mono);
+  font-size: 12.5px;
+  color: var(--b-fg);
+  white-space: nowrap;
+}
+
+.bench .bw-explist__file {
+  font-family: var(--b-font-mono);
+  font-size: 10.5px;
+  color: var(--b-fg-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* ── Narrow layouts ───────────────────────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .bench .bw-tree {
+    width: 228px;
+    flex-basis: 228px;
+  }
+}

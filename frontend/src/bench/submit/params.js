@@ -44,7 +44,44 @@ export function parseDefault(schema) {
     return Number.isNaN(v) ? raw : v;
   }
   if (type === "bool") return raw === "True" || raw === "true";
+  if (type === "string" || type === "enum") return unquotePyon(raw);
   return raw;
+}
+
+/**
+ * ndscan `str`/`enum` defaults are PYON *expressions*, so a literal string
+ * arrives quoted (`"'FAST'"` — see `EnumParam.describe`/`StringParam.describe`
+ * in ndscan/experiment/parameters.py). Strip one matching pair of quotes so the
+ * UI shows `FAST`, not `'FAST'`; anything else (e.g. a `dataset(...)` call) is
+ * left exactly as it came.
+ */
+export function unquotePyon(raw) {
+  const s = String(raw);
+  if (s.length >= 2) {
+    const q = s[0];
+    if ((q === "'" || q === '"') && s[s.length - 1] === q) {
+      const inner = s.slice(1, -1);
+      if (!inner.includes(q)) return inner;
+    }
+  }
+  return s;
+}
+
+/**
+ * Choices for an `enum` parameter. ndscan describes them as `spec.members`
+ * (a `{NAME: display}` map); plain ARTIQ `EnumerationValue` uses `spec.choices`
+ * (a list). Returns `{choices, choiceLabels}` — `choices` are the values that
+ * go on the wire, `choiceLabels` what the select shows.
+ */
+export function enumChoices(spec) {
+  if (Array.isArray(spec?.choices)) {
+    return { choices: spec.choices, choiceLabels: undefined };
+  }
+  const members = spec?.members;
+  if (members && typeof members === "object" && !Array.isArray(members)) {
+    return { choices: Object.keys(members), choiceLabels: members };
+  }
+  return { choices: undefined, choiceLabels: undefined };
 }
 
 /**
@@ -119,6 +156,7 @@ function buildNdscanParamModel(arginfo) {
     const segments = String(fqn).split(".");
     const { leaf, prefix } = segmentsToParts(segments);
     const spec = schema?.spec || {};
+    const { choices, choiceLabels } = enumChoices(spec);
     return {
       fqn,
       path: fqnToPath[fqn] ?? "",
@@ -134,7 +172,8 @@ function buildNdscanParamModel(arginfo) {
       step: spec.step,
       min: spec.min,
       max: spec.max,
-      choices: spec.choices,
+      choices,
+      choiceLabels,
       scannable: spec.is_scannable === true,
       alwaysShown: shown.has(fqn),
     };

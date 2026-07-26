@@ -1,0 +1,11 @@
+{
+  "status": "healthy",
+  "artiq_connected": true,
+  "details": {
+    "explist": true,
+    "explist_status": true,
+    "schedule": true,
+    "datasets": true,
+    "logs": true
+  }
+}
