@@ -224,7 +224,7 @@ function findExplistEntry(file, className) {
 
 function findExplistArginfoSync(file, className) {
   const entry = findExplistEntry(file, className);
-  return entry ? (entry.arginfo ?? null) : null;
+  return entry ? entry.arginfo ?? null : null;
 }
 
 // ── ndscan wire-format ports (mirrors artiq_http/artiq_api/ndscan_builder.py
@@ -274,7 +274,9 @@ function resolvePath(fqn, explicitPath, fqnToPaths) {
     if (candidates && !candidates.includes(explicitPath)) {
       throw new MockApiError(
         422,
-        `explicit path '${explicitPath}' for '${fqn}' is not one of its instance paths ${JSON.stringify(candidates)}`,
+        `explicit path '${explicitPath}' for '${fqn}' is not one of its instance paths ${JSON.stringify(
+          candidates,
+        )}`,
       );
     }
     return explicitPath;
@@ -283,7 +285,9 @@ function resolvePath(fqn, explicitPath, fqnToPaths) {
   if (candidates.length === 1) return candidates[0];
   throw new MockApiError(
     422,
-    `parameter '${fqn}' exists at multiple instance paths ${JSON.stringify(candidates)}; specify the path explicitly to disambiguate`,
+    `parameter '${fqn}' exists at multiple instance paths ${JSON.stringify(
+      candidates,
+    )}; specify the path explicitly to disambiguate`,
   );
 }
 
@@ -313,7 +317,11 @@ function buildAxis(axis, fqnToPaths) {
   if (!(gtype in SUPPORTED_GENERATORS)) {
     throw new MockApiError(
       422,
-      `invalid scan type '${gtype}'. Must be one of: ${Object.keys(SUPPORTED_GENERATORS).sort().join(", ")}`,
+      `invalid scan type '${gtype}'. Must be one of: ${Object.keys(
+        SUPPORTED_GENERATORS,
+      )
+        .sort()
+        .join(", ")}`,
     );
   }
   const rangeIn = axis.range;
@@ -409,7 +417,11 @@ function validateAxis(axis, canonicalFqns, idx) {
   if (!("path" in axis)) return `scan.axes[${idx}]: missing 'path'`;
   const scanType = axis.type;
   if (!scanType || !VALID_SCAN_TYPES.has(scanType)) {
-    return `scan.axes[${idx}]: invalid scan type '${scanType}'. Must be one of: ${[...VALID_SCAN_TYPES].sort().join(", ")}`;
+    return `scan.axes[${idx}]: invalid scan type '${scanType}'. Must be one of: ${[
+      ...VALID_SCAN_TYPES,
+    ]
+      .sort()
+      .join(", ")}`;
   }
   const rangeData = axis.range;
   if (!rangeData || typeof rangeData !== "object")
@@ -648,12 +660,12 @@ function projectEntry(exp, fields, full) {
     name: exp.name,
     file: exp.file,
     class_name: exp.class_name,
-    arginfo: wanted.has("arginfo") ? (exp.arginfo ?? null) : null,
-    argument_ui: wanted.has("argument_ui") ? (exp.argument_ui ?? null) : null,
+    arginfo: wanted.has("arginfo") ? exp.arginfo ?? null : null,
+    argument_ui: wanted.has("argument_ui") ? exp.argument_ui ?? null : null,
     scheduler_defaults: wanted.has("scheduler_defaults")
-      ? (exp.scheduler_defaults ?? null)
+      ? exp.scheduler_defaults ?? null
       : null,
-    docstring: wanted.has("docstring") ? (exp.docstring ?? null) : null,
+    docstring: wanted.has("docstring") ? exp.docstring ?? null : null,
   };
   if (out.arginfo && !full) out.arginfo = filterNdscanAlwaysShown(out.arginfo);
   return out;

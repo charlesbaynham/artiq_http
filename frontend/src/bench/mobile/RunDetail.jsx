@@ -140,9 +140,9 @@ function RunDetail({ rid, items = [], cancel, onBack }) {
 
   const handleCopy = useCallback(async () => {
     setCopyStatus(null);
-    const permalink = `${window.location.origin}/plots/fullscreen?scan=${encodeURIComponent(
-      liveRun.prefix || "",
-    )}`;
+    const permalink = `${
+      window.location.origin
+    }/plots/fullscreen?scan=${encodeURIComponent(liveRun.prefix || "")}`;
     try {
       if (!plotWrapRef.current || !xValues.length) {
         throw new Error("nothing to rasterise yet");
