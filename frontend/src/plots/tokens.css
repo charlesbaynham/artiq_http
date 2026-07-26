@@ -713,7 +713,14 @@
    (`plots/Plot1D.jsx`/`plots/Plot2D.jsx` — the `--p-legend-*` vars), so
    setting them here cascades into the inline style instead of fighting it. */
 @container (max-width: 640px) {
-  .plots-app.is-compact {
+  /* A `@container` query is evaluated against the *querying element's*
+     nearest ancestor container, starting the search at its parent — an
+     element can't query the container-type it establishes on itself. So
+     this targets `.p-work` (a descendant of `.plots-app.is-compact`, which
+     is where `container-type` is set above), not `.plots-app.is-compact`
+     directly; the custom properties still cascade down to `.p-legend`
+     either way. */
+  .plots-app.is-compact .p-work {
     --p-legend-top: 6px;
     --p-legend-right: 6px;
     --p-legend-min-w: 0px;
