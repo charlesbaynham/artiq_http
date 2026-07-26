@@ -473,21 +473,25 @@ function Plot1D({
           </text>
         </svg>
 
-        {/* legend */}
+        {/* legend — position/size read from --p-legend-* custom properties
+            (falling back to the standalone-page values below) so an
+            embedding host can shrink/reposition it via CSS without fighting
+            these inline styles; see `.plots-app.is-compact` in tokens.css. */}
         <div
+          className="p-legend"
           style={{
             position: "absolute",
-            top: 12,
-            right: 56,
+            top: "var(--p-legend-top, 12px)",
+            right: "var(--p-legend-right, 56px)",
             background: "color-mix(in oklab, var(--p-panel) 92%, transparent)",
             border: "1px solid var(--p-border)",
             borderRadius: 6,
-            padding: "6px 8px",
-            fontSize: 11,
+            padding: "var(--p-legend-pad, 6px 8px)",
+            fontSize: "var(--p-legend-fs, 11px)",
             lineHeight: 1.5,
-            minWidth: 160,
+            minWidth: "var(--p-legend-min-w, 160px)",
             backdropFilter: "blur(4px)",
-            maxWidth: 220,
+            maxWidth: "var(--p-legend-max-w, 220px)",
           }}
         >
           {onChannels.map((c) => (

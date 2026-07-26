@@ -24,29 +24,70 @@ import {
   queue_experiment,
 } from "../../api/client";
 import { copyPlotToClipboard } from "../../plots/copyPlot";
+import { formatNum } from "../../plots/utils";
 import useLiveRun, { formatDuration } from "../state/useLiveRun";
-import { buildParamModel } from "../submit/params";
+import { buildParamModel, toDisplayValue } from "../submit/params";
 import { Pill, Mono, BenchButton } from "../ui/primitives";
 import Sparkline, { pickPrimaryChannel } from "./Sparkline";
 
 const TABS = ["Plot", "Parameters", "Logs"];
 
-function axisSummary(axis) {
-  const r = axis?.range || {};
-  if (axis?.type === "list" || Array.isArray(r.values)) {
-    return `list[${(r.values || []).length}]`;
+/**
+ * Format a raw (unscaled) wire value in its parameter's own scale/unit — the
+ * same `raw / scale <unit>` convention the desktop working set uses (see
+ * `submit/AxisCard.jsx`'s `displayText`/`toDisplayValue`). `param` is a
+ * `submit/params.js` `Param` (from `buildParamModel`) or `undefined` when the
+ * schema couldn't be resolved (arginfo fetch failed, or the fqn isn't in it
+ * — e.g. it scanned a sub-fragment param not present at top level). Falling
+ * back silently to the raw number here would print a plausible-looking but
+ * wrong value, so the caller is expected to fall back to the untouched raw
+ * value instead when this returns `null`.
+ */
+function formatScaledValue(raw, param) {
+  if (!param) return null;
+  if (param.type === "float" || param.type === "int") {
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return null;
+    const scaled = toDisplayValue(n, param.scale || 1);
+    const text = Number.isFinite(scaled) ? formatNum(scaled) : String(raw);
+    return param.unit ? `${text} ${param.unit}` : text;
   }
-  if (axis?.type === "centre_span") {
-    return `${r.centre} ± ${r.half_span} · ${r.num_points} pts`;
+  if (param.type === "bool") return String(!!raw);
+  if (param.type === "string" || param.type === "enum") {
+    return typeof raw === "string" ? raw : JSON.stringify(raw);
   }
-  return `${r.start} → ${r.stop} · ${r.num_points} pts`;
+  return null;
 }
 
-function overrideValueText(value) {
-  if (Array.isArray(value) && value.length && typeof value[0] === "object") {
-    return JSON.stringify(value[0].value);
+function axisSummary(axis, paramsByFqn) {
+  const r = axis?.range || {};
+  // Scan axes are always numeric (float/int) params, so this only needs the
+  // numeric raw/scale conversion — no bool/string/enum branch to consider.
+  const param = paramsByFqn?.get(axis?.fqn);
+  const unit = param?.unit ? ` ${param.unit}` : "";
+  const fmt = (v) => {
+    if (!param) return String(v);
+    const n = Number(v);
+    if (!Number.isFinite(n)) return String(v);
+    const scaled = toDisplayValue(n, param.scale || 1);
+    return Number.isFinite(scaled) ? formatNum(scaled) : String(v);
+  };
+  if (axis?.type === "list" || Array.isArray(r.values)) {
+    return `list[${(r.values || []).length}]${unit}`;
   }
-  return JSON.stringify(value);
+  if (axis?.type === "centre_span") {
+    return `${fmt(r.centre)} ± ${fmt(r.half_span)}${unit} · ${r.num_points} pts`;
+  }
+  return `${fmt(r.start)} → ${fmt(r.stop)}${unit} · ${r.num_points} pts`;
+}
+
+function overrideValueText(fqn, value, paramsByFqn) {
+  const raw =
+    Array.isArray(value) && value.length && typeof value[0] === "object"
+      ? value[0].value
+      : value;
+  const formatted = formatScaledValue(raw, paramsByFqn?.get(fqn));
+  return formatted != null ? formatted : JSON.stringify(raw);
 }
 
 function RunDetail({ rid, items = [], cancel, onBack }) {
@@ -220,6 +261,14 @@ function RunDetail({ rid, items = [], cancel, onBack }) {
     return map;
   }, [paramInfo.params]);
 
+  // Full param objects (scale/unit/type), keyed by fqn, for formatting axis
+  // ranges and fixed overrides in their own unit rather than raw wire values.
+  const paramsByFqn = useMemo(() => {
+    const map = new Map();
+    for (const p of paramInfo.params) map.set(p.fqn, p);
+    return map;
+  }, [paramInfo.params]);
+
   const parametersView = useMemo(() => {
     const args = scheduleItem?.expid?.arguments || {};
     if (args.ndscan_params) {
@@ -339,7 +388,7 @@ function RunDetail({ rid, items = [], cancel, onBack }) {
                   <div className="bm-param-row__head">
                     <Mono className="bm-param-row__fqn">{fqn}</Mono>
                     <Mono className="bm-param-row__value">
-                      {JSON.stringify(value)}
+                      {overrideValueText(fqn, value, paramsByFqn)}
                     </Mono>
                   </div>
                   {descByFqn.get(fqn) && (
@@ -356,7 +405,7 @@ function RunDetail({ rid, items = [], cancel, onBack }) {
                     <div className="bm-param-row__head">
                       <Mono className="bm-param-row__fqn">{axis.fqn}</Mono>
                       <Mono className="bm-param-row__value">
-                        {axisSummary(axis)}
+                        {axisSummary(axis, paramsByFqn)}
                       </Mono>
                     </div>
                     {descByFqn.get(axis.fqn) && (
@@ -372,7 +421,7 @@ function RunDetail({ rid, items = [], cancel, onBack }) {
                       <div className="bm-param-row__head">
                         <Mono className="bm-param-row__fqn">{fqn}</Mono>
                         <Mono className="bm-param-row__value">
-                          {overrideValueText(value)}
+                          {overrideValueText(fqn, value, paramsByFqn)}
                         </Mono>
                       </div>
                       {descByFqn.get(fqn) && (

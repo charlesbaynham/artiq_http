@@ -25,11 +25,13 @@
   flex-direction: column;
 }
 
-.bl-live-card:fullscreen,
-.bl-live-card:-webkit-full-screen {
+/* Shell-level "expand to full workspace" (BenchApp collapses the icon rail
+   and submit pane and gives this pane the width — see shell.css's
+   `.bs-body.is-expanded`). This card itself doesn't need much: the flex
+   layout already gives it the freed space, this is just a little visual
+   settling-in. */
+.bl-live-card.is-expanded {
   border-radius: 0;
-  background: var(--b-bg);
-  padding: 0;
 }
 
 .bl-live-head {

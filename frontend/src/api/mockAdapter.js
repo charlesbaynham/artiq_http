@@ -27,19 +27,23 @@
  * No new npm dependencies — everything here is hand-rolled against standard
  * browser APIs (fetch, Response, URL, EventTarget, MessageEvent).
  *
- * Fidelity notes / deliberate departures from `mock_backend.py`:
- *  - A submitted run starts with status `"running"` (not `"pending"`, which
- *    is what the Python mock does) so the queue -> live-plot loop is visible
- *    immediately without a second poll cycle — the whole point of this
- *    package is "the demo is clickable end to end", called out explicitly in
- *    IMPL-SPEC.md #17.
- *  - The seeded `ndscan.rid_4823` / `ndscan.rid_1` animations are ported
- *    line-for-line from `mock_backend.py`'s `_update_loop` (down to the same
- *    "RID 4823's schedule item claims a 101-point rabi.pulse_duration scan,
- *    but the actual streamed dataset is a completely different detuning
- *    sweep" quirk) — kept for parity with the Python mock's own behaviour,
- *    including ticking regardless of whether that RID is still "in the
- *    schedule" (mock_backend.py's update loop does the same).
+ * Fidelity notes:
+ *  - A submitted run's lifecycle mirrors `mock_backend.py` exactly: it's
+ *    inserted `pending`, flips to `running` after `SUBMIT_PENDING_DELAY_MS`
+ *    and (for ndscan submissions) starts streaming points derived from the
+ *    axes actually submitted, then completes and leaves the schedule once
+ *    every point is in. A submission with no scan axes completes immediately
+ *    as a single-point run (real ndscan 0D runs measure once and complete —
+ *    see `beginZeroAxisRun`); a plain (non-ndscan) submission has no live
+ *    data to stream, so it's just removed from the schedule after a short
+ *    simulated run time. See IMPL-SPEC.md #17 / the mock-fidelity fix that
+ *    added this — the whole point of this package is "the demo is clickable
+ *    end to end".
+ *  - The seeded `ndscan.rid_4823` (live) / `ndscan.rid_4821` (ghost) / `.rid_1`
+ *    animations are ported line-for-line from `mock_backend.py`'s
+ *    `_update_loop`: both are RabiFlop (`rabi.pulse_duration`, 101 points),
+ *    matching the identity of the schedule item RID 4823 actually declares —
+ *    fragment FQN, scanned axis and channel names all agree.
  *  - A freshly *submitted* scan (from this adapter, not seeded) is generic:
  *    it samples a synthetic Lorentzian bump over the actual axis/axes the
  *    user picked (1 or 2 supported, matching the session model's "max 2
@@ -130,6 +134,7 @@ const state = {
 
 const argInfoCache = new Map(); // slug -> {file, class_name, arginfo}
 const activeRuns = new Map(); // rid -> RunState (submitted scans only; seeded runs animate unconditionally)
+const pendingActivationTimeouts = new Map(); // rid -> timeout id (pending -> running, then data starts)
 const pendingCleanupTimeouts = new Map(); // rid -> timeout id (scan -> run_done -> removed from schedule)
 const pendingPlainCompletions = new Map(); // rid -> timeout id (plain experiment auto-completion)
 const openEventSources = new Set(); // live MockEventSource instances, for the tick loop to push updates into
@@ -735,6 +740,11 @@ const MAX_DEMO_POINTS = 4000;
 const POINTS_PER_TICK_TARGET_TICKS = 40;
 const RUN_CLEANUP_DELAY_MS = 4000;
 const PLAIN_RUN_DURATION_MS = 4000;
+// Mirrors mock_backend.py's _SUBMIT_PENDING_DELAY_S: a submission sits
+// `pending` for this long before flipping to `running` and starting to
+// stream data, so both mocks show the same realistic queue -> live lifecycle
+// instead of a run appearing "running" the instant it's submitted.
+const SUBMIT_PENDING_DELAY_MS = 2000;
 
 const GENERIC_SCAN_CHANNELS = {
   signal: {
@@ -861,14 +871,21 @@ function sampleChannelsGeneric(pt, center, axisSpans) {
 }
 
 function beginZeroAxisRun(rid, prefix, fragmentFqn) {
+  // No scanned axes: a real ndscan 0D run measures once and completes
+  // immediately (NoAxisRunner in ndscan/experiment/entry_point.py), so this
+  // publishes one point and completes rather than ticking forever like the
+  // always-live 0D repeat demo (ndscan.rid_1) does.
   setDataset(`${prefix}.axes`, "[]");
   setDataset(`${prefix}.channels`, JSON.stringify(GENERIC_SCAN_CHANNELS));
   setDataset(`${prefix}.fragment_fqn`, fragmentFqn);
-  setDataset(`${prefix}.completed`, false);
-  setDataset(`${prefix}.point.signal`, 0.5);
-  setDataset(`${prefix}.point.reference`, 0.5);
-  setDataset(`${prefix}.point.atom_number`, 50000);
-  activeRuns.set(rid, { rid, prefix, kind: "zero-axis", done: false });
+  setDataset(`${prefix}.point.signal`, 0.5 + gauss(0, 0.05));
+  setDataset(`${prefix}.point.reference`, 0.5 + gauss(0, 0.03));
+  setDataset(
+    `${prefix}.point.atom_number`,
+    Math.max(0, 50000 + gauss(0, 3000)),
+  );
+  setDataset(`${prefix}.completed`, true);
+  finishRun(rid, prefix);
 }
 
 function beginNdscanRun(rid, expid, axesWire, numRepeatsRaw, arginfo) {
@@ -908,7 +925,6 @@ function beginNdscanRun(rid, expid, axesWire, numRepeatsRaw, arginfo) {
   const run = {
     rid,
     prefix,
-    kind: "ndscan",
     numAxes: axesWire.length,
     grid,
     center,
@@ -964,17 +980,25 @@ function nudgeCenter(run) {
   });
 }
 
-function completeRun(run) {
-  run.done = true;
-  activeRuns.delete(run.rid);
-  setDataset(`${run.prefix}.completed`, true);
-  const item = state.schedule[run.rid];
+// Marks *rid*'s dataset completed and its schedule item `run_done`, then
+// removes it from the schedule after a short delay — mirroring a real ARTIQ
+// master dropping a finished run off the queue. Shared by ndscan run
+// completion (completeRun) and the one-shot zero-axis path (beginZeroAxisRun).
+function finishRun(rid, prefix) {
+  activeRuns.delete(rid);
+  setDataset(`${prefix}.completed`, true);
+  const item = state.schedule[rid];
   if (item) item.status = "run_done";
   const t = setTimeout(() => {
-    pendingCleanupTimeouts.delete(run.rid);
-    delete state.schedule[run.rid];
+    pendingCleanupTimeouts.delete(rid);
+    delete state.schedule[rid];
   }, RUN_CLEANUP_DELAY_MS);
-  pendingCleanupTimeouts.set(run.rid, t);
+  pendingCleanupTimeouts.set(rid, t);
+}
+
+function completeRun(run) {
+  run.done = true;
+  finishRun(run.rid, run.prefix);
 }
 
 function tickNdscanRun(run) {
@@ -996,19 +1020,6 @@ function tickNdscanRun(run) {
     appendPoint(run, run.plan[run.idx++]);
     remaining--;
   }
-}
-
-function tickZeroAxisRun(run) {
-  const t = Date.now() / 1000;
-  setDataset(
-    `${run.prefix}.point.signal`,
-    0.5 + 0.3 * Math.sin(t * 0.5) + gauss(0, 0.05),
-  );
-  setDataset(`${run.prefix}.point.reference`, 0.5 + gauss(0, 0.03));
-  setDataset(
-    `${run.prefix}.point.atom_number`,
-    Math.max(0, 50000 + 10000 * Math.sin(t * 0.3) + gauss(0, 2000)),
-  );
 }
 
 function startRunFromExpid(rid, expid) {
@@ -1037,6 +1048,20 @@ function startRunFromExpid(rid, expid) {
 
 function insertScheduleItem(rid, item) {
   state.schedule[rid] = item;
+}
+
+// Mirrors mock_backend.py's _activate_submission: after the pending delay,
+// flip *rid* to `running` and start its data (unless it was cancelled, or
+// its status was otherwise changed, in the meantime).
+function scheduleActivation(rid) {
+  const t = setTimeout(() => {
+    pendingActivationTimeouts.delete(rid);
+    const item = state.schedule[rid];
+    if (!item || item.status !== "pending") return;
+    item.status = "running";
+    startRunFromExpid(rid, item.expid);
+  }, SUBMIT_PENDING_DELAY_MS);
+  pendingActivationTimeouts.set(rid, t);
 }
 
 function mockWaitForCompletion(rid, timeoutSeconds) {
@@ -1078,11 +1103,11 @@ function handleSubmitExperiment(url, body) {
     priority,
     due_date: dueDate,
     flush,
-    status: "running",
+    status: "pending",
     repo_msg: null,
     expid,
   });
-  startRunFromExpid(rid, expid);
+  scheduleActivation(rid);
 
   if (waitForCompletion) return mockWaitForCompletion(rid, timeout);
   return rid;
@@ -1140,17 +1165,11 @@ function handleSubmitScan(url, body) {
     priority: body.priority ?? 0,
     due_date: body.due_date ?? null,
     flush: !!body.flush,
-    status: "running",
+    status: "pending",
     repo_msg: null,
     expid,
   });
-  beginNdscanRun(
-    rid,
-    expid,
-    JSON.parse(ndscanParams).scan.axes,
-    body.num_repeats ?? 1,
-    arginfo,
-  );
+  scheduleActivation(rid);
 
   if (waitForCompletion) return mockWaitForCompletion(rid, timeout);
   return rid;
@@ -1168,6 +1187,11 @@ function handleCancel(url) {
     run.done = true;
     activeRuns.delete(rid);
     setDataset(`${run.prefix}.completed`, true);
+  }
+  const activationT = pendingActivationTimeouts.get(rid);
+  if (activationT) {
+    clearTimeout(activationT);
+    pendingActivationTimeouts.delete(rid);
   }
   const cleanupT = pendingCleanupTimeouts.get(rid);
   if (cleanupT) {
@@ -1639,62 +1663,81 @@ function flushHeartbeats() {
   }
 }
 
-// ── Seeded-fixture animation (ports of mock_backend.py's _update_loop) ───────
+// ── Seeded RabiFlop live-scan animation (ports of mock_backend.py's
+//    _step_live_rabi_scan) ───────────────────────────────────────────────────
+// RID 4823's schedule item declares a 101-point rabi.pulse_duration scan (see
+// the seeded schedule.json fixture); this animates the matching dataset
+// (fragment_fqn, axis and channel names all agree — see the module docstring)
+// so the live pane's identity is coherent, not a mismatched leftover demo.
 
-const SCAN1D_PREFIX = "ndscan.rid_4823";
-const SCAN1D_CHANNEL_KEYS = ["signal", "reference", "atom_number"];
-const SCAN1D_X_POINTS = Array.from({ length: 11 }, (_, i) => -25.0 + 5.0 * i);
-const SCAN1D_REPEATS = 4;
+const RABI_SCAN_PREFIX = "ndscan.rid_4823";
+const RABI_SCAN_CHANNEL_KEYS = ["excitation", "dark_counts", "atom_number"];
+const RABI_SCAN_RANGE = { start: 1e-6, stop: 5e-5, numPoints: 101 };
+const RABI_SCAN_X_POINTS = linspace(
+  RABI_SCAN_RANGE.start,
+  RABI_SCAN_RANGE.stop,
+  RABI_SCAN_RANGE.numPoints,
+);
+// Matches the schedule item's declared num_repeats: 2 (see schedule.json), so
+// the streamed point count agrees with the "N/202" progress the frontend
+// derives from it, and so the randomized-order-with-repeats behaviour
+// exercises Plot1D's per-x mean/SEM error-bar rendering.
+const RABI_SCAN_REPEATS = 2;
+const RABI_PERIOD_S = 12e-6; // ~12 us Rabi period, a few oscillations across the 1-50 us scan range
 
-let cheatPlan = [];
-let cheatIdx = 0;
-let cheatCenter = 0.0;
+let rabiScanPlan = [];
+let rabiScanIdx = 0;
+let rabiScanPhaseShift = 0.0;
 
-function scan1dSample(x, center) {
-  const width = 6.0;
-  const lorentzian = 1.0 / (1.0 + ((x - center) / width) ** 2);
+function rabiSample(t, phaseShift) {
+  let excitation =
+    0.5 - 0.5 * Math.cos((2 * Math.PI * (t - phaseShift)) / RABI_PERIOD_S);
+  excitation = Math.max(0, Math.min(1, excitation + gauss(0, 0.04)));
   return {
-    signal: 0.12 + 0.8 * lorentzian + gauss(0, 0.05),
-    reference: 0.5 + gauss(0, 0.03),
-    atom_number: 50000.0 + 30000.0 * lorentzian + gauss(0, 3000.0),
+    excitation,
+    dark_counts: 0.5 + gauss(0, 0.03),
+    atom_number: 50000.0 + 30000.0 * excitation + gauss(0, 3000.0),
   };
 }
 
-function shuffledScan1dPlan() {
+function shuffledRabiScanPlan() {
   const plan = [];
-  for (const x of SCAN1D_X_POINTS)
-    for (let i = 0; i < SCAN1D_REPEATS; i++) plan.push(x);
+  for (const x of RABI_SCAN_X_POINTS)
+    for (let i = 0; i < RABI_SCAN_REPEATS; i++) plan.push(x);
   return shuffle(plan);
 }
 
-function tickScan1dCheat() {
+function tickRabiScanCheat() {
   // Defensive: only animate once the seeded fixture datasets are present.
-  if (!(`${SCAN1D_PREFIX}.axes` in state.datasets)) return;
-  if (cheatPlan.length === 0) cheatPlan = shuffledScan1dPlan();
-  if (cheatIdx >= cheatPlan.length) {
-    cheatPlan = shuffledScan1dPlan();
-    cheatIdx = 0;
-    cheatCenter = Math.max(
-      -15.0,
-      Math.min(15.0, cheatCenter + (Math.random() * 8 - 4)),
+  if (!(`${RABI_SCAN_PREFIX}.axes` in state.datasets)) return;
+  if (rabiScanPlan.length === 0) rabiScanPlan = shuffledRabiScanPlan();
+  if (rabiScanIdx >= rabiScanPlan.length) {
+    rabiScanPlan = shuffledRabiScanPlan();
+    rabiScanIdx = 0;
+    rabiScanPhaseShift = Math.max(
+      RABI_SCAN_RANGE.start,
+      Math.min(
+        RABI_SCAN_RANGE.stop,
+        rabiScanPhaseShift + (Math.random() * 2 - 1) * 5e-6,
+      ),
     );
-    setDataset(`${SCAN1D_PREFIX}.points.axis_0`, []);
-    for (const k of SCAN1D_CHANNEL_KEYS)
-      setDataset(`${SCAN1D_PREFIX}.points.channel_${k}`, []);
+    setDataset(`${RABI_SCAN_PREFIX}.points.axis_0`, []);
+    for (const k of RABI_SCAN_CHANNEL_KEYS)
+      setDataset(`${RABI_SCAN_PREFIX}.points.channel_${k}`, []);
   }
-  const x = cheatPlan[cheatIdx++];
-  const sample = scan1dSample(x, cheatCenter);
+  const x = rabiScanPlan[rabiScanIdx++];
+  const sample = rabiSample(x, rabiScanPhaseShift);
   const axis = [
-    ...(state.datasets[`${SCAN1D_PREFIX}.points.axis_0`]?.[1] ?? []),
+    ...(state.datasets[`${RABI_SCAN_PREFIX}.points.axis_0`]?.[1] ?? []),
     x,
   ];
-  setDataset(`${SCAN1D_PREFIX}.points.axis_0`, axis);
-  for (const k of SCAN1D_CHANNEL_KEYS) {
+  setDataset(`${RABI_SCAN_PREFIX}.points.axis_0`, axis);
+  for (const k of RABI_SCAN_CHANNEL_KEYS) {
     const arr = [
-      ...(state.datasets[`${SCAN1D_PREFIX}.points.channel_${k}`]?.[1] ?? []),
+      ...(state.datasets[`${RABI_SCAN_PREFIX}.points.channel_${k}`]?.[1] ?? []),
       sample[k],
     ];
-    setDataset(`${SCAN1D_PREFIX}.points.channel_${k}`, arr);
+    setDataset(`${RABI_SCAN_PREFIX}.points.channel_${k}`, arr);
   }
 }
 
@@ -1822,11 +1865,8 @@ function tick() {
   if (!state.explist) return; // fixtures not loaded yet
   tickRepeat0D();
   tickImages();
-  tickScan1dCheat();
-  for (const run of activeRuns.values()) {
-    if (run.kind === "zero-axis") tickZeroAxisRun(run);
-    else tickNdscanRun(run);
-  }
+  tickRabiScanCheat();
+  for (const run of activeRuns.values()) tickNdscanRun(run);
   flushHeartbeats();
   flushSSE();
 }

@@ -2,13 +2,16 @@
  * Live pane — column 3 of the desktop workspace (IMPL-SPEC §6, §7, §12, §14-16;
  * handoff "Column 3 — live pane").
  *
- * `LivePane({ scheduleItems, cancel, loading })`: schedule data is owned by
- * the shell via `useSchedule()` and passed down (component contract, §15).
- * This component reads `pinnedLiveRid` / `ghostRid` / `selectedImageKeys`
- * from the session store and resolves which run to watch via `useLiveRun`.
+ * `LivePane({ scheduleItems, cancel, loading, expanded, onToggleExpanded })`:
+ * schedule data is owned by the shell via `useSchedule()` and passed down
+ * (component contract, §15); `expanded`/`onToggleExpanded` are the shell's
+ * "expand to full workspace" state (BenchApp — wave-2 polish, replacing the
+ * live plot card's old browser-Fullscreen-API `⤢`). This component reads
+ * `pinnedLiveRid` / `ghostRid` / `selectedImageKeys` from the session store
+ * and resolves which run to watch via `useLiveRun`.
  */
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 
 import { extractRid } from "../../plots/utils";
@@ -19,12 +22,35 @@ import LivePlotCard from "./LivePlotCard";
 import QueueCard from "./QueueCard";
 import "./live.css";
 
-function LivePane({ scheduleItems = [], cancel, loading = false }) {
+function LivePane({
+  scheduleItems = [],
+  cancel,
+  loading = false,
+  expanded = false,
+  onToggleExpanded,
+}) {
   const { state, setPinnedLiveRid, setGhostRid, setSelectedImageKeys } =
     useSession();
   const { pinnedLiveRid, ghostRid, selectedImageKeys } = state;
 
-  const liveRun = useLiveRun({ pinnedRid: pinnedLiveRid, scheduleItems });
+  // Raw SSE payload forwarded up from the embedded PlotsApp inside
+  // LivePlotCard (its `onData`), so the call to `useLiveRun` below — which
+  // drives the readout row — reuses that subscription instead of opening a
+  // second EventSource to the same prefix (IMPL-SPEC §7 wave-2 polish).
+  const [feed, setFeed] = useState(null); // { prefix, data } | null
+  const handlePlotData = useCallback((prefix, rawData) => {
+    setFeed((prev) =>
+      prev && prev.prefix === prefix && prev.data === rawData
+        ? prev
+        : { prefix, data: rawData },
+    );
+  }, []);
+
+  const liveRun = useLiveRun({
+    pinnedRid: pinnedLiveRid,
+    scheduleItems,
+    feed,
+  });
 
   // A pin that doesn't resolve to any discovered run is a genuinely empty
   // state (IMPL-SPEC §12): `useLiveRun` otherwise silently falls back to the
@@ -78,6 +104,9 @@ function LivePane({ scheduleItems = [], cancel, loading = false }) {
         ghostCandidate={ghostCandidate}
         onToggleGhost={toggleGhost}
         onGhostChange={handleGhostChange}
+        onPlotData={handlePlotData}
+        expanded={expanded}
+        onToggleExpanded={onToggleExpanded}
       />
       <ImagesCard
         selectedImageKeys={selectedImageKeys}
@@ -98,6 +127,9 @@ LivePane.propTypes = {
   scheduleItems: PropTypes.array,
   cancel: PropTypes.func,
   loading: PropTypes.bool,
+  // Shell-level "expand to full workspace" state — see BenchApp.jsx.
+  expanded: PropTypes.bool,
+  onToggleExpanded: PropTypes.func,
 };
 
 export default LivePane;

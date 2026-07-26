@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { get_dataset_names } from "../../api/client";
-import { useSSEDataset } from "../../hooks/useSSEDataset";
+import { SSEState, useSSEDataset } from "../../hooks/useSSEDataset";
 import { extractRid, parsePlotData } from "../../plots/utils";
 import { isLiveStatus } from "./useSchedule";
 
@@ -243,7 +243,19 @@ export function estimatePointDuration(
  * Resolution order: `pinnedRid` (or `rid`) → the newest *running* run →
  * the newest run at all.
  *
- * @param {{rid?: number|null, pinnedRid?: number|null, scheduleItems?: Array<object>, enabled?: boolean}} [opts]
+ * `feed` lets a caller that already has this run's raw SSE payload from
+ * elsewhere (e.g. an embedded `PlotsApp`'s `onData` callback) supply it
+ * directly instead of this hook opening its own second `EventSource` to the
+ * same prefix — see `LivePane`/`LivePlotCard`, which is the one place this
+ * is used today. When `feed.prefix` matches the resolved prefix, this hook's
+ * own subscription is disabled and `feed.data`/`feed.error` are used in its
+ * place; otherwise (no feed, or a feed for a different prefix — e.g. right
+ * after the watched run changes, before the feeder has caught up) it falls
+ * back to subscribing itself, so behaviour for every other caller (mobile,
+ * TopBar, SubmitPane, …) is unchanged.
+ *
+ * @param {{rid?: number|null, pinnedRid?: number|null, scheduleItems?: Array<object>,
+ *           enabled?: boolean, feed?: {prefix: string, data: object|null, error?: string|null}|null}} [opts]
  * @returns {{prefix: string|null, rid: number|null, run: object|null, runs: Array<object>,
  *            data: object|null, plot: object|null, scheduleItem: object|null,
  *            status: string|null, progress: object, channels: object|null,
@@ -254,6 +266,7 @@ export function useLiveRun({
   pinnedRid = null,
   scheduleItems = [],
   enabled = true,
+  feed = null,
 } = {}) {
   const { runs, error: discoveryError } = useNdscanRuns();
 
@@ -282,11 +295,24 @@ export function useLiveRun({
 
   const prefix = run?.prefix ?? null;
 
+  const feedMatches = !!(feed && prefix != null && feed.prefix === prefix);
+
   const {
-    data,
-    error: sseError,
-    connectionState,
-  } = useSSEDataset(prefix, { enabled: enabled && !!prefix });
+    data: ownData,
+    error: ownSseError,
+    connectionState: ownConnectionState,
+  } = useSSEDataset(prefix, { enabled: enabled && !!prefix && !feedMatches });
+
+  const data = feedMatches ? feed.data : ownData;
+  const sseError = feedMatches ? (feed.error ?? null) : ownSseError;
+  // The feed's own subscription state isn't ours to see, but its presence
+  // implies "connected enough to have data" once it has delivered anything;
+  // before that, report CONNECTING rather than guessing further.
+  const connectionState = feedMatches
+    ? feed.data
+      ? SSEState.CONNECTED
+      : SSEState.CONNECTING
+    : ownConnectionState;
 
   const plot = useMemo(() => parsePlotData(data, prefix), [data, prefix]);
 

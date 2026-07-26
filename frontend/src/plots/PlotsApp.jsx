@@ -65,6 +65,7 @@ function PlotsApp({
   onStatus,
   ghostPrefixes: ghostPrefixesProp,
   onGhostChange,
+  onData,
 }) {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -600,6 +601,17 @@ function PlotsApp({
     [status, progressLabel, activePrefix, expName, active],
   );
 
+  // `onData` lets a host that already needs this run's raw SSE payload (e.g.
+  // a readout row driven by the same data) reuse this subscription instead of
+  // opening a second `EventSource` to the same prefix. Passed through as-is,
+  // on the same cadence as the underlying stream — there is nothing to
+  // dedupe here, unlike the summary callbacks below which derive a smaller,
+  // change-detectable value.
+  useEffect(() => {
+    if (!onData) return;
+    onData(rawActiveData);
+  }, [onData, rawActiveData]);
+
   const lastStatusSummaryRef = useRef(null);
   useEffect(() => {
     if (!onStatus) return;
@@ -698,12 +710,16 @@ function PlotsApp({
         )}
 
         <div className="p-center">
-          <ActiveHeader
-            prefix={activePrefix}
-            rid={extractRid(activePrefix || "")}
-            fragmentFqn={fragmentFqn}
-            dims={dims}
-          />
+          {/* Redundant with the host's own header in compact/embedded mode
+              (e.g. LivePlotCard's "LIVE RID 4823 · RabiFlop" — IMPL-SPEC §7). */}
+          {!compact && (
+            <ActiveHeader
+              prefix={activePrefix}
+              rid={extractRid(activePrefix || "")}
+              fragmentFqn={fragmentFqn}
+              dims={dims}
+            />
+          )}
           <div
             ref={plotPanelRef}
             className="p-panel p-plot-panel"
@@ -1143,6 +1159,11 @@ PlotsApp.propTypes = {
   // the array and receives updates via onGhostChange instead.
   ghostPrefixes: PropTypes.arrayOf(PropTypes.string),
   onGhostChange: PropTypes.func,
+  // (rawData) => void — the raw `useSSEDataset` payload for the active run,
+  // reported from an effect on every stream update. Lets a host that needs
+  // this data too (e.g. a readout row) reuse this subscription instead of
+  // opening a second EventSource to the same prefix.
+  onData: PropTypes.func,
 };
 
 export default PlotsApp;

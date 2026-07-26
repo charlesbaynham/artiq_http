@@ -8,20 +8,30 @@ ARTIQ_HTTP_MOCK=1.
 Serves one 0D repeat single-point NDScan (ndscan.rid_1) with four channels
 whose values drift sinusoidally with Gaussian noise, updating every 0.5 s.
 
-Also serves two 1D frequency-scan NDScans of the same experiment
-(mock.MockFreqScan): a completed run (ndscan.rid_4821) usable as a ghost
-overlay, and a live run (ndscan.rid_4823) whose points stream in a
-*randomized* order with repeats at each x. The randomized order with repeats
-exercises the Plot1D line rendering, which sorts points by x and draws the
-line through the per-x mean with standard-error-of-the-mean error bars.
+Also serves two 1D RabiFlop scans (rabi.pulse_duration, 101 points) so the
+running schedule item and its live dataset agree with each other: a completed
+run (ndscan.rid_4821, phase-shifted) usable as a ghost overlay, and the live
+run (ndscan.rid_4823) whose points stream in a *randomized* order with
+repeats at each x. The randomized order with repeats exercises the Plot1D
+line rendering, which sorts points by x and draws the line through the per-x
+mean with standard-error-of-the-mean error bars.
 
-The explist also includes MockRabiFlop, a large (214-parameter) ndscan
-experiment with a realistically nested fragment tree, and the mock schedule
-starts pre-populated with a running RID (4823, RabiFlop) and a pending RID
-(4824, CalibrateTrapFreq) so the queue/live UI has content immediately.
+The explist also includes RabiFlop, a large (214-parameter) ndscan experiment
+with a realistically nested fragment tree, and the mock schedule starts
+pre-populated with a running RID (4823, RabiFlop) and a pending RID (4824,
+CalibrateTrapFreq) so the queue/live UI has content immediately.
+
 Submitting (POST /api/schedule or /api/scan) and cancelling (POST
 /api/cancel) work against this in-memory mock schedule — RIDs are allocated
-from a counter starting at 4825.
+from a counter starting at 4825. A submission is inserted as `pending`, then
+after a short delay flips to `running` and (for ndscan submissions) starts
+streaming points derived from the axes actually submitted, completing and
+leaving the schedule once every point is in — mirroring a real ARTIQ run's
+lifecycle. A submission with no scan axes is treated as a single-point run
+that completes immediately (real ndscan 0D runs measure once and complete,
+see `NoAxesRunner`); a plain (non-ndscan) submission has no live data to
+stream, so it is just removed from the schedule after a short simulated
+run time.
 """
 
 import asyncio
@@ -34,6 +44,55 @@ import time
 from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+# ── Submission lifecycle timings ─────────────────────────────────────────────
+# A freshly submitted run sits as `pending` for this long before flipping to
+# `running` and starting to stream data (mirrors ARTIQ's scheduler picking a
+# job up off the queue). Kept short so the demo/screenshot workflow doesn't
+# involve real waiting.
+_SUBMIT_PENDING_DELAY_S = 2.0
+# A plain (non-ndscan) submission has no live dataset to stream, so it just
+# stays "running" for this long before being removed from the schedule.
+_PLAIN_RUN_DURATION_S = 4.0
+# How long a completed run's schedule item lingers (status `run_done`) before
+# being dropped, matching a real ARTIQ master's brief post-completion delay.
+_RUN_CLEANUP_DELAY_S = 4.0
+# ndscan's real "run forever" sentinel for `scan.num_repeats`.
+_INFINITE_REPEATS = 2147483647
+# Safety valve: a submission whose declared point count would be enormous
+# (e.g. num_repeats close to infinite but not quite) loops a single pass
+# forever instead of trying to actually stream that many points.
+_MAX_DEMO_POINTS = 4000
+# Points are revealed a few at a time per tick so a huge scan doesn't take
+# forever to visibly progress, while a small one still streams over several
+# ticks rather than appearing all at once.
+_POINTS_PER_TICK_TARGET_TICKS = 40
+
+# Generic dataset channels used for freshly *submitted* runs (as opposed to
+# the seeded RabiFlop/repeat demos, which have their own themed channels):
+# `reference` is a negative-priority diagnostic (hidden by default) and
+# `atom_number` is large-scale, so a submitted run also exercises the Plots
+# view's scale-based channel grouping.
+_GENERIC_SCAN_CHANNELS: Dict[str, Any] = {
+    "signal": {"path": "signal", "description": "Excitation", "type": "float", "scale": 1.0, "unit": ""},
+    "reference": {
+        "path": "reference",
+        "description": "Reference",
+        "type": "float",
+        "scale": 1.0,
+        "unit": "",
+        "display_hints": {"priority": -1},
+    },
+    "atom_number": {"path": "atom_number", "description": "Atom number", "type": "float", "scale": 1.0, "unit": ""},
+}
+
+
+def _linspace(start: float, stop: float, n: int) -> List[float]:
+    if n <= 1:
+        return [start]
+    step = (stop - start) / (n - 1)
+    return [start + step * i for i in range(n)]
+
 
 _RID = 1
 _PREFIX = f"ndscan.rid_{_RID}"
@@ -421,9 +480,10 @@ _RABI_FLOP_CLASS = "RabiFlop"
 
 # The ndscan_params *value* (not the arginfo descriptor) for the running
 # schedule item RID 4823: a single linear axis on rabi.pulse_duration with 101
-# points, so the frontend's progress derivation (state/useLiveRun.js
-# runProgress()) reads a real "N/101" from expid.arguments.ndscan_params
-# instead of a hardcoded string.
+# points x 2 repeats, so the frontend's progress derivation (state/useLiveRun.js
+# runProgress()) reads a real "N/202" from expid.arguments.ndscan_params
+# instead of a hardcoded string — see _RABI_SCAN_REPEATS below, which the
+# seeded live dataset (ndscan.rid_4823) actually streams to match.
 _RID_4823_NDSCAN_PARAMS = json.dumps(
     {
         "overrides": {},
@@ -436,7 +496,7 @@ _RID_4823_NDSCAN_PARAMS = json.dumps(
                     "path": "",
                 }
             ],
-            "num_repeats": 1,
+            "num_repeats": 2,
             "no_axes_mode": "single",
             "randomise_order_globally": False,
         },
@@ -510,28 +570,40 @@ _MOCK_EXPLIST = {
 }
 
 
-# ── 1D frequency-scan mocks ──────────────────────────────────────────────────
-# Two runs of the same experiment so the timeline can offer one as a ghost
-# overlay of the other. rid_4823 is live and reveals its points in randomized
-# order with repeats; rid_4821 is a completed run with a shifted resonance.
-_SCAN1D_FQN = "mock.MockFreqScan"
-# Renumbered to match the mock schedule: the live run's RID (4823) matches the
-# running RabiFlop schedule item, so the frontend can find its live data by
-# extracting the RID from the schedule and looking up the matching dataset
-# prefix. The ghost run (4821) just needs to be distinct from it.
-_SCAN1D_GHOST_PREFIX = "ndscan.rid_4821"
-_SCAN1D_LIVE_PREFIX = "ndscan.rid_4823"
+# ── Seeded RabiFlop 1D scans (ghost + live) ──────────────────────────────────
+# Two runs of *the same experiment as the running schedule item* so the
+# timeline can offer one as a ghost overlay of the other, and so the live
+# pane's identity (fragment name, scanned axis, RID) is coherent end to end:
+# RID 4823's schedule item declares a 101-point rabi.pulse_duration scan (see
+# _RID_4823_NDSCAN_PARAMS above), and this dataset actually is that scan.
+# rid_4823 is live and reveals its points in randomized order with repeats;
+# rid_4821 is a completed run at a shifted phase, usable as a ghost overlay.
+def _derive_fragment_fqn(file: str, class_name: str) -> str:
+    """Best-effort mirror of ndscan's `Fragment.fqn` (module + qualname) for a
+    module imported from *file* — matches the JS port `deriveFragmentFqn` in
+    `mockAdapter.js`, used for freshly submitted runs. Applied here too so the
+    seeded RabiFlop demo's fragment_fqn is derived the same way, rather than
+    hand-typed and liable to drift from it."""
+    module_path = file[:-3] if file.endswith(".py") else file
+    module_path = module_path.replace("/", ".")
+    return f"{module_path}.{class_name}"
 
-# `signal` (small scale, the important channel) plus a large-scale (~10⁴–10⁵)
-# `atom_number`: their unrelated scales make the frontend's scale-based fallback
-# group `atom_number` onto its own plot, exercising the fix for crushed shared
-# y-axes. `reference` is a negative-priority diagnostic, hidden by default so the
-# plot opens on `signal`/`atom_number` until the user enables it.
-_SCAN1D_CHANNELS = {
-    "signal": {"path": "signal", "description": "Excitation", "type": "float", "scale": 1.0, "unit": ""},
-    "reference": {
-        "path": "reference",
-        "description": "Reference",
+
+_RABI_SCAN_FQN = _derive_fragment_fqn(_RABI_FLOP_FILE, _RABI_FLOP_CLASS)
+_RABI_GHOST_PREFIX = "ndscan.rid_4821"
+_RABI_LIVE_PREFIX = "ndscan.rid_4823"
+
+# `excitation` (small scale, the important channel) plus a large-scale
+# (~10⁴–10⁵) `atom_number`: their unrelated scales make the frontend's
+# scale-based fallback group `atom_number` onto its own plot, exercising the
+# fix for crushed shared y-axes. `dark_counts` is a negative-priority
+# diagnostic, hidden by default so the plot opens on `excitation`/
+# `atom_number` until the user enables it.
+_RABI_SCAN_CHANNELS = {
+    "excitation": {"path": "excitation", "description": "Excitation", "type": "float", "scale": 1.0, "unit": ""},
+    "dark_counts": {
+        "path": "dark_counts",
+        "description": "Dark-state photon counts",
         "type": "float",
         "scale": 1.0,
         "unit": "",
@@ -540,52 +612,61 @@ _SCAN1D_CHANNELS = {
     "atom_number": {"path": "atom_number", "description": "Atom number", "type": "float", "scale": 1.0, "unit": ""},
 }
 
-# One scanned axis: detuning in MHz. Mirrors the schema ndscan writes to the
-# `.axes` dataset (see ndscan's test_experiment_entrypoint fixtures).
-_SCAN1D_AXIS = {
-    "increment": 5.0,
-    "max": 25.0,
-    "min": -25.0,
-    "path": "*",
+# The scanned axis is rabi.pulse_duration itself (raw seconds, same as the
+# `range` above — ndscan's `.axes`/`.points.axis_0` datasets are always in raw
+# param units, never display-scaled), built from the same hand-written schema
+# body used for the RabiFlop arginfo so the two can't drift apart.
+_RABI_PULSE_DURATION_SCHEMA = _hand_written_rabi_flop_params()["rabi.pulse_duration"]
+_RABI_SCAN_RANGE = {"start": 1e-6, "stop": 5e-5, "num_points": 101}
+_RABI_SCAN_X_POINTS = _linspace(_RABI_SCAN_RANGE["start"], _RABI_SCAN_RANGE["stop"], _RABI_SCAN_RANGE["num_points"])
+_RABI_SCAN_AXIS = {
+    "increment": (_RABI_SCAN_RANGE["stop"] - _RABI_SCAN_RANGE["start"]) / (_RABI_SCAN_RANGE["num_points"] - 1),
+    "max": _RABI_SCAN_RANGE["stop"],
+    "min": _RABI_SCAN_RANGE["start"],
+    "path": "",
     "param": {
-        "default": "0.0",
-        "description": "Detuning",
-        "fqn": _SCAN1D_FQN + ".detuning",
-        "unit": "MHz",
-        "type": "float",
-        "spec": {"is_scannable": True, "scale": 1.0, "step": 1.0},
+        "fqn": "rabi.pulse_duration",
+        "unit": _RABI_PULSE_DURATION_SCHEMA["spec"]["unit"],
+        **_RABI_PULSE_DURATION_SCHEMA,
     },
 }
 
-# 11 distinct x points, each measured _SCAN1D_REPEATS times.
-_SCAN1D_X_POINTS = [-25.0 + 5.0 * i for i in range(11)]
-_SCAN1D_REPEATS = 4
+# Each x point is measured _RABI_SCAN_REPEATS times (matching the schedule
+# item's declared num_repeats: 2, see _RID_4823_NDSCAN_PARAMS) so the total
+# streamed point count agrees with the "N/202" progress the frontend derives
+# from the schedule item, and so the randomized-order-with-repeats behaviour
+# exercises Plot1D's per-x mean/SEM error-bar rendering.
+_RABI_SCAN_REPEATS = 2
+# The ghost run's phase is shifted from the live run's so the overlay is
+# visibly distinguishable (a ghost of an identical curve would be pointless).
+_RABI_GHOST_PHASE_SHIFT = 3e-6
+_RABI_PERIOD_S = 12e-6  # ~12 us Rabi period, chosen to show a few oscillations across the 1-50 us scan range
 
 
-def _scan1d_sample(x: float, center: float) -> Dict[str, float]:
-    """A noisy Lorentzian resonance in `signal`, a flat-ish `reference`, and a
-    large-scale `atom_number` (~10⁴–10⁵) that tracks the resonance."""
-    width = 6.0
-    lorentzian = 1.0 / (1.0 + ((x - center) / width) ** 2)
-    signal = 0.12 + 0.8 * lorentzian + random.gauss(0, 0.05)
-    reference = 0.5 + random.gauss(0, 0.03)
-    atom_number = 50000.0 + 30000.0 * lorentzian + random.gauss(0, 3000.0)
-    return {"signal": signal, "reference": reference, "atom_number": atom_number}
+def _rabi_sample(t: float, phase_shift: float) -> Dict[str, float]:
+    """A noisy Rabi oscillation in `excitation` as a function of pulse
+    duration *t* (raw seconds), a flat-ish `dark_counts` diagnostic, and a
+    large-scale `atom_number` (~10⁴–10⁵) that tracks the oscillation."""
+    excitation = 0.5 - 0.5 * math.cos(2 * math.pi * (t - phase_shift) / _RABI_PERIOD_S)
+    excitation = max(0.0, min(1.0, excitation + random.gauss(0, 0.04)))
+    dark_counts = 0.5 + random.gauss(0, 0.03)
+    atom_number = 50000.0 + 30000.0 * excitation + random.gauss(0, 3000.0)
+    return {"excitation": excitation, "dark_counts": dark_counts, "atom_number": atom_number}
 
 
-def _scan1d_schedule() -> List[float]:
-    """A randomized measurement order: each x point repeated _SCAN1D_REPEATS times."""
-    plan = [x for x in _SCAN1D_X_POINTS for _ in range(_SCAN1D_REPEATS)]
+def _rabi_scan_plan() -> List[float]:
+    """A randomized measurement order: each x point repeated _RABI_SCAN_REPEATS times."""
+    plan = [x for x in _RABI_SCAN_X_POINTS for _ in range(_RABI_SCAN_REPEATS)]
     random.shuffle(plan)
     return plan
 
 
-def _scan1d_static(prefix: str, completed: bool) -> Dict[str, Any]:
-    """Static (metadata) datasets shared by both 1D runs."""
+def _rabi_scan_static(prefix: str, completed: bool) -> Dict[str, Any]:
+    """Static (metadata) datasets shared by both RabiFlop 1D runs."""
     return {
-        f"{prefix}.axes": [False, json.dumps([_SCAN1D_AXIS]), {}],
-        f"{prefix}.channels": [False, json.dumps(_SCAN1D_CHANNELS), {}],
-        f"{prefix}.fragment_fqn": [False, _SCAN1D_FQN, {}],
+        f"{prefix}.axes": [False, json.dumps([_RABI_SCAN_AXIS]), {}],
+        f"{prefix}.channels": [False, json.dumps(_RABI_SCAN_CHANNELS), {}],
+        f"{prefix}.fragment_fqn": [False, _RABI_SCAN_FQN, {}],
         f"{prefix}.completed": [False, completed, {}],
     }
 
@@ -739,6 +820,122 @@ class MockDatasetsSubscriber:
                 logger.exception("Error in mock dataset callback")
 
 
+# ── Freshly-submitted ndscan run helpers ─────────────────────────────────────
+# Ports of the equivalent logic in mockAdapter.js (getNdscanJson,
+# axisPointValues, axisDescriptorForDataset, cartesianProduct,
+# buildShuffledPlan, sampleChannelsGeneric, nudgeCenter) — kept in sync by
+# hand so a submitted run behaves identically in both mocks. These are
+# free functions (as opposed to the ndscan_builder.py/ndscan_validation.py
+# modules that actually build/validate the *request*) because by the time
+# `_start_run_from_expid` runs, the request has already been accepted and
+# turned into an ExpID; this only concerns itself with turning that ExpID's
+# ndscan_params back into believable streamed data.
+
+
+def _get_ndscan_json(arguments: Dict[str, Any]) -> Optional[str]:
+    v = (arguments or {}).get("ndscan_params")
+    if v is None:
+        return None
+    if isinstance(v, str):
+        return v
+    if isinstance(v, list) and v:
+        spec = v[0]
+        if isinstance(spec, dict) and isinstance(spec.get("default"), str):
+            return spec["default"]
+    return None
+
+
+def _axis_point_values(axis_wire: Dict[str, Any]) -> List[float]:
+    rng = axis_wire.get("range") or {}
+    gtype = axis_wire.get("type")
+    if gtype == "list":
+        return list(rng.get("values") or [])
+    if gtype == "linear":
+        return _linspace(float(rng["start"]), float(rng["stop"]), int(rng["num_points"]))
+    if gtype == "centre_span":
+        centre = float(rng["centre"])
+        half_span = float(rng["half_span"])
+        return _linspace(centre - half_span, centre + half_span, int(rng["num_points"]))
+    return [0.0]
+
+
+def _extract_schemata_from_arginfo(arginfo: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    if not arginfo:
+        return {}
+    ndscan_params = arginfo.get("ndscan_params")
+    if not isinstance(ndscan_params, list) or not ndscan_params:
+        return {}
+    spec = ndscan_params[0]
+    if not isinstance(spec, dict) or not isinstance(spec.get("default"), str):
+        return {}
+    try:
+        parsed = json.loads(spec["default"])
+    except (TypeError, ValueError):
+        return {}
+    schemata = parsed.get("schemata") if isinstance(parsed, dict) else None
+    return schemata if isinstance(schemata, dict) else {}
+
+
+def _axis_descriptor_for_dataset(
+    axis_wire: Dict[str, Any], arginfo: Optional[Dict[str, Any]], values: List[float]
+) -> Dict[str, Any]:
+    lo, hi = min(values), max(values)
+    increment = (hi - lo) / (len(values) - 1) if len(values) > 1 else 0.0
+    schema = _extract_schemata_from_arginfo(arginfo).get(axis_wire["fqn"])
+    if schema:
+        param = dict(schema)
+        param["unit"] = (schema.get("spec") or {}).get("unit", "")
+    else:
+        param = {
+            "default": "0",
+            "description": axis_wire["fqn"],
+            "type": "float",
+            "spec": {"is_scannable": True, "scale": 1},
+            "unit": "",
+        }
+    param.setdefault("fqn", axis_wire["fqn"])
+    return {"increment": increment, "max": hi, "min": lo, "path": axis_wire.get("path", "*"), "param": param}
+
+
+def _cartesian_product(value_arrays: List[List[float]]) -> List[List[float]]:
+    acc: List[List[float]] = [[]]
+    for values in value_arrays:
+        acc = [prefix_pt + [v] for prefix_pt in acc for v in values]
+    return acc
+
+
+def _build_shuffled_plan(grid: List[List[float]], repeats: int) -> List[List[float]]:
+    plan: List[List[float]] = []
+    for _ in range(repeats):
+        plan.extend(grid)
+    random.shuffle(plan)
+    return plan
+
+
+def _sample_channels_generic(pt: List[float], center: List[float], axis_spans: List[tuple]) -> Dict[str, float]:
+    dist_sq = 0.0
+    for i, value in enumerate(pt):
+        lo, hi = axis_spans[i]
+        span = (hi - lo) or 1.0
+        norm = (value - center[i]) / (span * 0.25)
+        dist_sq += norm * norm
+    bump = 1.0 / (1.0 + dist_sq)
+    return {
+        "signal": 0.12 + 0.8 * bump + random.gauss(0, 0.05),
+        "reference": 0.5 + random.gauss(0, 0.03),
+        "atom_number": max(0.0, 50000.0 + 30000.0 * bump + random.gauss(0, 3000.0)),
+    }
+
+
+def _nudge_center(run: Dict[str, Any]) -> None:
+    new_center = []
+    for c, (lo, hi) in zip(run["center"], run["axis_spans"]):
+        span = (hi - lo) or 1.0
+        candidate = c + (random.random() * 2 - 1) * span * 0.15
+        new_center.append(max(lo, min(hi, candidate)))
+    run["center"] = new_center
+
+
 class MockSubscriberManager:
     """Drop-in replacement for SubscriberManager used in mock mode."""
 
@@ -753,16 +950,29 @@ class MockSubscriberManager:
         }
         self._task: asyncio.Task | None = None
         self._started = False
-        # Live 1D scan progress (rid_4823): a randomized measurement schedule that
-        # is revealed one point per tick and reshuffled once exhausted.
-        self._scan1d_schedule: List[float] = []
-        self._scan1d_idx = 0
-        self._scan1d_center = 0.0
+        # Live RabiFlop scan progress (rid_4823): a randomized measurement plan
+        # that is revealed one point per tick and reshuffled once exhausted.
+        # This seeded demo runs forever (it never leaves the schedule) — unlike
+        # genuinely *submitted* runs, see _active_runs below.
+        self._rabi_scan_plan_state: List[float] = []
+        self._rabi_scan_idx = 0
+        self._rabi_scan_phase_shift = 0.0
         # In-memory mock schedule (RID -> ScheduleItem-shaped dict), seeded with
         # a running and a pending item; submit()/cancel() mutate this directly so
         # the submit -> queue -> live flow is exercisable without a real master.
         self._schedule: Dict[int, Dict[str, Any]] = {}
         self._next_rid = _FIRST_ALLOCATED_RID
+        # Genuinely submitted runs go through pending -> running -> (streaming
+        # points ->) completed/removed. `_active_runs` holds the streaming state
+        # for runs currently revealing points (see _begin_ndscan_run /
+        # _tick_ndscan_run); `_pending_activation_tasks` holds each submission's
+        # pending->running timer; `_cleanup_tasks` holds either a completed run's
+        # removal timer or a plain (non-ndscan) submission's auto-completion
+        # timer. All are cancelled/cleared on cancel()/stop() so nothing fires
+        # after a RID is gone or the manager is torn down.
+        self._active_runs: Dict[int, Dict[str, Any]] = {}
+        self._pending_activation_tasks: Dict[int, asyncio.Task] = {}
+        self._cleanup_tasks: Dict[int, asyncio.Task] = {}
 
     async def start(self) -> None:
         if self._started:
@@ -784,28 +994,29 @@ class MockSubscriberManager:
         self._schedule = {rid: dict(item) for rid, item in _SCHEDULE_SEED.items()}
         self._next_rid = _FIRST_ALLOCATED_RID
 
-        # Seed the completed 1D ghost run (rid_4821): a full sweep with a shifted
-        # resonance so it visibly differs from the live run.
-        self._datasets_sub._data.update(_scan1d_static(_SCAN1D_GHOST_PREFIX, completed=True))
+        # Seed the completed RabiFlop ghost run (rid_4821): a full sweep at a
+        # shifted phase so it visibly differs from the live run.
+        self._datasets_sub._data.update(_rabi_scan_static(_RABI_GHOST_PREFIX, completed=True))
         ghost_axis: List[float] = []
-        ghost_channels: Dict[str, List[float]] = {k: [] for k in _SCAN1D_CHANNELS}
-        for x in _scan1d_schedule():
-            sample = _scan1d_sample(x, center=-8.0)
+        ghost_channels: Dict[str, List[float]] = {k: [] for k in _RABI_SCAN_CHANNELS}
+        for x in _rabi_scan_plan():
+            sample = _rabi_sample(x, _RABI_GHOST_PHASE_SHIFT)
             ghost_axis.append(x)
-            for k in _SCAN1D_CHANNELS:
+            for k in _RABI_SCAN_CHANNELS:
                 ghost_channels[k].append(sample[k])
-        self._datasets_sub._data[f"{_SCAN1D_GHOST_PREFIX}.points.axis_0"] = [False, ghost_axis, {}]
+        self._datasets_sub._data[f"{_RABI_GHOST_PREFIX}.points.axis_0"] = [False, ghost_axis, {}]
         for k, vals in ghost_channels.items():
-            self._datasets_sub._data[f"{_SCAN1D_GHOST_PREFIX}.points.channel_{k}"] = [False, vals, {}]
+            self._datasets_sub._data[f"{_RABI_GHOST_PREFIX}.points.channel_{k}"] = [False, vals, {}]
 
-        # Seed the live 1D run (rid_4823) metadata and a randomized schedule.
-        # Points are revealed in the update loop.
-        self._datasets_sub._data.update(_scan1d_static(_SCAN1D_LIVE_PREFIX, completed=False))
-        self._scan1d_schedule = _scan1d_schedule()
-        self._scan1d_idx = 0
-        self._datasets_sub._data[f"{_SCAN1D_LIVE_PREFIX}.points.axis_0"] = [False, [], {}]
-        for k in _SCAN1D_CHANNELS:
-            self._datasets_sub._data[f"{_SCAN1D_LIVE_PREFIX}.points.channel_{k}"] = [False, [], {}]
+        # Seed the live RabiFlop run (rid_4823) metadata and a randomized measurement
+        # plan matching the running schedule item. Points are revealed in the update loop.
+        self._datasets_sub._data.update(_rabi_scan_static(_RABI_LIVE_PREFIX, completed=False))
+        self._rabi_scan_plan_state = _rabi_scan_plan()
+        self._rabi_scan_idx = 0
+        self._rabi_scan_phase_shift = 0.0
+        self._datasets_sub._data[f"{_RABI_LIVE_PREFIX}.points.axis_0"] = [False, [], {}]
+        for k in _RABI_SCAN_CHANNELS:
+            self._datasets_sub._data[f"{_RABI_LIVE_PREFIX}.points.channel_{k}"] = [False, [], {}]
 
         self._task = asyncio.create_task(self._update_loop())
         self._started = True
@@ -818,6 +1029,14 @@ class MockSubscriberManager:
                 await self._task
             except asyncio.CancelledError:
                 pass
+        pending_tasks = [*self._pending_activation_tasks.values(), *self._cleanup_tasks.values()]
+        for task in pending_tasks:
+            task.cancel()
+        if pending_tasks:
+            await asyncio.gather(*pending_tasks, return_exceptions=True)
+        self._pending_activation_tasks.clear()
+        self._cleanup_tasks.clear()
+        self._active_runs.clear()
         self._started = False
         logger.info("Mock backend stopped")
 
@@ -834,32 +1053,215 @@ class MockSubscriberManager:
                     spec["key"],
                     [False, _generate_image(spec["size"], spec["kind"], seed=i * 1.7), {}],
                 )
-            self._step_live_scan1d()
+            self._step_live_rabi_scan()
+            for rid in list(self._active_runs):
+                run = self._active_runs.get(rid)
+                if run is not None:
+                    self._tick_ndscan_run(run)
 
-    def _step_live_scan1d(self) -> None:
-        """Reveal the next point of the live 1D scan, restarting the sweep when
-        it completes (with a slowly drifting resonance to keep it lively)."""
-        prefix = _SCAN1D_LIVE_PREFIX
-        if self._scan1d_idx >= len(self._scan1d_schedule):
-            # Sweep complete — reshuffle, nudge the resonance, and start over.
-            self._scan1d_schedule = _scan1d_schedule()
-            self._scan1d_idx = 0
-            self._scan1d_center = max(-15.0, min(15.0, self._scan1d_center + random.uniform(-4.0, 4.0)))
+    def _step_live_rabi_scan(self) -> None:
+        """Reveal the next point of the seeded live RabiFlop scan (rid_4823),
+        restarting the sweep when it completes (with a slowly drifting phase to
+        keep it lively). This is the perpetual demo run — see `_tick_ndscan_run`
+        for the (terminating) lifecycle of a genuinely submitted scan."""
+        prefix = _RABI_LIVE_PREFIX
+        if self._rabi_scan_idx >= len(self._rabi_scan_plan_state):
+            # Sweep complete — reshuffle, nudge the phase, and start over.
+            self._rabi_scan_plan_state = _rabi_scan_plan()
+            self._rabi_scan_idx = 0
+            self._rabi_scan_phase_shift = max(
+                _RABI_SCAN_RANGE["start"],
+                min(_RABI_SCAN_RANGE["stop"], self._rabi_scan_phase_shift + random.uniform(-5e-6, 5e-6)),
+            )
             self._datasets_sub._set_and_notify(f"{prefix}.points.axis_0", [False, [], {}])
-            for k in _SCAN1D_CHANNELS:
+            for k in _RABI_SCAN_CHANNELS:
                 self._datasets_sub._set_and_notify(f"{prefix}.points.channel_{k}", [False, [], {}])
 
-        x = self._scan1d_schedule[self._scan1d_idx]
-        self._scan1d_idx += 1
-        sample = _scan1d_sample(x, self._scan1d_center)
+        x = self._rabi_scan_plan_state[self._rabi_scan_idx]
+        self._rabi_scan_idx += 1
+        sample = _rabi_sample(x, self._rabi_scan_phase_shift)
 
         axis = list(self._datasets_sub._data[f"{prefix}.points.axis_0"][1])
         axis.append(x)
         self._datasets_sub._set_and_notify(f"{prefix}.points.axis_0", [False, axis, {}])
-        for k in _SCAN1D_CHANNELS:
+        for k in _RABI_SCAN_CHANNELS:
             vals = list(self._datasets_sub._data[f"{prefix}.points.channel_{k}"][1])
             vals.append(sample[k])
             self._datasets_sub._set_and_notify(f"{prefix}.points.channel_{k}", [False, vals, {}])
+
+    # ── Genuinely submitted runs: pending -> running -> streaming -> completed ──
+
+    async def _activate_submission(self, rid: int) -> None:
+        """After the pending delay, flip *rid* to `running` and start its data
+        (unless it was cancelled in the meantime)."""
+        try:
+            await asyncio.sleep(_SUBMIT_PENDING_DELAY_S)
+        except asyncio.CancelledError:
+            return
+        self._pending_activation_tasks.pop(rid, None)
+        item = self._schedule.get(rid)
+        if item is None or item["status"] != "pending":
+            return
+        item["status"] = "running"
+        self._start_run_from_expid(rid, item["expid"])
+
+    def _start_run_from_expid(self, rid: int, expid: Dict[str, Any]) -> None:
+        raw = _get_ndscan_json(expid.get("arguments") or {})
+        if raw is None:
+            # Plain (non-ndscan) experiment: nothing to stream. Simulate a quick
+            # job rather than leaving a "running" item stuck forever with no
+            # live data.
+            task = asyncio.create_task(self._complete_plain_after_delay(rid))
+            self._cleanup_tasks[rid] = task
+            return
+        try:
+            parsed = json.loads(raw)
+        except (TypeError, ValueError):
+            return
+        scan = parsed.get("scan") if isinstance(parsed, dict) else None
+        axes = (scan or {}).get("axes") or []
+        num_repeats = (scan or {}).get("num_repeats", 1)
+        arginfo = self.examine_experiment(expid.get("file"), expid.get("class_name"))
+        self._begin_ndscan_run(rid, expid, axes, num_repeats, arginfo)
+
+    async def _complete_plain_after_delay(self, rid: int) -> None:
+        try:
+            await asyncio.sleep(_PLAIN_RUN_DURATION_S)
+        except asyncio.CancelledError:
+            return
+        self._cleanup_tasks.pop(rid, None)
+        self._schedule.pop(rid, None)
+
+    def _begin_zero_axis_run(self, rid: int, prefix: str, fragment_fqn: str) -> None:
+        """No scanned axes: a real ndscan 0D run measures once and completes
+        immediately (see `_NoAxisRunner` in ndscan/experiment/entry_point.py),
+        so this publishes one point and completes rather than ticking forever
+        like the always-live 0D repeat demo (`_PREFIX`, rid_1) does."""
+        sub = self._datasets_sub
+        sample = {
+            "signal": 0.5 + random.gauss(0, 0.05),
+            "reference": 0.5 + random.gauss(0, 0.03),
+            "atom_number": 50000.0 + random.gauss(0, 3000.0),
+        }
+        sub._set_and_notify(f"{prefix}.axes", [False, "[]", {}])
+        sub._set_and_notify(f"{prefix}.channels", [False, json.dumps(_GENERIC_SCAN_CHANNELS), {}])
+        sub._set_and_notify(f"{prefix}.fragment_fqn", [False, fragment_fqn, {}])
+        for key, value in sample.items():
+            sub._set_and_notify(f"{prefix}.point.{key}", [False, value, {}])
+        sub._set_and_notify(f"{prefix}.completed", [False, True, {}])
+        self._finish_run(rid, prefix)
+
+    def _begin_ndscan_run(
+        self,
+        rid: int,
+        expid: Dict[str, Any],
+        axes_wire: List[Dict[str, Any]],
+        num_repeats_raw: Any,
+        arginfo: Optional[Dict[str, Any]],
+    ) -> None:
+        prefix = f"ndscan.rid_{rid}"
+        fragment_fqn = _derive_fragment_fqn(expid["file"], expid["class_name"])
+
+        if not axes_wire:
+            self._begin_zero_axis_run(rid, prefix, fragment_fqn)
+            return
+
+        value_arrays = [_axis_point_values(ax) for ax in axes_wire]
+        descriptors = [_axis_descriptor_for_dataset(ax, arginfo, vals) for ax, vals in zip(axes_wire, value_arrays)]
+        sub = self._datasets_sub
+        sub._set_and_notify(f"{prefix}.axes", [False, json.dumps(descriptors), {}])
+        sub._set_and_notify(f"{prefix}.channels", [False, json.dumps(_GENERIC_SCAN_CHANNELS), {}])
+        sub._set_and_notify(f"{prefix}.fragment_fqn", [False, fragment_fqn, {}])
+        sub._set_and_notify(f"{prefix}.completed", [False, False, {}])
+        for i in range(len(axes_wire)):
+            sub._set_and_notify(f"{prefix}.points.axis_{i}", [False, [], {}])
+        for key in _GENERIC_SCAN_CHANNELS:
+            sub._set_and_notify(f"{prefix}.points.channel_{key}", [False, [], {}])
+
+        grid = _cartesian_product(value_arrays)
+        grid_size = len(grid)
+        num_repeats = num_repeats_raw if isinstance(num_repeats_raw, int) else 1
+        is_infinite = num_repeats == _INFINITE_REPEATS
+        finite_total = None if is_infinite else grid_size * max(1, num_repeats)
+        loop_forever = is_infinite or grid_size == 0 or (finite_total is not None and finite_total > _MAX_DEMO_POINTS)
+
+        center = [vals[int(len(vals) * 0.4)] if vals else 0.0 for vals in value_arrays]
+        run: Dict[str, Any] = {
+            "rid": rid,
+            "prefix": prefix,
+            "num_axes": len(axes_wire),
+            "grid": grid,
+            "center": center,
+            "axis_spans": [(min(vals), max(vals)) for vals in value_arrays],
+            "loop_forever": loop_forever,
+            "plan": _build_shuffled_plan(grid, 1 if loop_forever else max(1, num_repeats)),
+            "idx": 0,
+            "done": False,
+        }
+        run["points_per_tick"] = max(1, math.ceil(len(run["plan"]) / _POINTS_PER_TICK_TARGET_TICKS))
+        self._active_runs[rid] = run
+
+    def _append_point(self, run: Dict[str, Any], pt: List[float]) -> None:
+        sub = self._datasets_sub
+        for i in range(run["num_axes"]):
+            key = f"{run['prefix']}.points.axis_{i}"
+            arr = list(sub._data.get(key, [False, [], {}])[1])
+            arr.append(pt[i])
+            sub._set_and_notify(key, [False, arr, {}])
+        sample = _sample_channels_generic(pt, run["center"], run["axis_spans"])
+        for ch_key, value in sample.items():
+            key = f"{run['prefix']}.points.channel_{ch_key}"
+            arr = list(sub._data.get(key, [False, [], {}])[1])
+            arr.append(value)
+            sub._set_and_notify(key, [False, arr, {}])
+
+    def _reset_run_points(self, run: Dict[str, Any]) -> None:
+        sub = self._datasets_sub
+        for i in range(run["num_axes"]):
+            sub._set_and_notify(f"{run['prefix']}.points.axis_{i}", [False, [], {}])
+        for key in _GENERIC_SCAN_CHANNELS:
+            sub._set_and_notify(f"{run['prefix']}.points.channel_{key}", [False, [], {}])
+
+    def _tick_ndscan_run(self, run: Dict[str, Any]) -> None:
+        if run["done"]:
+            return
+        remaining = run["points_per_tick"]
+        while remaining > 0:
+            if run["idx"] >= len(run["plan"]):
+                if run["loop_forever"]:
+                    run["plan"] = _build_shuffled_plan(run["grid"], 1)
+                    run["idx"] = 0
+                    _nudge_center(run)
+                    self._reset_run_points(run)
+                else:
+                    run["done"] = True
+                    self._finish_run(run["rid"], run["prefix"])
+                    return
+            if run["idx"] >= len(run["plan"]):
+                return  # defensive: empty grid
+            self._append_point(run, run["plan"][run["idx"]])
+            run["idx"] += 1
+            remaining -= 1
+
+    def _finish_run(self, rid: int, prefix: str) -> None:
+        """Mark *rid*'s dataset completed and its schedule item `run_done`, then
+        remove it from the schedule after a short delay — mirroring a real
+        ARTIQ master dropping a finished run off the queue."""
+        self._active_runs.pop(rid, None)
+        self._datasets_sub._set_and_notify(f"{prefix}.completed", [False, True, {}])
+        item = self._schedule.get(rid)
+        if item is not None:
+            item["status"] = "run_done"
+        task = asyncio.create_task(self._cleanup_after_delay(rid))
+        self._cleanup_tasks[rid] = task
+
+    async def _cleanup_after_delay(self, rid: int) -> None:
+        try:
+            await asyncio.sleep(_RUN_CLEANUP_DELAY_S)
+        except asyncio.CancelledError:
+            return
+        self._cleanup_tasks.pop(rid, None)
+        self._schedule.pop(rid, None)
 
     # ── SubscriberManager interface ──────────────────────────────────────────
 
@@ -896,6 +1298,11 @@ class MockSubscriberManager:
         control_schedule.submit_experiment's real-master signature so the API
         layer can call either one interchangeably in mock mode.
 
+        The item stays `pending` until `_activate_submission` (scheduled below)
+        flips it to `running` after `_SUBMIT_PENDING_DELAY_S` and starts
+        streaming its data, so the caller sees a realistic queue -> live
+        lifecycle rather than a submission stuck pending forever.
+
         Returns the new integer RID.
         """
         rid = self._next_rid
@@ -910,12 +1317,21 @@ class MockSubscriberManager:
             "expid": expid,
         }
         logger.info("Mock schedule: submitted RID %d (%s/%s)", rid, expid.get("file"), expid.get("class_name"))
+        self._pending_activation_tasks[rid] = asyncio.create_task(self._activate_submission(rid))
         return rid
 
     def cancel(self, rid: int) -> bool:
-        """Remove *rid* from the mock schedule. Returns False if it was absent."""
+        """Remove *rid* from the mock schedule (and stop/clean up any streaming
+        or pending-activation state for it). Returns False if it was absent."""
         removed = self._schedule.pop(rid, None) is not None
         if removed:
+            run = self._active_runs.pop(rid, None)
+            if run is not None:
+                self._datasets_sub._set_and_notify(f"{run['prefix']}.completed", [False, True, {}])
+            for task_map in (self._pending_activation_tasks, self._cleanup_tasks):
+                task = task_map.pop(rid, None)
+                if task is not None:
+                    task.cancel()
             logger.info("Mock schedule: cancelled RID %d", rid)
         return removed
 

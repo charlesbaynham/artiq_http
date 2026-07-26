@@ -11,7 +11,7 @@
       "file": "Spectroscopy/rabi_flop.py",
       "class_name": "RabiFlop",
       "arguments": {
-        "ndscan_params": "{\"overrides\": {}, \"scan\": {\"axes\": [{\"type\": \"linear\", \"range\": {\"start\": 1e-06, \"stop\": 5e-05, \"num_points\": 101, \"randomise_order\": false}, \"fqn\": \"rabi.pulse_duration\", \"path\": \"\"}], \"num_repeats\": 1, \"no_axes_mode\": \"single\", \"randomise_order_globally\": false}}"
+        "ndscan_params": "{\"overrides\": {}, \"scan\": {\"axes\": [{\"type\": \"linear\", \"range\": {\"start\": 1e-06, \"stop\": 5e-05, \"num_points\": 101, \"randomise_order\": false}, \"fqn\": \"rabi.pulse_duration\", \"path\": \"\"}], \"num_repeats\": 2, \"no_axes_mode\": \"single\", \"randomise_order_globally\": false}}"
       },
       "repo_rev": null
     }

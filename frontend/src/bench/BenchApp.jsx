@@ -114,7 +114,7 @@ function BenchApp() {
           show={connectionError !== null}
         />
         {isMobile ? (
-          <MobileApp explist={explist} />
+          <MobileApp explist={explist} isOnline={connectionError === null} />
         ) : (
           <BenchWorkspace
             explist={explist}
@@ -136,6 +136,13 @@ function BenchWorkspace({ explist, isOnline }) {
   const isNarrow = useIsNarrow();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [narrowTab, setNarrowTab] = useState("submit");
+  // The live pane's "⤢ expand" (IMPL-SPEC handoff, Column 3): collapses the
+  // icon rail and submit pane, giving the live pane the full workspace
+  // width. Local to the workspace (not session-persisted — it's a transient
+  // view state, not something worth restoring across reloads). Reset when
+  // navigating away from "/" so the rail/submit pane don't stay hidden on
+  // /runs, /datasets, /logs.
+  const [expanded, setExpanded] = useState(false);
 
   const {
     items: scheduleItems,
@@ -168,8 +175,10 @@ function BenchWorkspace({ explist, isOnline }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, searchParams, explist.experiments]);
 
-  // ⌘K / Ctrl+K opens the palette from anywhere; Esc closes it. Shortcuts
-  // other than ⌘K itself don't fire while focus is in a text input.
+  // ⌘K / Ctrl+K opens the palette from anywhere; Esc closes the palette if
+  // open, else restores from the expanded live pane if that's open.
+  // Shortcuts other than ⌘K itself don't fire while focus is in a text
+  // input.
   useEffect(() => {
     const onKeyDown = (e) => {
       const mod = e.metaKey || e.ctrlKey;
@@ -179,11 +188,24 @@ function BenchWorkspace({ explist, isOnline }) {
         return;
       }
       if (isTextInputTarget(document.activeElement)) return;
-      if (e.key === "Escape") setPaletteOpen(false);
+      if (e.key === "Escape") {
+        if (paletteOpen) setPaletteOpen(false);
+        else if (expanded) setExpanded(false);
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [paletteOpen, expanded]);
+
+  // The expanded live pane only makes sense on "/" — reset it on navigating
+  // away so the rail/submit pane don't stay hidden on /runs, /datasets, /logs.
+  // (Reads `location.pathname` directly rather than the `pathname` const
+  // declared further down, which isn't in scope yet at this point in the
+  // component body.)
+  useEffect(() => {
+    if (location.pathname !== "/" && expanded) setExpanded(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   const handleQueueClick = useCallback(() => {
     if (location.pathname === "/") {
@@ -210,7 +232,7 @@ function BenchWorkspace({ explist, isOnline }) {
         onOpenPalette={() => setPaletteOpen(true)}
         onQueueClick={handleQueueClick}
       />
-      <div className="bs-body">
+      <div className={cx("bs-body", expanded && "is-expanded")}>
         <IconRail explist={explist} />
         <div className="bs-content">
           {pathname === "/" && (
@@ -260,6 +282,8 @@ function BenchWorkspace({ explist, isOnline }) {
                     scheduleItems={scheduleItems}
                     cancel={cancel}
                     loading={scheduleLoading}
+                    expanded={expanded}
+                    onToggleExpanded={() => setExpanded((v) => !v)}
                   />
                 </ErrorBoundary>
               </div>

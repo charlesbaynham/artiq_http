@@ -127,13 +127,15 @@ function LivePlotCard({
   ghostCandidate,
   onToggleGhost,
   onGhostChange,
+  onPlotData,
+  expanded,
+  onToggleExpanded,
 }) {
   const [showRails, setShowRails] = useState(false);
   const [channelsSummary, setChannelsSummary] = useState({
     visible: 0,
     total: 0,
   });
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const cardRef = useRef(null);
   const plotWrapRef = useRef(null);
@@ -146,20 +148,18 @@ function LivePlotCard({
     setChannelsSummary({ visible: 0, total: 0 });
   }, [liveRun.prefix]);
 
-  useEffect(() => {
-    const onChange = () =>
-      setIsFullscreen(document.fullscreenElement === cardRef.current);
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
-  }, []);
-
-  const toggleExpand = useCallback(() => {
-    if (document.fullscreenElement === cardRef.current) {
-      document.exitFullscreen().catch(() => {});
-    } else if (cardRef.current?.requestFullscreen) {
-      cardRef.current.requestFullscreen().catch(() => {});
-    }
-  }, []);
+  // Forward the embedded PlotsApp's raw SSE payload to the host (LivePane),
+  // which feeds it back into its own `useLiveRun()` call — see
+  // `useLiveRun`'s `feed` option — so the readout row and this plot share
+  // one EventSource instead of opening two for the same prefix.
+  const prefixForData = liveRun.prefix;
+  const handlePlotData = useCallback(
+    (rawData) => {
+      if (!onPlotData || !prefixForData) return;
+      onPlotData(prefixForData, rawData);
+    },
+    [onPlotData, prefixForData],
+  );
 
   const handleCopy = useCallback(async () => {
     const plotsAppEl = plotWrapRef.current?.querySelector(".plots-app");
@@ -197,7 +197,7 @@ function LivePlotCard({
   return (
     <section
       ref={cardRef}
-      className={cx("b-card", "bl-live-card", isFullscreen && "is-expanded")}
+      className={cx("b-card", "bl-live-card", expanded && "is-expanded")}
     >
       <PanelHeader className="bl-live-head">
         <Caption>live</Caption>
@@ -245,10 +245,17 @@ function LivePlotCard({
         <button
           type="button"
           className="bl-icon-btn b-mono"
-          onClick={toggleExpand}
-          title={isFullscreen ? "Exit fullscreen" : "Expand plot fullscreen"}
+          onClick={onToggleExpanded}
+          disabled={!onToggleExpanded}
+          title={
+            expanded
+              ? "Restore the workspace"
+              : "Expand the plot to the full workspace"
+          }
           aria-label={
-            isFullscreen ? "Exit fullscreen" : "Expand plot fullscreen"
+            expanded
+              ? "Restore the workspace"
+              : "Expand the plot to the full workspace"
           }
         >
           ⤢
@@ -267,6 +274,7 @@ function LivePlotCard({
               onChannelsSummary={setChannelsSummary}
               ghostPrefixes={ghostPrefix ? [ghostPrefix] : []}
               onGhostChange={onGhostChange}
+              onData={handlePlotData}
             />
           </div>
         ) : (
@@ -339,6 +347,14 @@ LivePlotCard.propTypes = {
   ghostCandidate: PropTypes.object,
   onToggleGhost: PropTypes.func,
   onGhostChange: PropTypes.func,
+  // (prefix, rawData) => void — forwards the embedded PlotsApp's raw SSE
+  // payload so the host can feed it back into its own useLiveRun() call
+  // instead of opening a second EventSource (IMPL-SPEC §7 wave-2 polish).
+  onPlotData: PropTypes.func,
+  // Shell-level "expand to full workspace" state (BenchApp), replacing the
+  // browser Fullscreen API this card used before BenchApp existed.
+  expanded: PropTypes.bool,
+  onToggleExpanded: PropTypes.func,
 };
 
 export default LivePlotCard;

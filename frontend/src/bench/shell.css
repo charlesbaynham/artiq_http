@@ -467,6 +467,23 @@
   font-size: 12px;
 }
 
+/* ── Expanded live pane (handoff: "⤢ expands the plot to the full
+   workspace — rail and submit pane collapse") ────────────────────────────
+   Triggered by LivePlotCard's `⤢` button via BenchApp's `expanded` state
+   (wave-2 polish — this card previously used the browser Fullscreen API,
+   which predates BenchApp having any notion of its own layout to collapse).
+   Esc restores (handled in BenchApp's keydown effect). Purely a display:none
+   on the two panes the design calls out; the live pane already fills
+   whatever space remains via its existing flex:1, so no extra width rule is
+   needed once its neighbours are gone. */
+.bs-body.is-expanded .bs-rail {
+  display: none;
+}
+
+.bs-body.is-expanded .bs-pane--submit {
+  display: none;
+}
+
 /* ── Responsive (IMPL-SPEC §11) ───────────────────────────────────────────── */
 
 /* 900–1200px: submit pane shrinks to min-width:520px. The 262px fragment
