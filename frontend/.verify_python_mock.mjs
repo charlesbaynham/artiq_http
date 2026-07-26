@@ -37,7 +37,9 @@ async function main() {
   // Find and pin the rabi.pulse_duration axis as a scan axis. Use the
   // fragment tree search field to locate it quickly.
   const searchInput = page
-    .locator('input[type="text"], input[placeholder*="ilter" i], input[placeholder*="earch" i]')
+    .locator(
+      'input[type="text"], input[placeholder*="ilter" i], input[placeholder*="earch" i]',
+    )
     .first();
   if (await searchInput.count()) {
     await searchInput.fill("pulse_duration");

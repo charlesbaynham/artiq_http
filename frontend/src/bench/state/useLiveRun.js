@@ -304,7 +304,7 @@ export function useLiveRun({
   } = useSSEDataset(prefix, { enabled: enabled && !!prefix && !feedMatches });
 
   const data = feedMatches ? feed.data : ownData;
-  const sseError = feedMatches ? (feed.error ?? null) : ownSseError;
+  const sseError = feedMatches ? feed.error ?? null : ownSseError;
   // The feed's own subscription state isn't ours to see, but its presence
   // implies "connected enough to have data" once it has delivered anything;
   // before that, report CONNECTING rather than guessing further.

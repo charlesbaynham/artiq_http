@@ -76,7 +76,9 @@ function axisSummary(axis, paramsByFqn) {
     return `list[${(r.values || []).length}]${unit}`;
   }
   if (axis?.type === "centre_span") {
-    return `${fmt(r.centre)} ± ${fmt(r.half_span)}${unit} · ${r.num_points} pts`;
+    return `${fmt(r.centre)} ± ${fmt(r.half_span)}${unit} · ${
+      r.num_points
+    } pts`;
   }
   return `${fmt(r.start)} → ${fmt(r.stop)}${unit} · ${r.num_points} pts`;
 }
