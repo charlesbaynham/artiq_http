@@ -13,4 +13,8 @@ config = {
     # a branch name (e.g. "master") to instead always target that ref regardless of
     # whatever revision the ARTIQ master currently has checked out.
     "default_revision": os.getenv("ARTIQ_HTTP_DEFAULT_REVISION", ""),
+    # Path to the JSON file backing the lab-wide presets/favourites store (see
+    # artiq_http/artiq_api/presets_store.py). Not ARTIQ-dependent, so it works the
+    # same in mock and real modes. Parent directories are created on first write.
+    "presets_file": os.getenv("ARTIQ_HTTP_PRESETS_FILE", os.path.expanduser("~/.artiq_http/presets.json")),
 }

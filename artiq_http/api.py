@@ -361,7 +361,13 @@ async def cancel_experiment(rid: int, force: bool = False) -> None:
         force (bool): If True, forcibly close the experiment instead of requesting closure
     """
     if config.get("mock"):
-        raise HTTPException(503, "Mock mode: experiment control not available")
+        # Mock mode has no real scheduler to distinguish a graceful request from a
+        # forced delete — both simply remove the RID from the mock schedule.
+        from .artiq_api.persistent_subscriber import subscriber_manager
+
+        if not subscriber_manager.cancel(rid):
+            raise HTTPException(404, f"RID {rid} not found in schedule")
+        return
 
     schedule = await api.notifiers.get_schedule()
 
@@ -681,20 +687,26 @@ async def submit_experiment(
         SubmitAndWaitResult with *rid*, *status*, *timed_out*, and *error*
         fields when it is True.
     """
-    if config.get("mock"):
-        raise HTTPException(503, "Mock mode: experiment control not available")
-
     await _validate_expid_ndscan(expid)
-    try:
-        rid = await api.control_schedule.submit_experiment(
-            expid,
-            pipeline,
-            priority,
-            flush,
-            due_date,
-        )
-    except ValueError as e:
-        raise HTTPException(422, str(e))
+
+    if config.get("mock"):
+        # No real scheduler to submit to — the mock manager allocates a RID and
+        # inserts a pending schedule item so the submit -> queue -> live flow is
+        # exercisable offline (see mock_backend.MockSubscriberManager.submit).
+        from .artiq_api.persistent_subscriber import subscriber_manager
+
+        rid = subscriber_manager.submit(expid.model_dump(), pipeline, priority, flush, due_date)
+    else:
+        try:
+            rid = await api.control_schedule.submit_experiment(
+                expid,
+                pipeline,
+                priority,
+                flush,
+                due_date,
+            )
+        except ValueError as e:
+            raise HTTPException(422, str(e))
 
     if wait_for_completion:
         return await _wait_for_rid_completion(rid, min(timeout, 21600.0))
@@ -727,6 +739,8 @@ async def _build_scan_expid(
             axes,
             fixed_params=req.fixed_params,
             num_repeats=req.num_repeats,
+            skip_on_persistent_transitory_error=req.skip_on_persistent_transitory_error,
+            randomise_order_globally=req.randomise_order_globally,
         )
     except ValueError as e:
         msg = str(e)
@@ -767,9 +781,6 @@ async def submit_scan(
         SubmitAndWaitResult with *rid*, *status*, *timed_out*, and *error*
         fields when it is True.
     """
-    if config.get("mock"):
-        raise HTTPException(503, "Mock mode: experiment control not available")
-
     expid, arginfo = await _build_scan_expid(req)
     # Validate against the arginfo the params were built from. For a by-ref scan
     # this is the revision's arginfo (not the master's current one), so FQNs are
@@ -777,20 +788,78 @@ async def submit_scan(
     error = api.ndscan_validation.validate_ndscan_params(expid.arguments, arginfo)
     if error:
         raise HTTPException(422, error)
-    try:
-        rid = await api.control_schedule.submit_experiment(
-            expid,
-            req.pipeline,
-            req.priority,
-            req.flush,
-            req.due_date,
-        )
-    except ValueError as e:
-        raise HTTPException(422, str(e))
+
+    if config.get("mock"):
+        # See submit_experiment(): the mock manager stands in for the real
+        # scheduler so ndscan submission is exercisable offline too. The
+        # ndscan_params built above (from the mock's own RabiFlop arginfo) are
+        # used as-is, so a mock scan submission looks exactly like a real one.
+        from .artiq_api.persistent_subscriber import subscriber_manager
+
+        rid = subscriber_manager.submit(expid.model_dump(), req.pipeline, req.priority, req.flush, req.due_date)
+    else:
+        try:
+            rid = await api.control_schedule.submit_experiment(
+                expid,
+                req.pipeline,
+                req.priority,
+                req.flush,
+                req.due_date,
+            )
+        except ValueError as e:
+            raise HTTPException(422, str(e))
 
     if wait_for_completion:
         return await _wait_for_rid_completion(rid, min(timeout, 21600.0))
     return rid
+
+
+# ── Presets and favourites ────────────────────────────────────────────────────
+#
+# Lab-wide, unauthenticated presets persisted to a single JSON file (see
+# artiq_http/artiq_api/presets_store.py). Not ARTIQ-dependent — these routes
+# work identically in mock and real modes.
+
+
+@router.get("/presets")
+async def get_presets(
+    file: str | None = None,
+    class_name: str | None = None,
+    favourites_only: bool = False,
+) -> api.models.PresetList:
+    """List saved presets, optionally filtered by experiment identity and/or favourite status.
+
+    Args:
+        file: Only return presets saved for this experiment file.
+        class_name: Only return presets saved for this experiment class.
+        favourites_only: Only return presets with ``favourite == True``.
+    """
+    presets = await api.presets_store.list_presets(file=file, class_name=class_name, favourites_only=favourites_only)
+    return api.models.PresetList(presets=[api.models.Preset.model_validate(p) for p in presets])
+
+
+@router.post("/presets")
+async def create_preset(preset: api.models.PresetCreate) -> api.models.Preset:
+    """Save a new preset. The server generates ``id``, ``created_at`` and ``updated_at``."""
+    created = await api.presets_store.create_preset(preset.model_dump())
+    return api.models.Preset.model_validate(created)
+
+
+@router.put("/presets/{preset_id}")
+async def update_preset(preset_id: str, preset: api.models.PresetCreate) -> api.models.Preset:
+    """Replace an existing preset's contents, keeping its id and created_at."""
+    updated = await api.presets_store.update_preset(preset_id, preset.model_dump())
+    if updated is None:
+        raise HTTPException(404, f"Preset {preset_id} not found")
+    return api.models.Preset.model_validate(updated)
+
+
+@router.delete("/presets/{preset_id}")
+async def delete_preset(preset_id: str) -> None:
+    """Delete a preset by id. 404 if it does not exist."""
+    deleted = await api.presets_store.delete_preset(preset_id)
+    if not deleted:
+        raise HTTPException(404, f"Preset {preset_id} not found")
 
 
 app.include_router(router, prefix="/api")

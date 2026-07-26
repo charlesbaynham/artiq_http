@@ -55,6 +55,27 @@ file loaded by the process manager, or `docker/compose.yml`):
   `master` to instead always target that ref regardless of whichever revision the
   ARTIQ master currently has checked out. Exposed to the frontend as
   `default_revision_fallback` on `GET /api/explist`.
+- `ARTIQ_HTTP_PRESETS_FILE` - path to the JSON file backing the presets/favourites
+  store (see "Presets" below). Defaults to `~/.artiq_http/presets.json`.
+
+## Presets
+
+There is no database and no auth/user concept in this project. Presets — saved
+scan/session configurations used by the frontend's "quick check" menu and mobile
+favourites list — are a lab-wide convenience persisted to a single JSON file,
+read/written by `artiq_http/artiq_api/presets_store.py` under an `asyncio.Lock`
+(whole-file read-modify-write, atomic temp-file + `os.replace` on write). The
+file path comes from `config["presets_file"]` / `ARTIQ_HTTP_PRESETS_FILE`; a
+missing or corrupt file is tolerated (logged and treated as empty) rather than
+raising, and parent directories are created on first write. Presets are not
+ARTIQ-dependent, so they work identically in mock and real modes.
+
+Routes: `GET /api/presets` (optional `file`, `class_name`, `favourites_only`
+filters), `POST /api/presets`, `PUT /api/presets/{id}`, `DELETE /api/presets/{id}`
+(404 when absent). The server generates `id` (uuid4 hex) and `created_at`/
+`updated_at` (`time.time()`) on create, and refreshes `updated_at` on update.
+`working_set` is opaque passthrough — the server stores and returns it verbatim
+(it's the frontend's `WorkingSetEntry[]`) and never interprets its contents.
 
 ## MCP Server
 
@@ -92,6 +113,13 @@ treat these as parity gaps): `GET /api/datasets` full dump (too large — use th
 `list_dataset_names` / `get_dataset_values` tools instead), `GET /api/datasets/stream/...`
 (SSE streaming, not MCP-shaped), the `fields`/`full` query filters on the
 `explist` endpoints (MCP returns the curated form), and `GET /api/` (hello-world).
+
+`list_presets` / `get_preset` mirror `GET /api/presets` and are deliberately
+**read-only** — there are no `create_preset`/`update_preset`/`delete_preset`
+tools. Presets are a human UI affordance (the bench frontend's "quick check"
+menu and mobile favourites list); an agent has no business silently creating or
+overwriting a human's saved scan configurations, so writing presets stays a
+browser-only action. This is a decision, not a parity gap.
 
 **Compact-by-default rule:** the listing tools return trimmed payloads so an
 agent is not flooded by bulk it rarely needs (chiefly a running ndscan scan's
@@ -135,7 +163,11 @@ uv run python -m artiq_http.main --mock
 # or: ARTIQ_HTTP_MOCK=1 uv run python -m artiq_http.main
 ```
 
-The mock serves a live 0D repeat single-point NDScan (`ndscan.rid_1`) with four channels (Signal A–D) updating every 0.5 s, so the Plots view has data to render immediately. It also serves two 1D frequency-scan NDScans of the same experiment (`mock.MockFreqScan`): a completed run (`ndscan.rid_2`) that can be toggled on as a ghost overlay, and a live run (`ndscan.rid_3`) whose points stream in a randomized order with repeats at each x. The live run exercises the Plot1D line rendering, which sorts points by their scanned-axis value and draws the connecting line through the per-x mean with standard-error-of-the-mean error bars. The 1D scan has three channels — two small-scale 0–1 channels (`signal`, `reference`) and one large-scale (`atom_number`, ~10⁴–10⁵) — with no display hints, so it also exercises the Plots view's channel grouping: channels are split into separate stacked plots (each with its own y-scale) by order-of-magnitude of their values (similar scales share a plot; only very different scales split), so `atom_number` renders on its own plot rather than crushing the 0–1 channels flat. Explicit ndscan `share_axis_with` hints are still honoured, but only to *force* channels onto a shared axis — they never split otherwise-similar channels apart. It also serves five animated camera images of differing sizes and patterns (`camera_image`, `mot_fluorescence_image`, `ion_chain_image`, `background_image`, `absorption_image`), so the Plots image view can be exercised with multiple images at once. Schedule is empty; experiment submission and cancellation return 503. No ARTIQ stack or Docker is required.
+The mock serves a live 0D repeat single-point NDScan (`ndscan.rid_1`) with four channels (Signal A–D) updating every 0.5 s, so the Plots view has data to render immediately. It also serves two 1D frequency-scan NDScans of the same experiment (`mock.MockFreqScan`): a completed run (`ndscan.rid_4821`) that can be toggled on as a ghost overlay, and a live run (`ndscan.rid_4823`) whose points stream in a randomized order with repeats at each x — renumbered to `4821`/`4823` so the live run's RID matches the running schedule item below. The live run exercises the Plot1D line rendering, which sorts points by their scanned-axis value and draws the connecting line through the per-x mean with standard-error-of-the-mean error bars. The 1D scan has three channels — two small-scale 0–1 channels (`signal`, `reference`) and one large-scale (`atom_number`, ~10⁴–10⁵) — with no display hints, so it also exercises the Plots view's channel grouping: channels are split into separate stacked plots (each with its own y-scale) by order-of-magnitude of their values (similar scales share a plot; only very different scales split), so `atom_number` renders on its own plot rather than crushing the 0–1 channels flat. Explicit ndscan `share_axis_with` hints are still honoured, but only to *force* channels onto a shared axis — they never split otherwise-similar channels apart. It also serves five animated camera images of differing sizes and patterns (`camera_image`, `mot_fluorescence_image`, `ion_chain_image`, `background_image`, `absorption_image`), so the Plots image view can be exercised with multiple images at once.
+
+The explist also includes `RabiFlop` (`Spectroscopy/rabi_flop.py`), a synthetic ndscan experiment with a large, realistically nested 214-parameter fragment tree (`cooling.*`, `eit.*`, `rabi.*`, `readout.*`, `trap.*`, `laser.*`, `magnet.*`, `dds.*`, `ion.*`, `sequence.*`, `calibration.*`), generated in ndscan's real wire format (see `_build_rabi_flop_schemata` in `mock_backend.py`). A handful of parameters are hand-written to match the design exactly (`cooling.doppler.freq`, `cooling.doppler.blue_beam_power`, `rabi.pulse_duration`, `rabi.detuning`, `rabi.n_repeats`, `readout.threshold`); the rest are generated with plausible one-sentence physics descriptions, spanning float/int/bool/string/enum types and both depth-2 (`group.leaf`) and depth-3 (`group.subgroup.leaf`) FQNs. `MockRepeatExperiment` and `MockFreqScan` also now carry small non-empty *plain* (non-ndscan) arginfo, so the plain-argument submit path is exercisable too.
+
+The mock **schedule starts pre-populated**: RID `4823` is a *running* `RabiFlop` scan whose `expid.arguments.ndscan_params` declares a genuine 101-point linear scan on `rabi.pulse_duration`, and RID `4824` is a *pending* `CalibrateTrapFreq` placeholder. **Submission now succeeds in mock mode**: `POST /api/schedule` and `POST /api/scan` allocate a RID from a counter starting at `4825`, insert a `pending` schedule item, and return the RID; `POST /api/cancel` removes it (404 if the RID is absent). This is a deliberate behaviour change from the old always-503 mock — it's what makes the submit → queue → live flow developable and screenshot-testable offline. No ARTIQ stack or Docker is required.
 
 The mock backend lives in `artiq_http/mock_backend.py`. It replaces the global `subscriber_manager` singleton at startup, so all API paths behave normally.
 

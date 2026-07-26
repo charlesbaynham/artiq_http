@@ -9,20 +9,29 @@ Serves one 0D repeat single-point NDScan (ndscan.rid_1) with four channels
 whose values drift sinusoidally with Gaussian noise, updating every 0.5 s.
 
 Also serves two 1D frequency-scan NDScans of the same experiment
-(mock.MockFreqScan): a completed run (ndscan.rid_2) usable as a ghost overlay,
-and a live run (ndscan.rid_3) whose points stream in a *randomized* order with
-repeats at each x. The randomized order with repeats exercises the Plot1D line
-rendering, which sorts points by x and draws the line through the per-x mean
-with standard-error-of-the-mean error bars.
+(mock.MockFreqScan): a completed run (ndscan.rid_4821) usable as a ghost
+overlay, and a live run (ndscan.rid_4823) whose points stream in a
+*randomized* order with repeats at each x. The randomized order with repeats
+exercises the Plot1D line rendering, which sorts points by x and draws the
+line through the per-x mean with standard-error-of-the-mean error bars.
+
+The explist also includes MockRabiFlop, a large (214-parameter) ndscan
+experiment with a realistically nested fragment tree, and the mock schedule
+starts pre-populated with a running RID (4823, RabiFlop) and a pending RID
+(4824, CalibrateTrapFreq) so the queue/live UI has content immediately.
+Submitting (POST /api/schedule or /api/scan) and cancelling (POST
+/api/cancel) work against this in-memory mock schedule — RIDs are allocated
+from a counter starting at 4825.
 """
 
 import asyncio
+import itertools
 import json
 import logging
 import math
 import random
 import time
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -74,11 +83,410 @@ _STATIC_DATASETS: Dict[str, Any] = {
     f"{_PREFIX}.completed": [False, False, {}],
 }
 
+
+# ── Plain (non-ndscan) arginfo for MockRepeatExperiment / MockFreqScan ───────
+# ARTIQ's real arginfo shape is {arg_name: [type_str, spec_dict, group, tooltip]}
+# (see notifiers.extract_arginfo_defaults and tests/test_agent_endpoints.py's
+# ARGINFO fixture) — a handful of small, non-empty entries here exercises the
+# non-ndscan submit path (plain NumberValue/BooleanValue/StringValue/
+# EnumerationValue args) that used to be untestable against the mock backend.
+_REPEAT_EXPERIMENT_ARGINFO: Dict[str, Any] = {
+    "repeat_count": [
+        "NumberValue",
+        {"default": 100, "unit": "", "scale": 1, "step": 1, "min": 1, "max": None, "ndecimals": 0},
+        "Repeat",
+        "Number of repeat measurements to take",
+    ],
+    "enable_averaging": [
+        "BooleanValue",
+        {"default": True},
+        "Repeat",
+        "Average the signal over the repeat window before recording it",
+    ],
+    "notes": [
+        "StringValue",
+        {"default": "mock run"},
+        "Repeat",
+        "Free-form notes recorded alongside the run",
+    ],
+}
+
+_FREQ_SCAN_ARGINFO: Dict[str, Any] = {
+    "center_frequency": [
+        "NumberValue",
+        {"default": 0.0, "unit": "MHz", "scale": 1e6, "step": 1e5, "min": -50e6, "max": 50e6, "ndecimals": 3},
+        "Scan",
+        "Center of the manual frequency sweep",
+    ],
+    "averaging_mode": [
+        "EnumerationValue",
+        {"choices": ["fast", "precise"], "default": "fast"},
+        "Scan",
+        "Averaging strategy used at each point",
+    ],
+    "camera_enabled": [
+        "BooleanValue",
+        {"default": False},
+        "Diagnostics",
+        "Enable auxiliary camera capture during the scan",
+    ],
+}
+
+
+# ── MockRabiFlop: a large, realistically-nested ndscan experiment ───────────
+#
+# The mock previously returned arginfo: {} for every experiment, which made
+# the new submit UI (fragment tree, working set, scan axes) impossible to
+# develop or screenshot against. RabiFlop is a synthetic ndscan experiment
+# whose 214-parameter schema is generated programmatically below (with a
+# handful of parameters hand-written so their wording/units match the design
+# exactly), in ndscan's real wire format — see FloatParam/IntParam/BoolParam/
+# StringParam/EnumParam.describe() in
+# .agents/deps/ndscan/ndscan/experiment/parameters.py, which this mirrors:
+# {"fqn", "description", "type", "default" (always a STRING), "spec"
+# ({"is_scannable", "scale", "step", "min", "max", "unit"} for numeric types),
+# "explanation"}.
+
+# kind -> (python type name, unit, scale, is_scannable, one-sentence description template).
+# Defaults are expressed in raw (unscaled) units, exactly as real ndscan stores
+# them; the UI is expected to divide by `scale` to display them in `unit`.
+_KIND_SPECS: Dict[str, tuple] = {
+    "freq": ("float", "MHz", 1e6, True, "Frequency of the {ctx}"),
+    "detuning": ("float", "MHz", 1e6, True, "Detuning of the {ctx} from resonance"),
+    "power": ("float", "mW", 1e-3, True, "Optical power delivered to the {ctx}"),
+    "duration": ("float", "us", 1e-6, True, "Duration of the {ctx} pulse"),
+    "amplitude": ("float", "", 1.0, True, "Amplitude of the {ctx} drive, in units of full scale"),
+    "current": ("float", "mA", 1e-3, True, "Current supplied to the {ctx}"),
+    "voltage": ("float", "V", 1.0, True, "Voltage applied to the {ctx}"),
+    "gain": ("float", "", 1.0, True, "Feedback gain for the {ctx} servo loop"),
+    "delay": ("float", "us", 1e-6, True, "Timing delay inserted before the {ctx} step"),
+    "phase": ("float", "", 1.0, True, "Phase offset applied to the {ctx}"),
+    "offset": ("float", "", 1.0, True, "Constant offset added to the {ctx} setpoint"),
+    "rate": ("float", "", 1.0, True, "Rate of change applied to the {ctx}"),
+    "attenuation": ("float", "dB", 1.0, True, "Attenuation applied to the {ctx}"),
+    "temperature": ("float", "", 1.0, True, "Target temperature associated with the {ctx}"),
+    "threshold": ("int", "", 1, False, "Threshold used to discriminate the {ctx}"),
+    "count": ("int", "", 1, False, "Number of repeats used for the {ctx}"),
+    "flag": ("bool", "", 1, False, "Enables the {ctx}"),
+    "mode": ("enum", "", 1, False, "Operating mode selected for the {ctx}"),
+    "label": ("string", "", 1, False, "Identifying label recorded for the {ctx}"),
+}
+
+_ENUM_MEMBER_SETS: List[Dict[str, str]] = [
+    {"FAST": "fast", "PRECISE": "precise", "SAFE": "safe"},
+    {"LOW": "low", "MEDIUM": "medium", "HIGH": "high"},
+    {"AUTO": "auto", "MANUAL": "manual"},
+]
+
+_COMPONENT_WORDS = [
+    "beam",
+    "aom",
+    "eom",
+    "shutter",
+    "lock",
+    "coil",
+    "electrode",
+    "channel",
+    "servo",
+    "sensor",
+    "cavity",
+    "grating",
+    "mirror",
+    "photodiode",
+    "trigger",
+    "gate",
+    "window",
+    "reference",
+    "loop",
+    "stage",
+]
+
+# Group name -> (total leaf count, subgroup names). A group with no subgroups
+# has all its leaves directly at depth 2 (group.leaf); a group with subgroups
+# gets a mix of depth-2 and depth-3 (group.subgroup.leaf) leaves, so the
+# resulting fragment tree is genuinely nested at both depths. Total leaves
+# across all groups (including the hand-written ones below) is exactly 214.
+_RABI_FLOP_GROUPS: Dict[str, tuple] = {
+    "cooling": (18, ["doppler", "sideband", "repump", "mot"]),
+    "eit": (11, ["pump", "probe", "two_photon"]),
+    "rabi": (6, []),
+    "readout": (9, ["camera", "pmt"]),
+    "trap": (14, ["rf", "dc", "compensation"]),
+    "laser": (30, ["repump_laser", "cooling_laser", "raman", "clock"]),
+    "magnet": (20, ["bias", "gradient", "shim"]),
+    "dds": (25, ["channel_a", "channel_b", "channel_c"]),
+    "ion": (25, ["loading", "chain", "micromotion"]),
+    "sequence": (25, ["timing", "triggers", "gating"]),
+    "calibration": (31, ["frequency", "power", "alignment", "drift"]),
+}
+
+
+def _kind_schema(kind: str, ctx: str, seed: int) -> Dict[str, Any]:
+    """Build a schema body (everything describe() returns except 'fqn') for one
+    leaf of the given *kind*, with a deterministic-but-varied default value."""
+    ty, unit, scale, scannable, template = _KIND_SPECS[kind]
+    description = template.format(ctx=ctx)
+
+    if ty == "float":
+        display_value = 1.0 + (seed % 7) * 0.5
+        default_raw = display_value * scale if scale else display_value
+        spec: Dict[str, Any] = {"is_scannable": scannable, "scale": scale, "step": (scale or 1.0) / 10.0}
+        if unit:
+            spec["unit"] = unit
+        return {
+            "description": description,
+            "type": "float",
+            "default": str(default_raw),
+            "spec": spec,
+            "explanation": "",
+        }
+
+    if ty == "int":
+        default = 1 + (seed % 20)
+        return {
+            "description": description,
+            "type": "int",
+            "default": str(default),
+            "spec": {"is_scannable": scannable, "scale": 1},
+            "explanation": "",
+        }
+
+    if ty == "bool":
+        default = seed % 2 == 0
+        return {
+            "description": description,
+            "type": "bool",
+            "default": str(default),
+            "spec": {"is_scannable": scannable},
+            "explanation": "",
+        }
+
+    if ty == "string":
+        default_word = ctx.split()[0] if ctx.split() else "default"
+        return {
+            "description": description,
+            "type": "string",
+            "default": repr(default_word),
+            "spec": {"is_scannable": scannable},
+            "explanation": "",
+        }
+
+    # enum
+    members = _ENUM_MEMBER_SETS[seed % len(_ENUM_MEMBER_SETS)]
+    default_name = next(iter(members))
+    return {
+        "description": description,
+        "type": "enum",
+        "default": repr(default_name),
+        "spec": {"members": members, "is_scannable": scannable},
+        "explanation": "",
+    }
+
+
+def _hand_written_rabi_flop_params() -> Dict[str, Dict[str, Any]]:
+    """The handful of parameters whose wording/units are specified by the design,
+    keyed by FQN (schema body only, 'fqn' added by the caller)."""
+    return {
+        "cooling.doppler.freq": {
+            "description": "Doppler cooling beam detuning from resonance",
+            "type": "float",
+            "default": "3000000.0",
+            "spec": {"is_scannable": True, "scale": 1e6, "step": 1e5, "unit": "MHz"},
+            "explanation": "",
+        },
+        "cooling.doppler.blue_beam_power": {
+            "description": "Optical power in the 397 nm cooling beam",
+            "type": "float",
+            "default": "1.2",
+            "spec": {"is_scannable": True, "scale": 1.0, "step": 0.05},
+            "explanation": "",
+        },
+        "rabi.pulse_duration": {
+            "description": "Length of the driving pulse on the qubit transition",
+            "type": "float",
+            "default": "3e-05",
+            "spec": {"is_scannable": True, "scale": 1e-6, "step": 1e-7, "unit": "us"},
+            "explanation": "",
+        },
+        "rabi.detuning": {
+            "description": "Frequency offset of the drive from the carrier",
+            "type": "float",
+            "default": "0.0",
+            "spec": {"is_scannable": True, "scale": 1e6, "step": 1e4, "unit": "MHz"},
+            "explanation": "",
+        },
+        "rabi.n_repeats": {
+            "description": "Shots averaged at every point of the scan",
+            "type": "int",
+            "default": "50",
+            "spec": {"is_scannable": False, "scale": 1},
+            "explanation": "",
+        },
+        "readout.threshold": {
+            "description": "Photon count above which the ion is called bright",
+            "type": "int",
+            "default": "14",
+            "spec": {"is_scannable": False, "scale": 1},
+            "explanation": "",
+        },
+    }
+
+
+def _build_rabi_flop_schemata() -> tuple[Dict[str, Dict[str, Any]], Dict[str, List[str]], List[List[str]]]:
+    """Generate RabiFlop's full ndscan schema: 214 leaves across the groups in
+    _RABI_FLOP_GROUPS (18+11+6+9+14+30+20+25+25+25+31), a handful of which are
+    hand-written above so their wording matches the design exactly.
+
+    Returns (schemata, instances, always_shown) in ndscan's wire shapes:
+    schemata is {fqn: schema}; instances is {path: [fqn, ...]} (everything
+    lives on the top-level fragment, path ""); always_shown is a list of
+    [fqn, path] pairs (ndscan PYON-encodes these as tuples, but a plain list
+    round-trips through JSON and the frontend's parser tolerates both forms).
+    """
+    schemata: Dict[str, Dict[str, Any]] = {}
+    instances: Dict[str, List[str]] = {"": []}
+
+    def add(fqn: str, body: Dict[str, Any]) -> None:
+        schemata[fqn] = {"fqn": fqn, **body}
+        instances[""].append(fqn)
+
+    for fqn, body in _hand_written_rabi_flop_params().items():
+        add(fqn, body)
+
+    always_shown = [
+        [fqn, ""] for fqn in ("cooling.doppler.freq", "rabi.pulse_duration", "rabi.detuning", "readout.threshold")
+    ]
+
+    kind_cycle = itertools.cycle(_KIND_SPECS.keys())
+    seed = 0
+    for group, (total, subgroups) in _RABI_FLOP_GROUPS.items():
+        existing = sum(1 for fqn in schemata if fqn.split(".", 1)[0] == group)
+        remaining = total - existing
+        n_direct = remaining if not subgroups else min(remaining, max(0, round(remaining * 0.3)))
+        buckets: List[Optional[str]] = [None] * n_direct + list(
+            itertools.islice(itertools.cycle(subgroups or [None]), remaining - n_direct)
+        )
+
+        component_cycle = itertools.cycle(_COMPONENT_WORDS)
+        name_counts: Dict[tuple, int] = {}
+        for bucket in buckets:
+            kind = next(kind_cycle)
+            component = next(component_cycle)
+            key = (bucket, component, kind)
+            name_counts[key] = name_counts.get(key, 0) + 1
+            n = name_counts[key]
+            leaf = f"{component}_{kind}" if n == 1 else f"{component}_{kind}_{n}"
+            fqn = f"{group}.{bucket}.{leaf}" if bucket else f"{group}.{leaf}"
+            while fqn in schemata:  # pragma: no cover - defensive, not expected to trigger
+                seed += 1
+                leaf = f"{leaf}_{seed}"
+                fqn = f"{group}.{bucket}.{leaf}" if bucket else f"{group}.{leaf}"
+
+            ctx = f"{group} {bucket} {component}" if bucket else f"{group} {component}"
+            add(fqn, _kind_schema(kind, ctx, seed))
+            seed += 1
+
+    instances = {path: fqns for path, fqns in instances.items() if fqns}
+    return schemata, instances, always_shown
+
+
+def _build_rabi_flop_arginfo() -> Dict[str, Any]:
+    """Build MockRabiFlop's full arginfo: a single ndscan_params PYONValue whose
+    default decodes to {instances, schemata, always_shown, overrides, scan} in
+    ndscan's real format (see ArgumentInterface.build in
+    .agents/deps/ndscan/ndscan/experiment/entry_point.py)."""
+    schemata, instances, always_shown = _build_rabi_flop_schemata()
+    params_default = {
+        "instances": instances,
+        "schemata": schemata,
+        "always_shown": always_shown,
+        "overrides": {},
+        "scan": {"axes": [], "num_repeats": 1, "no_axes_mode": "single", "randomise_order_globally": False},
+    }
+    return {
+        "ndscan_params": [
+            {"ty": "PYONValue", "default": json.dumps(params_default)},
+            None,
+            None,
+        ]
+    }
+
+
+_RABI_FLOP_ARGINFO = _build_rabi_flop_arginfo()
+_RABI_FLOP_PARAM_COUNT = len(json.loads(_RABI_FLOP_ARGINFO["ndscan_params"][0]["default"])["schemata"])
+assert _RABI_FLOP_PARAM_COUNT == 214, f"expected 214 RabiFlop params, got {_RABI_FLOP_PARAM_COUNT}"
+
+_RABI_FLOP_FILE = "Spectroscopy/rabi_flop.py"
+_RABI_FLOP_CLASS = "RabiFlop"
+
+# The ndscan_params *value* (not the arginfo descriptor) for the running
+# schedule item RID 4823: a single linear axis on rabi.pulse_duration with 101
+# points, so the frontend's progress derivation (state/useLiveRun.js
+# runProgress()) reads a real "N/101" from expid.arguments.ndscan_params
+# instead of a hardcoded string.
+_RID_4823_NDSCAN_PARAMS = json.dumps(
+    {
+        "overrides": {},
+        "scan": {
+            "axes": [
+                {
+                    "type": "linear",
+                    "range": {"start": 1e-6, "stop": 5e-5, "num_points": 101, "randomise_order": False},
+                    "fqn": "rabi.pulse_duration",
+                    "path": "",
+                }
+            ],
+            "num_repeats": 1,
+            "no_axes_mode": "single",
+            "randomise_order_globally": False,
+        },
+    }
+)
+
+# The mock schedule starts pre-populated so the queue panel and live-status bar
+# have content immediately: RID 4823 is a running RabiFlop scan (101-point
+# pulse-duration sweep), RID 4824 is a pending CalibrateTrapFreq experiment
+# (not itself in the explist — it's just a plausible queued neighbour).
+_SCHEDULE_SEED: Dict[int, Dict[str, Any]] = {
+    4823: {
+        "pipeline": "main",
+        "priority": 0,
+        "due_date": None,
+        "flush": False,
+        "status": "running",
+        "repo_msg": None,
+        "expid": {
+            "log_level": 30,
+            "file": _RABI_FLOP_FILE,
+            "class_name": _RABI_FLOP_CLASS,
+            "arguments": {"ndscan_params": _RID_4823_NDSCAN_PARAMS},
+            "repo_rev": None,
+        },
+    },
+    4824: {
+        "pipeline": "main",
+        "priority": 0,
+        "due_date": None,
+        "flush": False,
+        "status": "pending",
+        "repo_msg": None,
+        "expid": {
+            "log_level": 30,
+            "file": "Calibration/calibrate_trap_freq.py",
+            "class_name": "CalibrateTrapFreq",
+            "arguments": {},
+            "repo_rev": None,
+        },
+    },
+}
+_FIRST_ALLOCATED_RID = 4825
+
+
 _MOCK_EXPLIST = {
     "MockRepeatExperiment": {
         "file": "mock_experiment.py",
         "class_name": "MockRepeatExperiment",
-        "arginfo": {},
+        "arginfo": _REPEAT_EXPERIMENT_ARGINFO,
         "argument_ui": None,
         "scheduler_defaults": {},
         "docstring": "Mock repeat experiment for frontend development",
@@ -86,21 +494,33 @@ _MOCK_EXPLIST = {
     "MockFreqScan": {
         "file": "mock_experiment.py",
         "class_name": "MockFreqScan",
-        "arginfo": {},
+        "arginfo": _FREQ_SCAN_ARGINFO,
         "argument_ui": None,
         "scheduler_defaults": {},
         "docstring": "Mock 1D frequency scan for frontend development",
+    },
+    _RABI_FLOP_CLASS: {
+        "file": _RABI_FLOP_FILE,
+        "class_name": _RABI_FLOP_CLASS,
+        "arginfo": _RABI_FLOP_ARGINFO,
+        "argument_ui": None,
+        "scheduler_defaults": {},
+        "docstring": "Mock Rabi flopping experiment (ndscan) with a large, realistically nested fragment tree",
     },
 }
 
 
 # ── 1D frequency-scan mocks ──────────────────────────────────────────────────
 # Two runs of the same experiment so the timeline can offer one as a ghost
-# overlay of the other. rid_3 is live and reveals its points in randomized
-# order with repeats; rid_2 is a completed run with a shifted resonance.
+# overlay of the other. rid_4823 is live and reveals its points in randomized
+# order with repeats; rid_4821 is a completed run with a shifted resonance.
 _SCAN1D_FQN = "mock.MockFreqScan"
-_SCAN1D_GHOST_PREFIX = "ndscan.rid_2"
-_SCAN1D_LIVE_PREFIX = "ndscan.rid_3"
+# Renumbered to match the mock schedule: the live run's RID (4823) matches the
+# running RabiFlop schedule item, so the frontend can find its live data by
+# extracting the RID from the schedule and looking up the matching dataset
+# prefix. The ghost run (4821) just needs to be distinct from it.
+_SCAN1D_GHOST_PREFIX = "ndscan.rid_4821"
+_SCAN1D_LIVE_PREFIX = "ndscan.rid_4823"
 
 # `signal` (small scale, the important channel) plus a large-scale (~10⁴–10⁵)
 # `atom_number`: their unrelated scales make the frontend's scale-based fallback
@@ -333,11 +753,16 @@ class MockSubscriberManager:
         }
         self._task: asyncio.Task | None = None
         self._started = False
-        # Live 1D scan progress (rid_3): a randomized measurement schedule that
+        # Live 1D scan progress (rid_4823): a randomized measurement schedule that
         # is revealed one point per tick and reshuffled once exhausted.
         self._scan1d_schedule: List[float] = []
         self._scan1d_idx = 0
         self._scan1d_center = 0.0
+        # In-memory mock schedule (RID -> ScheduleItem-shaped dict), seeded with
+        # a running and a pending item; submit()/cancel() mutate this directly so
+        # the submit -> queue -> live flow is exercisable without a real master.
+        self._schedule: Dict[int, Dict[str, Any]] = {}
+        self._next_rid = _FIRST_ALLOCATED_RID
 
     async def start(self) -> None:
         if self._started:
@@ -355,7 +780,11 @@ class MockSubscriberManager:
                 {},
             ]
 
-        # Seed the completed 1D ghost run (rid_2): a full sweep with a shifted
+        # Seed the mock schedule (RID 4823 running, RID 4824 pending).
+        self._schedule = {rid: dict(item) for rid, item in _SCHEDULE_SEED.items()}
+        self._next_rid = _FIRST_ALLOCATED_RID
+
+        # Seed the completed 1D ghost run (rid_4821): a full sweep with a shifted
         # resonance so it visibly differs from the live run.
         self._datasets_sub._data.update(_scan1d_static(_SCAN1D_GHOST_PREFIX, completed=True))
         ghost_axis: List[float] = []
@@ -369,8 +798,8 @@ class MockSubscriberManager:
         for k, vals in ghost_channels.items():
             self._datasets_sub._data[f"{_SCAN1D_GHOST_PREFIX}.points.channel_{k}"] = [False, vals, {}]
 
-        # Seed the live 1D run (rid_3) metadata and a randomized schedule. Points
-        # are revealed in the update loop.
+        # Seed the live 1D run (rid_4823) metadata and a randomized schedule.
+        # Points are revealed in the update loop.
         self._datasets_sub._data.update(_scan1d_static(_SCAN1D_LIVE_PREFIX, completed=False))
         self._scan1d_schedule = _scan1d_schedule()
         self._scan1d_idx = 0
@@ -453,7 +882,42 @@ class MockSubscriberManager:
         return None
 
     def get_schedule(self) -> Dict:
-        return {}
+        return dict(self._schedule)
+
+    def submit(
+        self,
+        expid: dict,
+        pipeline: str = "main",
+        priority: int = 0,
+        flush: bool = False,
+        due_date: float | None = None,
+    ) -> int:
+        """Allocate a RID and insert a pending schedule item, mirroring
+        control_schedule.submit_experiment's real-master signature so the API
+        layer can call either one interchangeably in mock mode.
+
+        Returns the new integer RID.
+        """
+        rid = self._next_rid
+        self._next_rid += 1
+        self._schedule[rid] = {
+            "pipeline": pipeline,
+            "priority": priority,
+            "due_date": due_date,
+            "flush": flush,
+            "status": "pending",
+            "repo_msg": None,
+            "expid": expid,
+        }
+        logger.info("Mock schedule: submitted RID %d (%s/%s)", rid, expid.get("file"), expid.get("class_name"))
+        return rid
+
+    def cancel(self, rid: int) -> bool:
+        """Remove *rid* from the mock schedule. Returns False if it was absent."""
+        removed = self._schedule.pop(rid, None) is not None
+        if removed:
+            logger.info("Mock schedule: cancelled RID %d", rid)
+        return removed
 
     def get_datasets(self) -> Dict:
         return self._datasets_sub.get_data()

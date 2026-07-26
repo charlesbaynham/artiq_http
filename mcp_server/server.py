@@ -396,6 +396,8 @@ async def submit_1d_scan(
     priority: int = 0,
     flush: bool = False,
     due_date: float | None = None,
+    skip_on_persistent_transitory_error: bool = False,
+    randomise_order_globally: bool = False,
     wait_for_completion: bool = False,
     timeout_seconds: float = 600.0,
 ) -> int | dict[str, Any]:
@@ -433,6 +435,12 @@ async def submit_1d_scan(
         flush: Flush the pipeline before submitting (default False).
         due_date: Earliest time the scan may run, as a Unix timestamp. Omit or
             pass None to run as soon as scheduled.
+        skip_on_persistent_transitory_error: If True, ndscan skips (rather than
+            aborts the whole scan on) a point that keeps hitting a transitory
+            error after exhausting its retries (default False).
+        randomise_order_globally: If True, randomise the order in which the
+            overall grid of scan-axis combinations is visited, in addition to
+            any per-axis "randomise_order" set in scan_range (default False).
         wait_for_completion: If True, wait for the scan to finish before
             returning (default False).
         timeout_seconds: Max seconds to wait when ``wait_for_completion`` is True
@@ -452,6 +460,8 @@ async def submit_1d_scan(
         "pipeline": pipeline,
         "priority": priority,
         "flush": flush,
+        "skip_on_persistent_transitory_error": skip_on_persistent_transitory_error,
+        "randomise_order_globally": randomise_order_globally,
     }
     if repo_rev is not None:
         payload["repo_rev"] = repo_rev
@@ -492,6 +502,8 @@ async def submit_multi_axis_scan(
     priority: int = 0,
     flush: bool = False,
     due_date: float | None = None,
+    skip_on_persistent_transitory_error: bool = False,
+    randomise_order_globally: bool = False,
     wait_for_completion: bool = False,
     timeout_seconds: float = 600.0,
 ) -> int | dict[str, Any]:
@@ -524,6 +536,13 @@ async def submit_multi_axis_scan(
         flush: Flush the pipeline before submitting (default False).
         due_date: Earliest time the scan may run, as a Unix timestamp. Omit or
             pass None to run as soon as scheduled.
+        skip_on_persistent_transitory_error: If True, ndscan skips (rather than
+            aborts the whole scan on) a point that keeps hitting a transitory
+            error after exhausting its retries (default False).
+        randomise_order_globally: If True, randomise the order in which the
+            overall grid of scan-axis combinations is visited, in addition to
+            any per-axis "randomise_order" set within an individual axis's
+            range (default False).
         wait_for_completion: If True, wait for the scan to finish before
             returning (default False).
         timeout_seconds: Max seconds to wait when ``wait_for_completion`` is True
@@ -543,6 +562,8 @@ async def submit_multi_axis_scan(
         "pipeline": pipeline,
         "priority": priority,
         "flush": flush,
+        "skip_on_persistent_transitory_error": skip_on_persistent_transitory_error,
+        "randomise_order_globally": randomise_order_globally,
     }
     if repo_rev is not None:
         payload["repo_rev"] = repo_rev
@@ -685,6 +706,70 @@ async def get_devices() -> dict[str, Any]:
         r = await c.get("/api/devices")
         r.raise_for_status()
         return r.json()
+
+
+# ---------------------------------------------------------------------------
+# Presets
+#
+# Read-only by design: presets/favourites (GET /api/presets) are a human UI
+# affordance for the bench frontend's "quick check" and mobile favourites
+# lists. There are deliberately no write tools (create/update/delete) here —
+# an agent has no business silently creating or clobbering a human's saved
+# scan configurations, so those stay a browser-only action. This is a
+# decision, not a parity gap (see AGENTS.md's MCP Server section).
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+async def list_presets(
+    file: str | None = None,
+    class_name: str | None = None,
+    favourites_only: bool = False,
+) -> dict[str, Any]:
+    """List saved scan/session presets (read-only).
+
+    Presets are a lab-wide, unauthenticated convenience the bench UI uses for
+    its "quick check" menu and mobile favourites list — a saved combination of
+    working-set parameters, pipeline, priority, repeats, and revision for a
+    specific experiment.
+
+    Args:
+        file: Only return presets saved for this experiment file.
+        class_name: Only return presets saved for this experiment class.
+        favourites_only: Only return presets with favourite == True.
+
+    Returns a dict with key 'presets': a list of preset dicts, each with 'id',
+    'name', 'file', 'class_name', 'favourite', 'working_set' (opaque, frontend-
+    defined), 'pipeline', 'priority', 'repeats', 'skip_on_error', 'revision',
+    'created_at', 'updated_at'.
+    """
+    params: dict[str, Any] = {"favourites_only": favourites_only}
+    if file is not None:
+        params["file"] = file
+    if class_name is not None:
+        params["class_name"] = class_name
+    async with _client() as c:
+        r = await c.get("/api/presets", params=params)
+        r.raise_for_status()
+        return r.json()
+
+
+@mcp.tool()
+async def get_preset(preset_id: str) -> dict[str, Any]:
+    """Get a single saved preset by id (read-only).
+
+    Args:
+        preset_id: The preset's server-generated id (from list_presets()).
+
+    Returns the preset dict (see list_presets() for the field shapes).
+    """
+    async with _client() as c:
+        r = await c.get("/api/presets", params={})
+        r.raise_for_status()
+        for preset in r.json().get("presets", []):
+            if preset.get("id") == preset_id:
+                return preset
+    raise ValueError(f"Preset {preset_id!r} not found")
 
 
 # ---------------------------------------------------------------------------

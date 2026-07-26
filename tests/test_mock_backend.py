@@ -207,10 +207,70 @@ def test_mock_manager_stop_without_start_is_safe():
 # ── SubscriberManager interface ───────────────────────────────────────────────
 
 
-def test_mock_manager_get_schedule_returns_empty():
+def test_mock_manager_get_schedule_seeded_before_start():
+    """The schedule dict exists (empty) before start() seeds it."""
     from artiq_http.mock_backend import MockSubscriberManager
 
     assert MockSubscriberManager().get_schedule() == {}
+
+
+def test_mock_manager_get_schedule_seeded_after_start():
+    from artiq_http.mock_backend import MockSubscriberManager
+
+    async def go():
+        mgr = MockSubscriberManager()
+        await mgr.start()
+        schedule = mgr.get_schedule()
+        await mgr.stop()
+        return schedule
+
+    schedule = run_async(go())
+    assert set(schedule) == {4823, 4824}
+    assert schedule[4823]["status"] == "running"
+    assert schedule[4823]["expid"]["class_name"] == "RabiFlop"
+    assert "ndscan_params" in schedule[4823]["expid"]["arguments"]
+    ndscan_params = json.loads(schedule[4823]["expid"]["arguments"]["ndscan_params"])
+    assert ndscan_params["scan"]["axes"][0]["fqn"] == "rabi.pulse_duration"
+    assert ndscan_params["scan"]["axes"][0]["range"]["num_points"] == 101
+    assert schedule[4824]["status"] == "pending"
+    assert schedule[4824]["expid"]["class_name"] == "CalibrateTrapFreq"
+
+
+def test_mock_manager_submit_allocates_rid_from_4825():
+    from artiq_http.mock_backend import MockSubscriberManager
+
+    async def go():
+        mgr = MockSubscriberManager()
+        await mgr.start()
+        rid1 = mgr.submit({"file": "x.py", "class_name": "X", "arguments": {}, "repo_rev": None})
+        rid2 = mgr.submit({"file": "y.py", "class_name": "Y", "arguments": {}, "repo_rev": None})
+        schedule = mgr.get_schedule()
+        await mgr.stop()
+        return rid1, rid2, schedule
+
+    rid1, rid2, schedule = run_async(go())
+    assert rid1 == 4825
+    assert rid2 == 4826
+    assert schedule[rid1]["status"] == "pending"
+    assert schedule[rid1]["expid"]["class_name"] == "X"
+
+
+def test_mock_manager_cancel_removes_rid():
+    from artiq_http.mock_backend import MockSubscriberManager
+
+    async def go():
+        mgr = MockSubscriberManager()
+        await mgr.start()
+        removed_present = mgr.cancel(4824)
+        removed_absent = mgr.cancel(99999)
+        schedule = mgr.get_schedule()
+        await mgr.stop()
+        return removed_present, removed_absent, schedule
+
+    removed_present, removed_absent, schedule = run_async(go())
+    assert removed_present is True
+    assert removed_absent is False
+    assert 4824 not in schedule
 
 
 def test_mock_manager_get_logs_returns_empty():
@@ -223,11 +283,70 @@ def test_mock_manager_get_explist_structure():
     from artiq_http.mock_backend import MockSubscriberManager
 
     explist = MockSubscriberManager().get_explist()
-    assert len(explist) == 2
-    assert set(explist) == {"MockRepeatExperiment", "MockFreqScan"}
+    assert len(explist) == 3
+    assert set(explist) == {"MockRepeatExperiment", "MockFreqScan", "RabiFlop"}
     for entry in explist.values():
         assert "file" in entry
         assert "class_name" in entry
+
+
+def test_mock_explist_arginfo_is_non_empty():
+    """MockRepeatExperiment/MockFreqScan now carry real plain arginfo (used to
+    be {}), and RabiFlop carries a full ndscan_params blob."""
+    from artiq_http.mock_backend import MockSubscriberManager
+
+    explist = MockSubscriberManager().get_explist()
+    assert explist["MockRepeatExperiment"]["arginfo"]
+    assert explist["MockFreqScan"]["arginfo"]
+    assert "ndscan_params" in explist["RabiFlop"]["arginfo"]
+
+
+def test_rabi_flop_ndscan_params_parse_with_214_leaves():
+    """RabiFlop's ndscan_params default decodes to ndscan's real wire format
+    with exactly 214 schema leaves (per the design's parameter count)."""
+    from artiq_http.mock_backend import MockSubscriberManager
+
+    explist = MockSubscriberManager().get_explist()
+    arginfo = explist["RabiFlop"]["arginfo"]
+    default_json = arginfo["ndscan_params"][0]["default"]
+    params = json.loads(default_json)
+
+    assert set(params.keys()) == {"instances", "schemata", "always_shown", "overrides", "scan"}
+    assert len(params["schemata"]) == 214
+
+    # A handful of hand-written params match the design's exact wording/units.
+    freq = params["schemata"]["cooling.doppler.freq"]
+    assert freq["description"] == "Doppler cooling beam detuning from resonance"
+    assert freq["type"] == "float"
+    assert freq["spec"]["unit"] == "MHz"
+    assert freq["spec"]["is_scannable"] is True
+
+    n_repeats = params["schemata"]["rabi.n_repeats"]
+    assert n_repeats["type"] == "int"
+    assert n_repeats["default"] == "50"
+    assert n_repeats["spec"]["is_scannable"] is False
+
+    threshold = params["schemata"]["readout.threshold"]
+    assert threshold["type"] == "int"
+    assert threshold["default"] == "14"
+
+    # Every default is a string (ndscan's real wire format), never a raw number.
+    for schema in params["schemata"].values():
+        assert isinstance(schema["default"], str)
+
+    # Both nested depths appear, and every kind of param is exercised.
+    fqns = list(params["schemata"])
+    assert any(fqn.count(".") == 1 for fqn in fqns)  # depth 2: group.leaf
+    assert any(fqn.count(".") == 2 for fqn in fqns)  # depth 3: group.subgroup.leaf
+
+    types = {s["type"] for s in params["schemata"].values()}
+    assert types == {"float", "int", "bool", "string", "enum"}
+    string_count = sum(1 for s in params["schemata"].values() if s["type"] == "string")
+    enum_count = sum(1 for s in params["schemata"].values() if s["type"] == "enum")
+    bool_count = sum(1 for s in params["schemata"].values() if s["type"] == "bool")
+    assert string_count >= 2
+    assert enum_count >= 2
+    assert bool_count >= 2
 
 
 def test_mock_manager_get_explist_status():
@@ -299,27 +418,78 @@ def test_explist_returns_mock_experiment(mock_client):
     data = r.json()
     assert data["scanning"] is False
     class_names = {exp["class_name"] for exp in data["experiments"]}
-    assert class_names == {"MockRepeatExperiment", "MockFreqScan"}
+    assert class_names == {"MockRepeatExperiment", "MockFreqScan", "RabiFlop"}
     assert data["default_revision_fallback"] == data["current_rev"]
 
 
-def test_schedule_empty_in_mock_mode(mock_client):
+def test_schedule_seeded_in_mock_mode(mock_client):
     r = mock_client.get("/api/schedule")
     assert r.status_code == 200
-    assert r.json() == {}
+    data = r.json()
+    assert set(data) == {"4823", "4824"}
+    assert data["4823"]["status"] == "running"
+    assert data["4824"]["status"] == "pending"
 
 
-def test_submit_returns_503_in_mock_mode(mock_client):
+def test_submit_succeeds_in_mock_mode(mock_client):
     r = mock_client.post(
         "/api/schedule",
         json={"file": "x.py", "class_name": "X", "arguments": {}},
     )
-    assert r.status_code == 503
+    assert r.status_code == 200
+    rid = r.json()
+    assert rid >= 4825
+
+    r = mock_client.get("/api/schedule")
+    data = r.json()
+    assert str(rid) in data
+    assert data[str(rid)]["status"] == "pending"
+    assert data[str(rid)]["expid"]["file"] == "x.py"
 
 
-def test_cancel_returns_503_in_mock_mode(mock_client):
-    r = mock_client.post("/api/cancel?rid=1")
-    assert r.status_code == 503
+def test_submit_scan_succeeds_in_mock_mode(mock_client):
+    r = mock_client.post(
+        "/api/scan",
+        json={
+            "file": "Spectroscopy/rabi_flop.py",
+            "class_name": "RabiFlop",
+            "axes": [
+                {
+                    "fqn": "rabi.pulse_duration",
+                    "type": "linear",
+                    "range": {"start": 1e-6, "stop": 5e-5, "num_points": 21},
+                }
+            ],
+        },
+    )
+    assert r.status_code == 200
+    rid = r.json()
+    assert rid >= 4825
+
+    r = mock_client.get(f"/api/schedule/{rid}")
+    assert r.status_code == 200
+    item = r.json()
+    ndscan_params = json.loads(item["expid"]["arguments"]["ndscan_params"])
+    assert ndscan_params["scan"]["axes"][0]["fqn"] == "rabi.pulse_duration"
+
+
+def test_cancel_succeeds_in_mock_mode(mock_client):
+    r = mock_client.post(
+        "/api/schedule",
+        json={"file": "x.py", "class_name": "X", "arguments": {}},
+    )
+    rid = r.json()
+
+    r = mock_client.post(f"/api/cancel?rid={rid}")
+    assert r.status_code == 200
+
+    r = mock_client.get("/api/schedule")
+    assert str(rid) not in r.json()
+
+
+def test_cancel_missing_rid_returns_404_in_mock_mode(mock_client):
+    r = mock_client.post("/api/cancel?rid=999999")
+    assert r.status_code == 404
 
 
 def test_recompute_returns_mock_arginfo(mock_client):
@@ -331,7 +501,8 @@ def test_recompute_returns_mock_arginfo(mock_client):
     data = r.json()
     assert data["file"] == "mock_experiment.py"
     assert data["class_name"] == "MockRepeatExperiment"
-    assert data["arginfo"] == {}
+    assert data["arginfo"]
+    assert "repeat_count" in data["arginfo"]
 
 
 def test_recompute_unknown_experiment_returns_404(mock_client):

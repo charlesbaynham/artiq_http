@@ -174,3 +174,68 @@ class ScanSubmitRequest(BaseModel):
     priority: int = Field(default=0, description="Scheduling priority — higher runs sooner (default 0)")
     flush: bool = Field(default=False, description="Flush the pipeline before submitting (default False)")
     due_date: Optional[float] = Field(default=None, description="Optional due date as Unix timestamp")
+    skip_on_persistent_transitory_error: bool = Field(
+        default=False,
+        description=(
+            "If True, ndscan skips (rather than aborts the whole scan on) a point that keeps hitting "
+            "a transitory error after exhausting its retries. Maps straight to ndscan's TopLevelRunner "
+            "option of the same name (default False)."
+        ),
+    )
+    randomise_order_globally: bool = Field(
+        default=False,
+        description=(
+            "If True, randomise the order in which the overall grid of scan-axis combinations is "
+            "visited (ndscan's scan.randomise_order_globally). This is distinct from a per-axis "
+            "'randomise_order' (see ScanAxis.range), which only randomises that one axis's own point "
+            "order; this flag additionally shuffles which axis-combination is visited next. Default False."
+        ),
+    )
+
+
+class PresetCreate(BaseModel):
+    """Request body for ``POST /api/presets`` and ``PUT /api/presets/{id}``.
+
+    ``working_set`` is opaque passthrough — it is the frontend's
+    ``WorkingSetEntry[]`` array; the server stores and returns it verbatim and
+    never interprets its contents.
+    """
+
+    name: str
+    file: str
+    class_name: str
+    favourite: bool = False
+    working_set: List[Dict[str, Any]] = Field(default_factory=list)
+    pipeline: str = "main"
+    priority: int = 0
+    repeats: int = 1
+    skip_on_error: bool = False
+    revision: Optional[str] = None
+
+
+class Preset(BaseModel):
+    """A saved scan/session configuration, lab-wide (no auth/user concept).
+
+    Presets are persisted as a single JSON file via
+    ``artiq_http.artiq_api.presets_store`` — there is no other backend
+    persistence layer. ``id``, ``created_at`` and ``updated_at`` are server-
+    generated (see :mod:`presets_store`).
+    """
+
+    id: str
+    name: str
+    file: str
+    class_name: str
+    favourite: bool = False
+    working_set: List[Dict[str, Any]] = Field(default_factory=list)
+    pipeline: str = "main"
+    priority: int = 0
+    repeats: int = 1
+    skip_on_error: bool = False
+    revision: Optional[str] = None
+    created_at: float
+    updated_at: float
+
+
+class PresetList(BaseModel):
+    presets: List[Preset] = Field(default_factory=list)
