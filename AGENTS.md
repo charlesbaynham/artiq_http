@@ -24,7 +24,7 @@ See README.rst for instructions
   - `config.py` - Configuration
   - `artiq_api/` - ARTIQ API wrapper modules
 - `mcp_server/` - MCP (Model Context Protocol) server (`server.py`) that bridges to the HTTP API
-- `frontend/` - React frontend
+- `frontend/` - React frontend (see "Frontend architecture" below)
 - `docker/` - Container and compose configuration for backend/frontend deployment
   - `compose.yml` - Main backend/frontend compose stack
   - `compose.localtesting.yml` - Local ARTIQ test stack override
@@ -38,6 +38,69 @@ See README.rst for instructions
   - `docker-compose.yml` - Test stack orchestration
 - `tests/` - Test suite
 - `docs/` - Sphinx documentation
+
+## Frontend architecture
+
+The frontend is React 18 + react-router-dom + Vite, with **no UI framework in new
+code**. `react-bootstrap` is still a dependency because the legacy pages import it,
+but nothing under `frontend/src/bench/` may use it — the bench UI is plain elements
+styled by `bench/bench.css`.
+
+There are three visual layers, and they share one palette:
+
+- `frontend/src/plots/tokens.css` — the `--p-*` tokens for the `/plots` app.
+- `frontend/src/bench/bench.css` — the `--b-*` tokens for the bench UI, using the
+  *same* hex values so `/` and `/plots` read as one product. If you change a colour,
+  change it in both or the seam becomes visible. Both mirror a light-mode block.
+- `frontend/src/index.css` — the legacy Bootstrap-themed pages.
+
+Routes (`frontend/src/App.jsx` is a thin router):
+
+| Route | Renders |
+| --- | --- |
+| `/` | the bench workspace (`bench/BenchApp.jsx`); mobile layout below 700px |
+| `/runs`, `/datasets`, `/logs` | the existing Schedule / DatasetExplorer / Logs components in bench chrome |
+| `/plots`, `/plots/fullscreen` | the plots app, unchanged |
+| `/legacy` | `LegacyApp.jsx` — the previous collapsible-section UI, kept so no capability is lost |
+
+`frontend/src/bench/` layout:
+
+- `state/SessionContext.jsx` + `sessionReducer.js` — the per-session working state
+  (selected experiment, working set, filters, pinned/ghost RIDs, pipeline, priority,
+  repeats). Persisted to `localStorage` per session name. The reducer is a separate
+  `.js` file so it can be exercised by `frontend/scripts/check-params.mjs`, which runs
+  under plain Node with no test runner or dependencies (`node scripts/check-params.mjs`).
+- `state/useSchedule.js`, `state/useLiveRun.js` — schedule polling and live-run
+  resolution. `runProgress()` derives the `41/101` readout; see "Progress" below.
+- `submit/params.js` — normalises **both** ndscan `schemata` and plain ARTIQ arginfo
+  into one `Param` model, and owns tree building, fuzzy matching, scan-point maths and
+  the `/api/scan` wire encoders. Start here for anything about parameters.
+- `submit/`, `live/`, `mobile/` — the three surfaces, each with its own stylesheet
+  (`submit.css`, `live.css`, `mobile.css`) imported by its own root component.
+
+Points to preserve when changing this code:
+
+- **ndscan scans submit via `POST /api/scan`**, not by assembling an `ndscan_params`
+  string in JS. The server resolves each axis's sub-fragment `path` from `instances`;
+  the old frontend hardcoded `path: ""` and silently mis-scanned sub-fragment
+  parameters. The wire encoders omit an empty path deliberately — do not "helpfully"
+  add it back.
+- **ndscan has no `log` scan generator** (`linear`, `centre_span`, `list`, plus
+  refining/expanding). The UI's `log` kind compiles to a `list` axis of log-spaced
+  values.
+- **Progress has no server-side denominator.** `runProgress` takes the total from the
+  running job's own `ndscan_params` (axis points × repeats), falls back to the
+  `<prefix>.axes` descriptors, and otherwise reports a bare point count. Never render
+  `41/?` or a guessed total.
+- **`string` and `enum` ndscan parameters must render.** The previous UI returned
+  `null` for any type outside float/int/bool and silently dropped them.
+- **The live pane embeds the real `/plots` view** rather than a second charting
+  implementation. `PlotsApp` takes optional `forcedPrefix` / `showTopBar` /
+  `showRails` / `showImages` / `compact` / `onData` / `onStatus` /
+  `onChannelsSummary` / `ghostPrefixes` props, each defaulting to standalone
+  behaviour. Adding props is fine; changing a default silently changes `/plots`.
+- **One SSE connection per run.** `PlotsApp`'s `onData` feeds `useLiveRun`'s `feed`
+  option so the workspace does not open the same stream several times.
 
 ## Configuration
 
@@ -240,14 +303,18 @@ Deployment is manually fired:
    single sticky comment on the PR linking the live demo. Fork PRs are refused (no write
    token for untrusted code) and the refusal is logged in the job summary, not silent.
 
-**Known conflict the repo owner must resolve:** `ci.yml`'s `deploy-docs` job already
-publishes the Sphinx docs to the same GitHub Pages site via the same Actions-artifact
-mechanism, on every push to `master`. `pages.yml`'s push trigger races it — whichever
-workflow finishes last on a given push wins the single Pages slot. This is called out in
-a comment at the top of `pages.yml`; resolving it (move docs elsewhere, merge both
-artifacts under separate subpaths, or drop this workflow's automatic push trigger) is a
-decision for whoever owns the docs deployment, not something this package could resolve
-unilaterally.
+**`pages.yml` is the only workflow that deploys to Pages.** A repo has exactly one Pages
+site, and `ci.yml` used to publish the Sphinx docs to it on every push to `master`; the
+two workflows raced for that single slot, so whichever finished last won and the live
+site flipped unpredictably. `pages.yml` now builds and publishes both in one artifact:
+
+- `/` — the Sphinx docs (unchanged URLs)
+- `/demo/` — the static mock demo (`VITE_BASE=/<repo>/demo/`)
+
+`ci.yml`'s `make-docs` still builds and uploads the docs as a normal workflow artifact on
+every push; only its `deploy-docs` job was removed. If you add another Pages payload, add
+it to `pages.yml`'s "Assemble the site" step rather than introducing a second deploying
+workflow.
 
 ## Reference repos
 

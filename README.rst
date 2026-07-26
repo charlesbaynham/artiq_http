@@ -156,9 +156,9 @@ Actions-artifact mechanism. **Repo Settings → Pages → Source must be set to
 deployment can be live at a time: pushing to ``master`` deploys master (the resting
 state), a manual ``workflow_dispatch`` run deploys whichever branch you pick, and
 adding the ``deploy-pages`` label to a PR deploys that PR's head and comments the
-preview link on it. See ``AGENTS.md`` ("Static Mock / GitHub Pages Demo") for the
-full contract, including a known conflict with the docs' existing Pages deployment
-in ``ci.yml`` that needs a decision from whoever owns that job.
+preview link on it. The same workflow also publishes the Sphinx docs, so the site
+serves the docs at ``/`` (unchanged URLs) and the demo at ``/demo/``. See
+``AGENTS.md`` ("Static Mock / GitHub Pages Demo") for the full contract.
 
 **Documentation:**
 
