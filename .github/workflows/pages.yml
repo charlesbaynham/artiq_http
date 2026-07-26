@@ -36,8 +36,17 @@ name: Deploy Pages (docs + static mock demo)
 #                                         fork-check step) -- this deliberately
 #                                         does NOT use `pull_request_target`.
 #
-# Repo settings prerequisite: Settings -> Pages -> Build and deployment
-# -> Source must be "GitHub Actions" (not "Deploy from a branch").
+# Repo settings prerequisites:
+#   1. Settings -> Pages -> Build and deployment -> Source must be
+#      "GitHub Actions" (not "Deploy from a branch").
+#   2. To deploy anything OTHER than the default branch (i.e. triggers 2 and 3
+#      above), Settings -> Environments -> github-pages -> "Deployment branches
+#      and tags" must permit that ref. Enabling Pages creates this environment
+#      restricted to the default branch, so a PR-label or workflow_dispatch
+#      deploy of a feature branch is refused *before the job starts* -- it fails
+#      in a couple of seconds with no runner, no logs and no annotation, which
+#      looks like a broken workflow but is the branch policy doing its job.
+#      Widen it (e.g. add `claude/*`, or select "All branches") to use them.
 
 on:
   push:
@@ -56,7 +65,14 @@ permissions:
   id-token: write
 
 jobs:
-  deploy:
+  # Build and deploy are separate jobs on purpose. Only `deploy` declares the
+  # `github-pages` environment, and an environment's deployment-branch policy is
+  # enforced *before* the job starts -- a blocked job fails in ~2s with no
+  # runner, no logs and no annotation, which is impossible to diagnose from the
+  # run alone. Keeping the build outside the environment means a PR still gets a
+  # real pass/fail on "does the site build", and a policy rejection is isolated
+  # to the deploy job where this comment explains it.
+  build:
     # Skip irrelevant PR-label events at the job level (any label other than
     # deploy-pages); the fork-vs-same-repo check happens *inside* the job (not
     # here) so it can still write a visible job-summary line explaining the
@@ -66,12 +82,8 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' && github.event.label.name == 'deploy-pages')
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     outputs:
       proceed: ${{ steps.fork-check.outputs.proceed }}
-      page_url: ${{ steps.deployment.outputs.page_url }}
       head_ref: ${{ steps.resolve-ref.outputs.ref }}
       head_sha: ${{ steps.resolve-ref.outputs.sha }}
     steps:
@@ -169,19 +181,33 @@ jobs:
         with:
           path: site
 
+  deploy:
+    needs: build
+    if: needs.build.outputs.proceed == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # If this job fails instantly with no log output, it was refused by the
+      # `github-pages` environment's deployment-branch policy, not by anything
+      # in this file. Enabling Pages with source "GitHub Actions" creates that
+      # environment restricted to the default branch, so deploying a PR branch
+      # or any other ref is rejected until the policy is widened (Settings ->
+      # Environments -> github-pages -> Deployment branches).
       - uses: actions/deploy-pages@v4
-        if: steps.fork-check.outputs.proceed == 'true'
         id: deployment
 
       - name: Job summary
-        if: steps.fork-check.outputs.proceed == 'true'
         run: |
           {
             echo "### ✅ GitHub Pages deploy"
             echo
             echo "- Event: \`${{ github.event_name }}\`"
-            echo "- Ref: \`${{ steps.resolve-ref.outputs.ref }}\`"
-            echo "- Commit: \`${{ steps.resolve-ref.outputs.sha }}\`"
+            echo "- Ref: \`${{ needs.build.outputs.head_ref }}\`"
+            echo "- Commit: \`${{ needs.build.outputs.head_sha }}\`"
             echo "- Docs: ${{ steps.deployment.outputs.page_url }}"
             echo "- Demo: ${{ steps.deployment.outputs.page_url }}demo/"
             echo
@@ -191,8 +217,8 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   comment:
-    needs: deploy
-    if: github.event_name == 'pull_request' && needs.deploy.outputs.proceed == 'true'
+    needs: [build, deploy]
+    if: github.event_name == 'pull_request' && needs.build.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -203,8 +229,8 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
           PAGE_URL: ${{ needs.deploy.outputs.page_url }}
-          HEAD_REF: ${{ needs.deploy.outputs.head_ref }}
-          HEAD_SHA: ${{ needs.deploy.outputs.head_sha }}
+          HEAD_REF: ${{ needs.build.outputs.head_ref }}
+          HEAD_SHA: ${{ needs.build.outputs.head_sha }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           MARKER="<!-- artiq-http-pages-deploy -->"

@@ -290,8 +290,14 @@ no server process on Pages).
 mechanism (`actions/upload-pages-artifact` + `actions/deploy-pages`, both first-party
 `actions/`-org actions), not a `gh-pages` branch. Because a repo has exactly one Pages
 site, only one deployment can be live at a time — there are no per-PR preview
-subdirectories. **Repo setting required:** Settings → Pages → Source must be set to
-**"GitHub Actions"** (not "Deploy from a branch") before any of this works.
+subdirectories. **Repo settings required:** Settings → Pages → Source must be set to
+**"GitHub Actions"** (not "Deploy from a branch"); and to deploy any ref other than the
+default branch, Settings → Environments → `github-pages` → "Deployment branches and
+tags" must permit it. Enabling Pages creates that environment locked to the default
+branch, so a PR-label or `workflow_dispatch` deploy of a feature branch is rejected
+*before the job starts* — it fails in seconds with no runner, no logs and no annotation.
+That is the branch policy, not a broken workflow. The workflow is split into `build` and
+`deploy` jobs so the build still gives a real pass/fail on a PR when the deploy is gated.
 
 Deployment is manually fired:
 

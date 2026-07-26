@@ -152,7 +152,10 @@ all — a browser-side adapter (``frontend/src/api/mockAdapter.js``) answers eve
 
 ``.github/workflows/pages.yml`` deploys this to GitHub Pages using the
 Actions-artifact mechanism. **Repo Settings → Pages → Source must be set to
-"GitHub Actions"** (not "Deploy from a branch") for this to work. Only one
+"GitHub Actions"** (not "Deploy from a branch") for this to work, and deploying
+a branch other than the default one additionally requires Settings →
+Environments → ``github-pages`` → "Deployment branches and tags" to permit that
+ref (it is created locked to the default branch). Only one
 deployment can be live at a time: pushing to ``master`` deploys master (the resting
 state), a manual ``workflow_dispatch`` run deploys whichever branch you pick, and
 adding the ``deploy-pages`` label to a PR deploys that PR's head and comments the
