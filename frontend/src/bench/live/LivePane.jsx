@@ -21,13 +21,12 @@ import "./live.css";
 
 function LivePane({ scheduleItems = [], cancel, loading = false }) {
   const {
-    pinnedLiveRid,
-    ghostRid,
-    selectedImageKeys,
+    state,
     setPinnedLiveRid,
     setGhostRid,
     setSelectedImageKeys,
   } = useSession();
+  const { pinnedLiveRid, ghostRid, selectedImageKeys } = state;
 
   const liveRun = useLiveRun({ pinnedRid: pinnedLiveRid, scheduleItems });
 

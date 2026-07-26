@@ -136,7 +136,7 @@ function FixedCard({ entry, prefix, leaf, error, canAddAxis, actions }) {
     );
   } else {
     control = (
-      <div className="bw-fixed__val">
+      <div className="bw-fixed__val bw-fixed__val--text">
         <TextValue entry={entry} invalid={invalid} onCommit={commitValue} />
       </div>
     );

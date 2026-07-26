@@ -6,7 +6,8 @@
   "scripts": {
     "start": "vite",
     "preview": "vite preview",
-    "build": "vite build"
+    "build": "vite build",
+    "build:mock": "VITE_MOCK=1 vite build && node -e \"require('fs').copyFileSync('dist/index.html','dist/404.html')\""
   },
   "dependencies": {
     "bootstrap": "^5.2.3",

@@ -631,6 +631,18 @@
   flex: 0 0 78px;
 }
 
+/* The design's 78px value box is sized for numbers. Free text and enum names
+   are routinely longer, so those get room rather than an ellipsis. */
+.bench .bw-fixed__val--text {
+  width: auto;
+  flex: 0 1 168px;
+  min-width: 78px;
+}
+
+.bench .bw-fixed__val--text .b-input {
+  text-align: left;
+}
+
 .bench .bw-fixed__val .b-input {
   text-align: right;
   padding: 3px 10px;
@@ -859,11 +871,6 @@
   min-width: 0;
 }
 
-/* ── Narrow layouts ───────────────────────────────────────────────────────── */
-
-@media (max-width: 1100px) {
-  .bench .bw-tree {
-    width: 228px;
-    flex-basis: 228px;
-  }
-}
+/* The tree is a fixed 262px by design. Responsive collapse of the whole pane
+   (IMPL-SPEC §11) is the shell's business — it owns the breakpoints, and a
+   viewport media query here would fire even when the pane itself is roomy. */

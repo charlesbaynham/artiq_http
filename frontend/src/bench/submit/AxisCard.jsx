@@ -80,7 +80,16 @@ export function useScaledNumber(raw, scale, commit) {
 
 /* ── Range rows per scan kind ─────────────────────────────────────────────── */
 
-function NumberField({ label, labelWidth, unit, raw, scale, onCommit, width }) {
+function NumberField({
+  label,
+  labelWidth,
+  unit,
+  raw,
+  scale,
+  onCommit,
+  width,
+  invalid,
+}) {
   const [text, onChange] = useScaledNumber(raw, scale, onCommit);
   return (
     <Field
@@ -90,6 +99,7 @@ function NumberField({ label, labelWidth, unit, raw, scale, onCommit, width }) {
       value={text}
       onChange={onChange}
       width={width}
+      invalid={invalid}
       inputProps={{ inputMode: "decimal", spellCheck: false }}
     />
   );
@@ -103,10 +113,54 @@ NumberField.propTypes = {
   scale: PropTypes.number,
   onCommit: PropTypes.func,
   width: PropTypes.number,
+  invalid: PropTypes.bool,
 };
 
+/**
+ * Which *inputs* an invalid entry's message is about, so the offending field
+ * gets the `--b-danger` border rather than the whole card turning red.
+ * `validateEntry` stays the authority on validity; this only attributes it.
+ */
+export function invalidFields(entry, hasError) {
+  const out = {};
+  if (!hasError) return out;
+  const kind = entry.scanKind || "linear";
+
+  if (kind === "list") {
+    out.list = true;
+    return out;
+  }
+
+  const points = Number(entry.points);
+  if (!Number.isInteger(points) || points < 1) out.points = true;
+
+  if (kind === "centre-span") {
+    if (!Number.isFinite(Number(entry.centre))) out.centre = true;
+    if (!Number.isFinite(Number(entry.span))) out.span = true;
+    if (!out.points && !out.centre && !out.span) {
+      out.centre = true;
+      out.span = true;
+    }
+    return out;
+  }
+
+  const start = Number(entry.start);
+  const stop = Number(entry.stop);
+  if (!Number.isFinite(start) || (kind === "log" && !(start > 0))) {
+    out.start = true;
+  }
+  if (!Number.isFinite(stop) || (kind === "log" && !(stop > 0)))
+    out.stop = true;
+  // A message we cannot attribute (e.g. min/max) is about the range as a whole.
+  if (!out.points && !out.start && !out.stop) {
+    out.start = true;
+    out.stop = true;
+  }
+  return out;
+}
+
 /** The `list` kind edits display values but stores a raw-valued list. */
-function ListField({ entry, onPatch }) {
+function ListField({ entry, onPatch, invalid }) {
   const scale = entry.scale || 1;
   const [text, setText] = useState(() =>
     parseListText(entry.listText)
@@ -138,12 +192,17 @@ function ListField({ entry, onPatch }) {
       unit={entry.unit || undefined}
       value={text}
       onChange={onChange}
+      invalid={invalid}
       inputProps={{ spellCheck: false, placeholder: "1, 2, 5, 10" }}
     />
   );
 }
 
-ListField.propTypes = { entry: PropTypes.object, onPatch: PropTypes.func };
+ListField.propTypes = {
+  entry: PropTypes.object,
+  onPatch: PropTypes.func,
+  invalid: PropTypes.bool,
+};
 
 /* ── The card ─────────────────────────────────────────────────────────────── */
 
@@ -164,6 +223,8 @@ function AxisCard({ entry, prefix, leaf, role, showSwap, error, actions }) {
     (key) => (raw) => onPatch({ [key]: raw }),
     [onPatch],
   );
+
+  const bad = invalidFields(entry, Boolean(error));
 
   return (
     <Card className="bw-axis">
@@ -223,7 +284,7 @@ function AxisCard({ entry, prefix, leaf, role, showSwap, error, actions }) {
 
       <div className="bw-range">
         {kind === "list" ? (
-          <ListField entry={entry} onPatch={onPatch} />
+          <ListField entry={entry} onPatch={onPatch} invalid={bad.list} />
         ) : (
           <>
             {kind === "centre-span" ? (
@@ -235,6 +296,7 @@ function AxisCard({ entry, prefix, leaf, role, showSwap, error, actions }) {
                   raw={entry.centre}
                   scale={scale}
                   onCommit={commit("centre")}
+                  invalid={bad.centre}
                 />
                 <NumberField
                   label="span"
@@ -243,6 +305,7 @@ function AxisCard({ entry, prefix, leaf, role, showSwap, error, actions }) {
                   raw={entry.span}
                   scale={scale}
                   onCommit={commit("span")}
+                  invalid={bad.span}
                 />
               </>
             ) : (
@@ -254,6 +317,7 @@ function AxisCard({ entry, prefix, leaf, role, showSwap, error, actions }) {
                   raw={entry.start}
                   scale={scale}
                   onCommit={commit("start")}
+                  invalid={bad.start}
                 />
                 <NumberField
                   label="stop"
@@ -262,6 +326,7 @@ function AxisCard({ entry, prefix, leaf, role, showSwap, error, actions }) {
                   raw={entry.stop}
                   scale={scale}
                   onCommit={commit("stop")}
+                  invalid={bad.stop}
                 />
               </>
             )}
@@ -271,6 +336,7 @@ function AxisCard({ entry, prefix, leaf, role, showSwap, error, actions }) {
               labelWidth={34}
               value={Number.isFinite(entry.points) ? String(entry.points) : ""}
               onChange={patchPoints}
+              invalid={bad.points}
               inputProps={{ inputMode: "numeric", spellCheck: false }}
             />
           </>

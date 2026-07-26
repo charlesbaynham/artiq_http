@@ -201,7 +201,7 @@ function LivePlotCard({
     >
       <PanelHeader className="bl-live-head">
         <Caption>live</Caption>
-        {liveRun.rid != null && (
+        {hasPlot && liveRun.rid != null ? (
           <Mono
             className="bl-live-title"
             title={`RID ${liveRun.rid}${expName ? ` · ${expName}` : ""}`}
@@ -209,8 +209,14 @@ function LivePlotCard({
             RID {liveRun.rid}
             {expName ? ` · ${expName}` : ""}
           </Mono>
+        ) : (
+          pinnedMissing && (
+            <Mono className="bl-live-title" title={`RID ${pinnedLiveRid}`}>
+              RID {pinnedLiveRid}
+            </Mono>
+          )
         )}
-        {liveRun.rid != null && liveRun.progress && (
+        {hasPlot && liveRun.progress && (
           <Pill status={isLive}>
             {isLive ? "● " : ""}
             {progressLabel(liveRun.progress)}

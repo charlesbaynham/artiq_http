@@ -1,0 +1,637 @@
+/*
+ * ARTIQ bench — mobile surface (2b-1 home, 2b-2 quick-run sheet, 2b-3 run
+ * detail). Owned by the mobile work package; imported directly by
+ * `MobileApp.jsx`. Uses only `--b-*` tokens and `.b-*` shared classes from
+ * `bench.css` (frozen) — everything mobile-specific lives here under the
+ * `.bm-` prefix, scoped under `.bm-app` for hygiene.
+ *
+ * Full-viewport layout (the 16px "phone frame" in the design mock is a
+ * documentation bezel only, not built here).
+ */
+
+.bm-app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Top bar (shared by home + run detail) ────────────────────────────────── */
+
+.bm-app .bm-topbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--b-surface);
+  border-bottom: 1px solid var(--b-border);
+  min-height: 44px;
+}
+
+.bm-app .bm-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-size: 13px;
+  color: var(--b-fg);
+  white-space: nowrap;
+}
+
+.bm-app .bm-wordmark__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--b-accent);
+  transform: translateY(-2px);
+}
+
+/* ── Home screen wrapper (dims behind the sheet) ──────────────────────────── */
+
+.bm-app .bm-screen {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  transition: opacity var(--b-t-pane) var(--b-ease);
+}
+
+.bm-app .bm-screen.is-dimmed {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.bm-app .bm-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Active run card ───────────────────────────────────────────────────────── */
+
+.bm-app .bm-active-card {
+  border: 1px solid var(--b-accent);
+  background: var(--b-accent-card);
+  border-radius: var(--b-r-card);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--b-font-ui);
+  min-height: 44px;
+}
+
+.bm-app .bm-active-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bm-app .bm-active-card__rid {
+  font-size: 11.5px;
+}
+
+.bm-app .bm-active-card__name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--b-fg);
+}
+
+.bm-app .bm-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--b-well);
+  overflow: hidden;
+}
+
+.bm-app .bm-progress__fill {
+  height: 100%;
+  background: var(--b-accent);
+  transition: width var(--b-t-pane) linear;
+}
+
+.bm-app .bm-progress-row {
+  display: flex;
+  align-items: center;
+  font-size: 11.5px;
+  color: var(--b-fg-muted);
+}
+
+.bm-app .bm-empty {
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-card);
+  background: var(--b-well);
+  padding: 18px;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--b-fg-muted);
+  text-align: center;
+}
+
+.bm-app .bm-empty__hint {
+  font-size: 11px;
+}
+
+/* ── Live plot thumbnail / full plot ──────────────────────────────────────── */
+
+.bm-app .bm-plot-card {
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-card);
+  background: var(--b-surface);
+  overflow: hidden;
+}
+
+.bm-app .bm-plot-well {
+  height: 130px;
+  background: var(--b-well);
+}
+
+.bm-app .bm-plot-well .bm-sparkline,
+.bm-app .bm-plot-card--full .bm-sparkline {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.bm-app .bm-plot-card--full {
+  flex: 1 1 auto;
+  min-height: 220px;
+  position: relative;
+  background: var(--b-well);
+}
+
+.bm-app .bm-plot-axislabel {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  font-size: 10.5px;
+  pointer-events: none;
+}
+
+.bm-app .bm-pill-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bm-app .bm-pill-row .b-pill {
+  font-size: 11px;
+  padding: 6px 12px;
+  background: var(--b-surface);
+  border: 1px solid var(--b-border);
+  color: var(--b-fg-dim);
+}
+
+/* ── Camera row ────────────────────────────────────────────────────────────── */
+
+.bm-app .bm-camera-row {
+  display: flex;
+  gap: 10px;
+}
+
+.bm-app .bm-camera-tile {
+  flex: 1 1 0;
+  height: 78px;
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-card);
+  background: var(--b-well);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bm-app .bm-camera-tile canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.bm-app .bm-camera-tile__label {
+  position: absolute;
+  left: 6px;
+  bottom: 4px;
+  font-size: 10px;
+  color: var(--b-fg-faint);
+  pointer-events: none;
+  max-width: calc(100% - 12px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Queue rows ────────────────────────────────────────────────────────────── */
+
+.bm-app .bm-queue-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-card);
+  background: var(--b-surface);
+  padding: 10px 12px;
+  min-height: 44px;
+  text-align: left;
+  font-family: var(--b-font-ui);
+}
+
+.bm-app .bm-queue-row__name {
+  font-size: 12.5px;
+  flex: 1 1 auto;
+}
+
+.bm-app .bm-queue-row__rid {
+  font-size: 11px;
+}
+
+/* ── Tab bar ───────────────────────────────────────────────────────────────── */
+
+.bm-app .bm-tabbar {
+  flex: 0 0 auto;
+  display: flex;
+  border-top: 1px solid var(--b-border);
+  background: var(--b-surface);
+  padding: 8px 4px calc(12px + env(safe-area-inset-bottom));
+}
+
+.bm-app .bm-tabbar__item {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  color: var(--b-fg-muted);
+  text-decoration: none;
+  transition:
+    color var(--b-t-fast),
+    background var(--b-t-fast);
+}
+
+.bm-app .bm-tabbar__item.is-active {
+  color: var(--b-accent);
+}
+
+.bm-app .bm-tabbar__label {
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Quick-run sheet ───────────────────────────────────────────────────────── */
+
+.bm-app .bm-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  z-index: 40;
+  cursor: default;
+}
+
+.bm-app .bm-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  background: var(--b-surface);
+  border-top: 1px solid var(--b-border-strong);
+  border-radius: var(--b-r-sheet) var(--b-r-sheet) 0 0;
+  padding: 12px 14px calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--b-shadow-sheet);
+  max-height: 86vh;
+  overflow-y: auto;
+  animation: bm-sheet-in var(--b-t-pane) var(--b-ease) both;
+}
+
+.bm-app .bm-sheet.is-dragging {
+  transition: none;
+}
+
+.bm-app .bm-sheet:not(.is-dragging) {
+  transition: transform var(--b-t-pane) var(--b-ease);
+}
+
+.bm-app .bm-sheet.is-closing {
+  transform: translateY(100%);
+}
+
+@keyframes bm-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.bm-app .bm-sheet__handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  touch-action: none;
+  cursor: grab;
+  align-self: stretch;
+}
+
+.bm-app .bm-sheet__grabber {
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--b-border-strong);
+}
+
+.bm-app .bm-fav-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-card);
+  background: var(--b-well);
+  padding: 12px;
+  text-align: left;
+  min-height: 44px;
+  font-family: var(--b-font-ui);
+  transition:
+    border-color var(--b-t-fast),
+    background var(--b-t-fast);
+}
+
+.bm-app .bm-fav-row.is-selected {
+  border-color: var(--b-accent);
+  background: var(--b-accent-card);
+}
+
+.bm-app .bm-fav-row__info {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 2px;
+}
+
+.bm-app .bm-fav-row__name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--b-fg-dim);
+}
+
+.bm-app .bm-fav-row.is-selected .bm-fav-row__name {
+  color: var(--b-fg);
+}
+
+.bm-app .bm-fav-row__sub {
+  font-size: 11px;
+  color: var(--b-fg-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bm-app .bm-fav-row.is-selected .bm-fav-row__sub {
+  color: var(--b-fg-muted);
+}
+
+.bm-app .bm-pill-default {
+  background: var(--b-surface);
+  color: var(--b-fg-muted);
+}
+
+.bm-app .bm-tweak-drawer {
+  background: var(--b-well);
+  border-radius: var(--b-r-card);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bm-app .bm-tweak-drawer__head {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  min-height: 44px;
+  color: var(--b-fg-muted);
+  cursor: pointer;
+}
+
+.bm-app .bm-tweak-drawer__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bm-app .bm-tweak-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bm-app .bm-tweak-row__info {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 2px;
+}
+
+.bm-app .bm-tweak-row__name {
+  font-size: 12.5px;
+  color: var(--b-fg);
+}
+
+.bm-app .bm-tweak-row__desc {
+  font-size: 10.5px;
+  color: var(--b-fg-muted);
+}
+
+.bm-app .bm-tweak-row__input {
+  font-family: var(--b-font-mono);
+  font-size: 13px;
+  background: var(--b-surface);
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-card);
+  padding: 8px 14px;
+  color: var(--b-fg);
+  min-width: 0;
+  width: 108px;
+  flex: 0 0 auto;
+}
+
+.bm-app .bm-tweak-row__input:focus {
+  outline: none;
+  border-color: var(--b-accent);
+}
+
+.bm-app .bm-hint {
+  font-size: 11px;
+  color: var(--b-fg-muted);
+}
+
+.bm-app .bm-hint--error {
+  color: var(--b-danger);
+}
+
+/* ── Run detail ────────────────────────────────────────────────────────────── */
+
+.bm-app .bm-detail {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.bm-app .bm-back {
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: var(--b-fg-muted);
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bm-app .bm-detail__title {
+  font-size: 13px;
+  flex: 1 1 auto;
+  color: var(--b-fg);
+}
+
+.bm-app .bm-tabs {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 18px;
+  padding: 10px 14px 0;
+  background: var(--b-surface);
+  border-bottom: 1px solid var(--b-border);
+}
+
+.bm-app .bm-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0 0 10px;
+  min-height: 44px;
+  font-family: var(--b-font-ui);
+  font-size: 12.5px;
+  color: var(--b-fg-muted);
+  cursor: pointer;
+}
+
+.bm-app .bm-tab.is-active {
+  color: var(--b-accent);
+  border-bottom-color: var(--b-accent);
+}
+
+.bm-app .bm-params,
+.bm-app .bm-logs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bm-app .bm-param-row {
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-card);
+  background: var(--b-surface);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bm-app .bm-param-row__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.bm-app .bm-param-row__fqn {
+  font-size: 12px;
+  color: var(--b-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bm-app .bm-param-row__value {
+  font-size: 12px;
+  color: var(--b-accent);
+  flex-shrink: 0;
+}
+
+.bm-app .bm-param-row__desc {
+  font-size: 11px;
+  color: var(--b-fg-muted);
+  font-family: var(--b-font-ui);
+}
+
+.bm-app .bm-log-row {
+  border-bottom: 1px solid var(--b-border);
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bm-app .bm-log-row__meta {
+  font-size: 10.5px;
+}
+
+.bm-app .bm-log-row__msg {
+  font-size: 12px;
+  color: var(--b-fg-dim);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.bm-app .bm-detail__footer {
+  flex: 0 0 auto;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--b-border);
+  background: var(--b-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bm-app .bm-footer-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.bm-app .bm-footer-buttons > button {
+  flex: 1 1 0;
+}

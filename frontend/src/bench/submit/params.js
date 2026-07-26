@@ -100,8 +100,11 @@ export function fromArtiqTy(spec) {
   switch (ty) {
     case "NumberValue": {
       const s = typeof spec === "object" ? spec : {};
+      // ARTIQ renamed `ndecimals` to `precision`; masters in the wild emit
+      // either, so accept both rather than mistyping every int as a float.
+      const precision = s.precision ?? s.ndecimals;
       const intish =
-        s.precision === 0 &&
+        precision === 0 &&
         (s.step === undefined || (Number.isFinite(s.step) && s.step % 1 === 0));
       return intish ? "int" : "float";
     }
@@ -180,9 +183,28 @@ function buildNdscanParamModel(arginfo) {
   });
 }
 
+/**
+ * Split a plain-arginfo entry into `{spec, group, tooltip}`.
+ *
+ * ARTIQ's own format is `[procdesc, group, tooltip]` where `procdesc.ty` names
+ * the processor. Parts of this repo (and the mock backend) instead emit
+ * `[ty, spec, group, tooltip]`, so both are accepted — otherwise the
+ * four-element form silently produces a tree of `undefined` types.
+ */
+export function splitPlainEntry(entry) {
+  if (!Array.isArray(entry))
+    return { spec: entry || {}, group: null, tooltip: "" };
+  if (typeof entry[0] === "string") {
+    const [ty, spec, group, tooltip] = entry;
+    return { spec: { ty, ...(spec || {}) }, group, tooltip };
+  }
+  const [spec, group, tooltip] = entry;
+  return { spec: spec || {}, group, tooltip };
+}
+
 function buildPlainParamModel(arginfo) {
   return Object.entries(arginfo).map(([name, entry]) => {
-    const [spec, group, tooltip] = Array.isArray(entry) ? entry : [entry];
+    const { spec, group, tooltip } = splitPlainEntry(entry);
     const segments = group ? [group, name] : [name];
     const { leaf, prefix } = segmentsToParts(segments);
     const s = spec || {};

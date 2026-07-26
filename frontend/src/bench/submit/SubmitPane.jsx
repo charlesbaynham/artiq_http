@@ -348,12 +348,14 @@ function SubmitPane({ explist, onSubmitted }) {
   const { progress } = useLiveRun({ pinnedRid: state.pinnedLiveRid });
   const secondsPerPoint = estimatePointDuration(progress, null);
   const durationSeconds = useMemo(() => {
-    if (secondsPerPoint == null) return null;
+    if (secondsPerPoint == null || !experiment) return null;
     const gridPoints = axes.reduce((n, a) => n * pointCount(a), 1);
     if (!gridPoints) return null;
+    // An ∞-repeat scan has no honest end; say nothing rather than guess.
     if (state.repeats === INFINITE_REPEATS) return null;
-    return secondsPerPoint * gridPoints * Math.max(1, state.repeats);
-  }, [secondsPerPoint, axes, state.repeats]);
+    const total = secondsPerPoint * gridPoints * Math.max(1, state.repeats);
+    return total >= 1 ? total : null;
+  }, [secondsPerPoint, axes, state.repeats, experiment]);
 
   /* ── Actions ────────────────────────────────────────────────────────────── */
 
@@ -365,7 +367,6 @@ function SubmitPane({ explist, onSubmitted }) {
   );
 
   const [appliedPreset, setAppliedPreset] = useState(null);
-  useEffect(() => setAppliedPreset(null), [experimentKey]);
 
   const wsActions = useMemo(
     () => ({
@@ -493,15 +494,30 @@ function SubmitPane({ explist, onSubmitted }) {
     onSubmitted,
   ]);
 
-  const onKeyDown = useCallback(
-    (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-        e.preventDefault();
-        onSubmit();
-      }
-    },
-    [onSubmit],
-  );
+  // ⌘↵ / Ctrl+↵ submits "from anywhere in the pane". A React `onKeyDown` on the
+  // root only sees events whose target is a focused descendant, and clicking an
+  // ordinary div leaves focus on `<body>` — so listen on the window and accept
+  // the event when it came from inside the pane or from nothing in particular.
+  const rootRef = useRef(null);
+  const submitRef = useRef(onSubmit);
+  submitRef.current = onSubmit;
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "Enter" || !(e.metaKey || e.ctrlKey)) return;
+      const root = rootRef.current;
+      const inside =
+        root &&
+        (root.contains(e.target) ||
+          !document.activeElement ||
+          document.activeElement === document.body ||
+          root.contains(document.activeElement));
+      if (!inside) return;
+      e.preventDefault();
+      submitRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   /* ── Render ─────────────────────────────────────────────────────────────── */
 
@@ -540,7 +556,7 @@ function SubmitPane({ explist, onSubmitted }) {
   );
 
   return (
-    <section className="bench bw-submit" onKeyDown={onKeyDown}>
+    <section className="bench bw-submit" ref={rootRef}>
       <header className="bw-head">
         <Caption>submit</Caption>
         {experiment ? (
