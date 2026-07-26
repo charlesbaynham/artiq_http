@@ -1,42 +1,40 @@
-name: Deploy Pages (static mock demo)
+name: Deploy Pages (docs + static mock demo)
 
-# Deploys the redesigned bench UI as a fully static demo (VITE_MOCK=1, no
-# Python backend) to GitHub Pages, using the modern artifact-based Pages
-# deployment (actions/upload-pages-artifact + actions/deploy-pages) rather
-# than a gh-pages branch. Both of these are first-party `actions/`-org
-# actions, so they satisfy this repo's "no third-party marketplace actions"
-# rule for CI.
+# Publishes this repo's single GitHub Pages site, using the modern
+# artifact-based deployment (actions/upload-pages-artifact +
+# actions/deploy-pages) rather than a gh-pages branch. Both are first-party
+# `actions/`-org actions, so they satisfy this repo's "no third-party
+# marketplace actions" rule.
 #
-# CAVEAT THE REPO OWNER MUST DECIDE ON: a GitHub repo has exactly one Pages
-# site. `ci.yml`'s `deploy-docs` job *already* publishes the Sphinx docs to
-# that same site via the same Actions-artifact mechanism, triggered on every
-# push to master. This workflow's push trigger (below) will race it: whichever
-# of the two workflows finishes last on a given master push "wins" the Pages
-# slot, and the site will flip unpredictably between the docs and this demo.
-# Resolving that is out of this workflow's scope (`ci.yml` belongs to a
-# different area of the project) -- pick one of: stop deploying docs to Pages
-# (e.g. host them elsewhere), merge both artifacts into a single deploy step
-# that places the demo under a subpath, or drop this workflow's automatic
-# push trigger and only ever deploy the demo via `workflow_dispatch` /
-# the `deploy-pages` PR label.
+# A repo has exactly one Pages site, so this workflow is the *only* thing that
+# deploys to it. It publishes both payloads in one artifact:
+#
+#   /       the Sphinx documentation (unchanged URLs -- this is what
+#           ci.yml's old `deploy-docs` job used to publish on its own)
+#   /demo/  the redesigned bench UI as a fully static demo (VITE_MOCK=1),
+#           running against browser-side mock data with no ARTIQ master and
+#           no Python backend
+#
+# `ci.yml` still builds the docs on every push (and uploads them as a normal
+# workflow artifact), but no longer deploys them -- deploying from two
+# workflows raced for the single Pages slot and the live site flipped
+# unpredictably between them.
 #
 # Because only one deployment can be live at a time, there are no per-PR
 # preview subdirectories. Deployment is manually fired:
-#   1. push to the default branch      -> build & deploy (this is the
-#                                          "resting" state: master is live
-#                                          unless someone deliberately
-#                                          replaces it)
-#   2. workflow_dispatch                -> deploy whatever ref is chosen in
-#                                          the Actions "Run workflow" branch
-#                                          dropdown (defaults to the default
-#                                          branch)
+#   1. push to the default branch      -> build & deploy (the resting state:
+#                                         master is live unless someone
+#                                         deliberately replaces it)
+#   2. workflow_dispatch                -> deploy whatever ref is chosen in the
+#                                         Actions "Run workflow" branch
+#                                         dropdown (defaults to the default
+#                                         branch)
 #   3. a pull_request gets the          -> deploy that PR's head, so a PR can
-#      `deploy-pages` label                claim the live slot for review.
-#      applied                            Fork PRs are refused (no write
-#                                          token for a fork's untrusted code;
-#                                          see the fork-check step) -- this
-#                                          deliberately does NOT use
-#                                          `pull_request_target`.
+#      `deploy-pages` label                claim the live slot for review. Fork
+#                                         PRs are refused (no write token for a
+#                                         fork's untrusted code; see the
+#                                         fork-check step) -- this deliberately
+#                                         does NOT use `pull_request_target`.
 #
 # Repo settings prerequisite: Settings -> Pages -> Build and deployment
 # -> Source must be "GitHub Actions" (not "Deploy from a branch").
@@ -60,9 +58,9 @@ permissions:
 jobs:
   deploy:
     # Skip irrelevant PR-label events at the job level (any label other than
-    # deploy-pages); the fork-vs-same-repo check happens *inside* the job
-    # (not here) so it can still write a visible job-summary line explaining
-    # the skip, rather than the run just not appearing at all.
+    # deploy-pages); the fork-vs-same-repo check happens *inside* the job (not
+    # here) so it can still write a visible job-summary line explaining the
+    # skip, rather than the run just not appearing at all.
     if: >
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
@@ -90,8 +88,8 @@ jobs:
               echo "Deploying fork code to GitHub Pages with this workflow's privileged token would let"
               echo "untrusted code publish under this repo's Pages site, so the deploy did not run."
               echo
-              echo "A maintainer can push the branch to this repository, or check it out locally and run"
-              echo "this workflow via \`workflow_dispatch\` against it, to preview it instead."
+              echo "A maintainer can push the branch to this repository, or run this workflow via"
+              echo "\`workflow_dispatch\` against it, to preview it instead."
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "proceed=true" >> "$GITHUB_OUTPUT"
@@ -126,6 +124,18 @@ jobs:
           uv run python scripts/generate_mock_fixtures.py --out /tmp/fixture_check
           diff -r frontend/public/mock /tmp/fixture_check
 
+      # The docs occupy the site root, so existing documentation URLs keep
+      # working exactly as they did when ci.yml deployed them.
+      - name: Install docs build dependencies
+        if: steps.fork-check.outputs.proceed == 'true'
+        run: sudo apt-get install -y librsvg2-bin
+
+      - name: Build Sphinx docs into the site root
+        if: steps.fork-check.outputs.proceed == 'true'
+        run: |
+          uv run sphinx-apidoc -o docs/autogen artiq_http
+          uv run sphinx-build docs site -b html
+
       - uses: actions/setup-node@v4
         if: steps.fork-check.outputs.proceed == 'true'
         with:
@@ -136,17 +146,28 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Build static mock demo
+      - name: Build static mock demo into /demo/
         if: steps.fork-check.outputs.proceed == 'true'
         working-directory: frontend
         env:
-          VITE_BASE: /${{ github.event.repository.name }}/
+          VITE_BASE: /${{ github.event.repository.name }}/demo/
         run: npm run build:mock
+
+      - name: Assemble the site
+        if: steps.fork-check.outputs.proceed == 'true'
+        run: |
+          # Sphinx emits a .nojekyll of its own; make sure one exists either
+          # way, otherwise Pages' Jekyll pass strips _-prefixed asset dirs.
+          touch site/.nojekyll
+          mkdir -p site/demo
+          cp -r frontend/dist/. site/demo/
+          echo "Assembled site tree:"
+          find site -maxdepth 2 -mindepth 1 -printf '%y %p\n' | sort | head -40
 
       - uses: actions/upload-pages-artifact@v3
         if: steps.fork-check.outputs.proceed == 'true'
         with:
-          path: frontend/dist
+          path: site
 
       - uses: actions/deploy-pages@v4
         if: steps.fork-check.outputs.proceed == 'true'
@@ -161,7 +182,8 @@ jobs:
             echo "- Event: \`${{ github.event_name }}\`"
             echo "- Ref: \`${{ steps.resolve-ref.outputs.ref }}\`"
             echo "- Commit: \`${{ steps.resolve-ref.outputs.sha }}\`"
-            echo "- Live at: ${{ steps.deployment.outputs.page_url }}"
+            echo "- Docs: ${{ steps.deployment.outputs.page_url }}"
+            echo "- Demo: ${{ steps.deployment.outputs.page_url }}demo/"
             echo
             echo "Only one deployment can be live on GitHub Pages at a time. Pushing to"
             echo "\`${{ github.event.repository.default_branch }}\` (or re-running this workflow via"
@@ -186,22 +208,27 @@ jobs:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           MARKER="<!-- artiq-http-pages-deploy -->"
+          # The YAML block scalar strips this step's indentation, so the
+          # heredoc body below reaches bash at column 0 -- which matters,
+          # because indented lines would render as a Markdown code block.
           BODY="$(cat <<EOF
           $MARKER
           ### 📄 GitHub Pages now shows this PR
 
-          This workflow **replaced** the live GitHub Pages deployment with this PR's static mock demo
-          (mock data, no ARTIQ master).
+          This workflow **replaced** the live GitHub Pages deployment with this PR's build.
 
+          - Demo (mock data, no ARTIQ master): ${PAGE_URL}demo/
+          - Docs: ${PAGE_URL}
           - Ref: \`$HEAD_REF\`
           - Commit: \`$HEAD_SHA\`
-          - Live at: $PAGE_URL
 
           Only one deployment can be live on GitHub Pages at a time. Pushing to \`$DEFAULT_BRANCH\` (or
           re-running this workflow via \`workflow_dispatch\` against it) restores master as the live site.
+
+          ---
+          _Generated by [Claude Code](https://claude.ai/code)_
           EOF
           )"
-
           EXISTING_ID="$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate \
             --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -1)"
 
