@@ -47,13 +47,17 @@ function ExperimentSubmission({
       setArginfo(null);
       return;
     }
-    setRevision(
-      repo_rev ?? (trimmedDefault || explist?.default_revision_fallback || ""),
-    );
+    const effectiveRevision =
+      repo_rev ?? (trimmedDefault || explist?.default_revision_fallback || "");
+    setRevision(effectiveRevision);
     setRecomputeError("");
     setArginfoLoading(true);
     setArginfo(null);
-    get_explist_arginfo(expData.file, expData.class_name)
+    get_explist_arginfo(
+      expData.file,
+      expData.class_name,
+      effectiveRevision.trim() || undefined,
+    )
       .then((result) => setArginfo(result.arginfo))
       .catch((err) => console.error("Failed to fetch arginfo:", err.message))
       .finally(() => setArginfoLoading(false));

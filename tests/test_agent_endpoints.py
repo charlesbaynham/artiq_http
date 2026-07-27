@@ -348,6 +348,106 @@ def test_explist_defaults_ndscan_experiment(mock_get_explist):
 
 
 # ---------------------------------------------------------------------------
+# GET /api/explist/{file:path}/{class_name}/arginfo
+# ---------------------------------------------------------------------------
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+def test_explist_arginfo_found(mock_get_explist):
+    """GET /api/explist/simple_exp.py/SimpleExp/arginfo returns arginfo from cache."""
+    explist = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**EXPERIMENT_ENTRY)],
+    )
+    mock_get_explist.return_value = explist
+    response = client.get("/api/explist/simple_exp.py/SimpleExp/arginfo")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["file"] == "simple_exp.py"
+    assert data["class_name"] == "SimpleExp"
+    assert data["arginfo"] == ARGINFO
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+def test_explist_arginfo_not_found(mock_get_explist):
+    """GET /api/explist/missing.py/Missing/arginfo returns 404 when not found."""
+    explist = ExperimentList(current_rev="abc123", scanning=False, experiments=[])
+    mock_get_explist.return_value = explist
+    response = client.get("/api/explist/missing.py/Missing/arginfo")
+    assert response.status_code == 404
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.examine_experiment", new_callable=AsyncMock)
+def test_explist_arginfo_at_revision_examines(mock_examine, mock_get_explist):
+    """GET .../arginfo?revision=X examines that revision and returns its arginfo.
+
+    The cached explist is not consulted (the experiment may not be on the current
+    revision at all), so get_explist must not be called.
+    """
+    mock_examine.return_value = {"SimpleExp": {"arginfo": ARGINFO}}
+    response = client.get(
+        "/api/explist/simple_exp.py/SimpleExp/arginfo",
+        params={"revision": "feature-branch"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["file"] == "simple_exp.py"
+    assert data["arginfo"] == ARGINFO
+    mock_examine.assert_awaited_once_with("simple_exp.py", "feature-branch")
+    mock_get_explist.assert_not_called()
+
+
+@patch("artiq_http.api.api.control_schedule.examine_experiment", new_callable=AsyncMock)
+def test_explist_arginfo_at_revision_unknown_class(mock_examine):
+    """GET .../arginfo?revision=X returns 404 when the class is absent at that revision."""
+    mock_examine.return_value = {"Other": {"arginfo": {}}}
+    response = client.get(
+        "/api/explist/simple_exp.py/SimpleExp/arginfo",
+        params={"revision": "feature-branch"},
+    )
+    assert response.status_code == 404
+
+
+@patch("artiq_http.api.api.control_schedule.examine_experiment", new_callable=AsyncMock)
+def test_explist_arginfo_at_revision_missing_file(mock_examine):
+    """GET .../arginfo?revision=X returns 404 (not 500) when the file is absent at that revision."""
+    from artiq_http.artiq_api.control_schedule import ExperimentNotFoundError
+
+    mock_examine.side_effect = ExperimentNotFoundError("boom")
+    response = client.get(
+        "/api/explist/simple_exp.py/SimpleExp/arginfo",
+        params={"revision": "feature-branch"},
+    )
+    assert response.status_code == 404
+
+
+@patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
+@patch("artiq_http.api.api.control_schedule.examine_experiment", new_callable=AsyncMock)
+def test_explist_arginfo_empty_stub_falls_through_to_examine(mock_examine, mock_get_explist):
+    """GET .../arginfo with no revision falls through to a live examine when cached arginfo is empty.
+
+    On a stub-catalog master the statically-scanned arginfo is {}.  Rather than
+    returning an empty schema, the endpoint should call examine_experiment to
+    retrieve the real arginfo.
+    """
+    stub_entry = {**EXPERIMENT_ENTRY, "arginfo": {}}
+    explist = ExperimentList(
+        current_rev="abc123",
+        scanning=False,
+        experiments=[ExperimentEntry(**stub_entry)],
+    )
+    mock_get_explist.return_value = explist
+    mock_examine.return_value = {"SimpleExp": {"arginfo": ARGINFO}}
+    response = client.get("/api/explist/simple_exp.py/SimpleExp/arginfo")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["arginfo"] == ARGINFO
+    mock_examine.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
 # POST /api/schedule?wait_for_completion=true
 # ---------------------------------------------------------------------------
 

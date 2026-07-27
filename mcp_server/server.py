@@ -218,22 +218,35 @@ async def get_experiment_defaults(
 
 
 @mcp.tool()
-async def get_experiment_arginfo(file: str, class_name: str) -> dict[str, Any]:
+async def get_experiment_arginfo(
+    file: str,
+    class_name: str,
+    revision: str | None = None,
+) -> dict[str, Any]:
     """Get the full parameter schema (arginfo) for a specific experiment.
 
     This includes the complete ndscan_params schemata, which is omitted from the
     lightweight list_experiments / search_experiments responses.
 
+    Pass *revision* to examine the experiment at a specific git revision/branch/tag.
+    This is required on stub-catalog masters where the statically-scanned arginfo
+    is empty — pass the same revision you intend to submit with.
+
     Args:
         file: Relative path to the experiment file, e.g. "idle.py".
         class_name: Python class name of the experiment, e.g. "Idle".
+        revision: Git revision/branch/tag to examine. Omit to use the master's
+            current revision.
 
     Returns a dict with 'file', 'class_name', and 'arginfo'.
     """
     encoded_file = quote(file, safe="/")
     encoded_class = quote(class_name, safe="")
+    params: dict[str, str] = {}
+    if revision is not None:
+        params["revision"] = revision
     async with _client() as c:
-        r = await c.get(f"/api/explist/{encoded_file}/{encoded_class}/arginfo")
+        r = await c.get(f"/api/explist/{encoded_file}/{encoded_class}/arginfo", params=params)
         r.raise_for_status()
         return r.json()
 

@@ -516,15 +516,49 @@ async def get_explist_defaults(
 
 
 @router.get("/explist/{file:path}/{class_name}/arginfo")
-async def get_explist_arginfo(file: str, class_name: str) -> api.models.ExperimentArginfo:
-    """Return the full arginfo (including complete ndscan_params) for a single experiment."""
+async def get_explist_arginfo(
+    file: str,
+    class_name: str,
+    revision: str | None = None,
+) -> api.models.ExperimentArginfo:
+    """Return the full arginfo (including complete ndscan_params) for a single experiment.
+
+    By default the arginfo is read from the master's statically-scanned current
+    revision. Pass *revision* to instead re-examine the experiment at a specific
+    git revision/branch/tag — letting you query the parameters of an experiment
+    that exists only on another branch, or whose argument schema is built
+    dynamically at runtime (e.g. ndscan experiments on a stub catalog).
+
+    Args:
+        file: Experiment file path, relative to the repository root.
+        class_name: Experiment class name.
+        revision: Git revision/branch/tag to examine. Omit to use the master's
+            current revision.
+    """
+    if revision is not None:
+        arginfo = await _examine_arginfo(file, class_name, revision)
+        return api.models.ExperimentArginfo(
+            file=file,
+            class_name=class_name,
+            arginfo=arginfo,
+        )
+
     explist = await api.notifiers.get_explist()
     for exp in explist.experiments:
         if exp.file == file and exp.class_name == class_name:
+            # If the cached arginfo is empty (e.g. stub-catalog master), fall
+            # through to a live examine so callers get real schema data.
+            if exp.arginfo:
+                return api.models.ExperimentArginfo(
+                    file=exp.file,
+                    class_name=exp.class_name,
+                    arginfo=exp.arginfo,
+                )
+            arginfo = await _examine_arginfo(file, class_name, None)
             return api.models.ExperimentArginfo(
-                file=exp.file,
-                class_name=exp.class_name,
-                arginfo=exp.arginfo,
+                file=file,
+                class_name=class_name,
+                arginfo=arginfo,
             )
     raise HTTPException(404, f"Experiment {file}/{class_name} not found")
 
