@@ -425,7 +425,7 @@ def test_explist_arginfo_at_revision_missing_file(mock_examine):
 
 @patch("artiq_http.api.api.notifiers.get_explist", new_callable=AsyncMock)
 @patch("artiq_http.api.api.control_schedule.examine_experiment", new_callable=AsyncMock)
-def test_explist_arginfo_empty_stub_falls_through_to_examine(mock_examine, mock_get_explist):
+def test_explist_arginfo_empty_falls_through(mock_examine, mock_get_explist):
     """GET .../arginfo with no revision falls through to a live examine when cached arginfo is empty.
 
     On a stub-catalog master the statically-scanned arginfo is {}.  Rather than

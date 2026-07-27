@@ -79,8 +79,7 @@ export function get_explist_arginfo(file, class_name, revision) {
     .split("/")
     .map((s) => encodeURIComponent(s))
     .join("/");
-  const params = {};
-  if (revision) params.revision = revision;
+  const params = revision ? { revision } : {};
   return api_fetch(
     `api/explist/${encodedFile}/${encodeURIComponent(class_name)}/arginfo`,
     { params },
