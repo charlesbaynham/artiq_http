@@ -73,14 +73,16 @@ export function get_explist() {
   return api_fetch("api/explist");
 }
 
-export function get_explist_arginfo(file, class_name) {
+export function get_explist_arginfo(file, class_name, revision) {
   // file may contain slashes (path), so encode each segment individually
   const encodedFile = file
     .split("/")
     .map((s) => encodeURIComponent(s))
     .join("/");
+  const params = revision ? { revision } : {};
   return api_fetch(
     `api/explist/${encodedFile}/${encodeURIComponent(class_name)}/arginfo`,
+    { params },
   );
 }
 
