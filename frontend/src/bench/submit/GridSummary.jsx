@@ -8,10 +8,10 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-import { Caption, Pill, Card, Mono, Spacer } from "../ui/primitives";
+import { Caption, Card, Mono, Spacer } from "../ui/primitives";
 import { INFINITE_REPEATS, pointCount } from "./params";
 
-function GridSummary({ axes, repeats, skipOnError, onSetRepeats, onSkip }) {
+function GridSummary({ axes, repeats, onSetRepeats }) {
   const counts = axes.map(pointCount);
   const product = counts.reduce((a, b) => a * b, 1);
   const infinite = repeats === INFINITE_REPEATS;
@@ -50,14 +50,6 @@ function GridSummary({ axes, repeats, skipOnError, onSetRepeats, onSkip }) {
           ∞
         </button>
       </span>
-      <Pill
-        as="button"
-        active={skipOnError === true}
-        onClick={() => onSkip(!skipOnError)}
-        title="Skip a point whose transitory error persists instead of aborting the scan"
-      >
-        skip on error
-      </Pill>
     </Card>
   );
 }
@@ -65,9 +57,7 @@ function GridSummary({ axes, repeats, skipOnError, onSetRepeats, onSkip }) {
 GridSummary.propTypes = {
   axes: PropTypes.array.isRequired,
   repeats: PropTypes.number,
-  skipOnError: PropTypes.bool,
   onSetRepeats: PropTypes.func,
-  onSkip: PropTypes.func,
 };
 
 export default GridSummary;

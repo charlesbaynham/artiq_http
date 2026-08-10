@@ -212,37 +212,6 @@ async def test_build_ndscan_params_wire_format(mock_get_explist):
 
 
 @patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
-async def test_build_ndscan_params_skip_on_error_and_randomise_globally(mock_get_explist):
-    """skip_on_persistent_transitory_error and randomise_order_globally reach the
-    wire format's scan dict (ndscan reads both straight off `scan`, see
-    ArgumentInterface.make_scan_spec in
-    .agents/deps/ndscan/ndscan/experiment/entry_point.py)."""
-    mock_get_explist.return_value = EXPLIST_WITH_NDSCAN
-
-    result = await build_ndscan_params(
-        file="ndscan_exp.py",
-        class_name="NDScanExp",
-        axes=[{"fqn": "test.frequency", "type": "linear", "range": {"start": 0.0, "stop": 100.0, "num_points": 10}}],
-        skip_on_persistent_transitory_error=True,
-        randomise_order_globally=True,
-    )
-    scan = json.loads(result)["scan"]
-    assert scan["skip_on_persistent_transitory_error"] is True
-    assert scan["randomise_order_globally"] is True
-
-
-@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
-async def test_build_ndscan_params_skip_on_error_defaults_false(mock_get_explist):
-    """Both new flags default to False when omitted, matching ndscan's own defaults."""
-    mock_get_explist.return_value = EXPLIST_WITH_NDSCAN
-
-    result = await build_ndscan_params(file="ndscan_exp.py", class_name="NDScanExp", axes=[])
-    scan = json.loads(result)["scan"]
-    assert scan["skip_on_persistent_transitory_error"] is False
-    assert scan["randomise_order_globally"] is False
-
-
-@patch("artiq_http.artiq_api.ndscan_builder.get_explist", new_callable=AsyncMock)
 async def test_build_ndscan_params_centre_span(mock_get_explist):
     """centre_span axes pass centre/half_span through verbatim."""
     mock_get_explist.return_value = EXPLIST_WITH_NDSCAN

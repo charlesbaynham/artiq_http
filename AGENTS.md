@@ -80,6 +80,14 @@ Routes (`frontend/src/App.jsx` is a thin router):
 
 Points to preserve when changing this code:
 
+- **Mobile has no separate submission path.** The mobile shell's "New run" screen
+  renders the desktop `submit/SubmitPane.jsx` full-screen (fragment tree as the same
+  slide-over the 900–1200px band uses), so a phone can submit any experiment with
+  arbitrary parameters through exactly the same param model, validation and wire
+  encoders as the desktop. Do not reintroduce a mobile-only submit flow that can
+  drift out of sync — phone-width layout fixes belong in `mobile/mobile.css` under
+  `.bm-app`, not in a fork of the pane.
+
 - **ndscan scans submit via `POST /api/scan`**, not by assembling an `ndscan_params`
   string in JS. The server resolves each axis's sub-fragment `path` from `instances`;
   the old frontend hardcoded `path: ""` and silently mis-scanned sub-fragment
@@ -118,27 +126,6 @@ file loaded by the process manager, or `docker/compose.yml`):
   `master` to instead always target that ref regardless of whichever revision the
   ARTIQ master currently has checked out. Exposed to the frontend as
   `default_revision_fallback` on `GET /api/explist`.
-- `ARTIQ_HTTP_PRESETS_FILE` - path to the JSON file backing the presets/favourites
-  store (see "Presets" below). Defaults to `~/.artiq_http/presets.json`.
-
-## Presets
-
-There is no database and no auth/user concept in this project. Presets — saved
-scan/session configurations used by the frontend's "quick check" menu and mobile
-favourites list — are a lab-wide convenience persisted to a single JSON file,
-read/written by `artiq_http/artiq_api/presets_store.py` under an `asyncio.Lock`
-(whole-file read-modify-write, atomic temp-file + `os.replace` on write). The
-file path comes from `config["presets_file"]` / `ARTIQ_HTTP_PRESETS_FILE`; a
-missing or corrupt file is tolerated (logged and treated as empty) rather than
-raising, and parent directories are created on first write. Presets are not
-ARTIQ-dependent, so they work identically in mock and real modes.
-
-Routes: `GET /api/presets` (optional `file`, `class_name`, `favourites_only`
-filters), `POST /api/presets`, `PUT /api/presets/{id}`, `DELETE /api/presets/{id}`
-(404 when absent). The server generates `id` (uuid4 hex) and `created_at`/
-`updated_at` (`time.time()`) on create, and refreshes `updated_at` on update.
-`working_set` is opaque passthrough — the server stores and returns it verbatim
-(it's the frontend's `WorkingSetEntry[]`) and never interprets its contents.
 
 ## MCP Server
 
@@ -176,13 +163,6 @@ treat these as parity gaps): `GET /api/datasets` full dump (too large — use th
 `list_dataset_names` / `get_dataset_values` tools instead), `GET /api/datasets/stream/...`
 (SSE streaming, not MCP-shaped), the `fields`/`full` query filters on the
 `explist` endpoints (MCP returns the curated form), and `GET /api/` (hello-world).
-
-`list_presets` / `get_preset` mirror `GET /api/presets` and are deliberately
-**read-only** — there are no `create_preset`/`update_preset`/`delete_preset`
-tools. Presets are a human UI affordance (the bench frontend's "quick check"
-menu and mobile favourites list); an agent has no business silently creating or
-overwriting a human's saved scan configurations, so writing presets stays a
-browser-only action. This is a decision, not a parity gap.
 
 **Compact-by-default rule:** the listing tools return trimmed payloads so an
 agent is not flooded by bulk it rarely needs (chiefly a running ndscan scan's
@@ -264,11 +244,10 @@ no server process on Pages).
   through to the real `fetch`) and replaces `window.EventSource` with a shim that replays
   and then animates the fixture data for `/api/datasets/stream/<prefix>`, reproducing
   `sse.py`'s `init`/`update`/`delete`/`heartbeat`/`error` protocol exactly. It implements
-  the full explist/arginfo/defaults/recompute/schedule/scan/cancel/datasets/logs/health/
-  presets surface, hand-rolled against the same Python modules it mirrors
+  the full explist/arginfo/defaults/recompute/schedule/scan/cancel/datasets/logs/health
+  surface, hand-rolled against the same Python modules it mirrors
   (`ndscan_builder.py`, `ndscan_validation.py`, `notifiers.py`) — no MSW, no new
-  dependencies. Presets are backed by `localStorage` (`artiq_http.bench.mockPresets`) since
-  there is no server to persist them to. Submitting a scan or experiment allocates a RID
+  dependencies. Submitting a scan or experiment allocates a RID
   from `4825`, matching `mock_backend.py`'s lifecycle exactly: inserted `pending`, flips to
   `running` after ~2 s, streams points derived from the submitted axes (or completes
   immediately for a no-axis/plain submission), then completes and leaves the schedule once

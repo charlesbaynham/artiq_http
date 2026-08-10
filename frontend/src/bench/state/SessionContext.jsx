@@ -197,14 +197,12 @@ export function SessionProvider({ children }) {
       setPipeline: (pipeline) => dispatch({ type: A.SET_PIPELINE, pipeline }),
       setPriority: (priority) => dispatch({ type: A.SET_PRIORITY, priority }),
       setRepeats: (repeats) => dispatch({ type: A.SET_REPEATS, repeats }),
-      setSkipOnError: (value) => dispatch({ type: A.SET_SKIP_ON_ERROR, value }),
       setPinnedLiveRid: (rid) => dispatch({ type: A.SET_PINNED_LIVE_RID, rid }),
       setGhostRid: (rid) => dispatch({ type: A.SET_GHOST_RID, rid }),
       setVisibleChannels: (channels) =>
         dispatch({ type: A.SET_VISIBLE_CHANNELS, channels }),
       setSelectedImageKeys: (keys) =>
         dispatch({ type: A.SET_SELECTED_IMAGE_KEYS, keys }),
-      applyPreset: (preset) => dispatch({ type: A.APPLY_PRESET, preset }),
       /** Reconcile the working set against a fresh param model. */
       syncWorkingSet: (params) =>
         dispatch({ type: A.SYNC_WORKING_SET, params }),

@@ -31,7 +31,7 @@ import {
 import { useSession } from "../state/SessionContext";
 import { useLiveRunContext } from "../state/LiveRunContext";
 import { estimatePointDuration } from "../state/useLiveRun";
-import { useIsMedium } from "../state/useMediaQuery";
+import { useIsMedium, useIsMobile } from "../state/useMediaQuery";
 import { Caption, Mono, Pill, Skeleton, Spacer } from "../ui/primitives";
 import { IconTree } from "../ui/icons";
 import FragmentTree from "./FragmentTree";
@@ -246,8 +246,6 @@ function SubmitPane({ explist, onSubmitted }) {
     setPipeline,
     setPriority,
     setRepeats,
-    setSkipOnError,
-    applyPreset,
     syncWorkingSet,
     expandedBranches,
     changedCount,
@@ -346,24 +344,28 @@ function SubmitPane({ explist, onSubmitted }) {
     [state.workingSet],
   );
 
-  /* ── Fragment tree slide-over (900–1200px, IMPL-SPEC §11) ─────────────────
+  /* ── Fragment tree slide-over (900–1200px and <700px, IMPL-SPEC §11) ──────
    * Below 1200px the pane shrinks and the 262px tree stops fitting inline;
    * above 900px it isn't narrow enough for the tabbed mobile-ish layout
    * either, so `useIsMedium` (the shell's one breakpoint helper — no
    * duplicated matchMedia logic) picks out exactly that band. In it, the
    * tree renders only inside a slide-over triggered from the filter bar
-   * instead of inline. */
+   * instead of inline. The mobile "New run" screen (<700px) reuses the same
+   * slide-over: a phone has even less room for an inline tree than the
+   * medium band does. */
   const isMedium = useIsMedium();
+  const isMobile = useIsMobile();
+  const overlayTree = isMedium || isMobile;
   const [treeOverlayOpen, setTreeOverlayOpen] = useState(false);
   const treeTriggerRef = useRef(null);
   const treeOverlayRef = useRef(null);
   const wasOverlayOpenRef = useRef(false);
 
-  // Leaving the 900–1200px band — wider or narrower — always closes it: the
-  // tree goes back to being inline (or the pane becomes a tab) either way.
+  // Leaving the slide-over widths always closes it: the tree goes back to
+  // being inline either way.
   useEffect(() => {
-    if (!isMedium) setTreeOverlayOpen(false);
-  }, [isMedium]);
+    if (!overlayTree) setTreeOverlayOpen(false);
+  }, [overlayTree]);
 
   const closeTreeOverlay = useCallback(() => setTreeOverlayOpen(false), []);
 
@@ -421,8 +423,6 @@ function SubmitPane({ explist, onSubmitted }) {
     [promoteToAxis],
   );
 
-  const [appliedPreset, setAppliedPreset] = useState(null);
-
   const wsActions = useMemo(
     () => ({
       onPatch: updateEntry,
@@ -432,11 +432,6 @@ function SubmitPane({ explist, onSubmitted }) {
       onSwap: swapAxes,
       onResetAll: resetAll,
       onSetRepeats: setRepeats,
-      onSkip: setSkipOnError,
-      onApplyPreset: (preset) => {
-        setAppliedPreset(preset.name);
-        applyPreset(preset);
-      },
     }),
     [
       updateEntry,
@@ -446,27 +441,6 @@ function SubmitPane({ explist, onSubmitted }) {
       swapAxes,
       resetAll,
       setRepeats,
-      setSkipOnError,
-      applyPreset,
-    ],
-  );
-
-  const presetSnapshot = useMemo(
-    () => ({
-      working_set: state.workingSet,
-      pipeline: state.pipeline,
-      priority: state.priority,
-      repeats: state.repeats,
-      skip_on_error: state.skipOnError,
-      revision: state.revision || null,
-    }),
-    [
-      state.workingSet,
-      state.pipeline,
-      state.priority,
-      state.repeats,
-      state.skipOnError,
-      state.revision,
     ],
   );
 
@@ -489,7 +463,6 @@ function SubmitPane({ explist, onSubmitted }) {
 
   // A submit confirmation belongs to the experiment it was made for.
   useEffect(() => {
-    setAppliedPreset(null);
     setSubmitRid(null);
     setSubmitError(null);
   }, [experimentKey]);
@@ -521,7 +494,6 @@ function SubmitPane({ explist, onSubmitted }) {
               pipeline: state.pipeline,
               priority: state.priority,
               repeats: state.repeats,
-              skipOnError: state.skipOnError,
             }),
           )
         : await queue_experiment(
@@ -550,7 +522,6 @@ function SubmitPane({ explist, onSubmitted }) {
     state.pipeline,
     state.priority,
     state.repeats,
-    state.skipOnError,
     fqnToPath,
     params,
     onSubmitted,
@@ -727,7 +698,7 @@ function SubmitPane({ explist, onSubmitted }) {
             <Mono className="bw-filter__count" title="Total parameters">
               {params.length}
             </Mono>
-            {isMedium ? (
+            {overlayTree ? (
               <button
                 type="button"
                 ref={treeTriggerRef}
@@ -770,20 +741,16 @@ function SubmitPane({ explist, onSubmitted }) {
         />
       ) : (
         <div className="bw-body">
-          {!isMedium ? renderTreePanel(null) : null}
+          {!overlayTree ? renderTreePanel(null) : null}
           <WorkingSet
             entries={state.workingSet}
             errors={errors}
             loading={loading}
             canAddAxis={canAddAxis}
             repeats={state.repeats}
-            skipOnError={state.skipOnError}
-            experiment={experiment}
-            presetSnapshot={presetSnapshot}
-            appliedPresetName={appliedPreset}
             actions={wsActions}
           />
-          {isMedium ? (
+          {overlayTree ? (
             <div
               className={`bw-tree-overlay${treeOverlayOpen ? " is-open" : ""}`}
             >
