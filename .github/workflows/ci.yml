@@ -63,6 +63,7 @@ jobs:
           docker load < result
           docker tag artiq-test-master:latest "${{ steps.meta.outputs.image }}"
           docker push "${{ steps.meta.outputs.image }}"
+          docker push artiq-test-master:latest
 
   pytest:
     runs-on: ubuntu-latest

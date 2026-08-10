@@ -249,7 +249,7 @@ function NewNDScanItem(props) {
         ndscanOverrides,
         ndscanScan,
         fqnToPath,
-        visibleFqns,
+        combinedFQNs,
       );
     }
     return {};
