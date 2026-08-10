@@ -149,41 +149,6 @@ export function get_schedule() {
   return api_fetch("api/schedule");
 }
 
-/* ── Presets (lab-wide, stored server-side) ───────────────────────────────── */
-
-/**
- * @param {{file?: string, class_name?: string, favourites_only?: boolean}} [params]
- */
-export function get_presets(params = {}) {
-  const clean = {};
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null && v !== "") clean[k] = v;
-  }
-  return api_fetch("api/presets", { params: clean });
-}
-
-export function create_preset(body) {
-  return api_fetch("api/presets", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-}
-
-export function update_preset(id, body) {
-  return api_fetch(`api/presets/${encodeURIComponent(id)}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-}
-
-export function delete_preset(id) {
-  return api_fetch(`api/presets/${encodeURIComponent(id)}`, {
-    method: "DELETE",
-  });
-}
-
 export function get_explist() {
   return api_fetch("api/explist");
 }

@@ -18,7 +18,7 @@ export const LS_SESSION_PREFIX = "artiq_http.bench.session.";
 export const LS_SESSIONS = "artiq_http.bench.sessions";
 export const LS_ACTIVE_SESSION = "artiq_http.bench.activeSession";
 
-/** Stable key for an experiment — used for `treeExpanded` and presets. */
+/** Stable key for an experiment — used for `treeExpanded`. */
 export function experimentKey(experiment) {
   if (!experiment) return "";
   return `${experiment.file}:${experiment.class_name}`;
@@ -45,7 +45,6 @@ export function initialSessionState(name = DEFAULT_SESSION_NAME) {
     pipeline: "main",
     priority: 0,
     repeats: 1,
-    skipOnError: false,
     // Transient: an inline notice for the UI (e.g. "max 2 axes"). Cleared on
     // the next action; never persisted.
     notice: null,
@@ -177,12 +176,10 @@ export const A = {
   SET_PIPELINE: "setPipeline",
   SET_PRIORITY: "setPriority",
   SET_REPEATS: "setRepeats",
-  SET_SKIP_ON_ERROR: "setSkipOnError",
   SET_PINNED_LIVE_RID: "setPinnedLiveRid",
   SET_GHOST_RID: "setGhostRid",
   SET_VISIBLE_CHANNELS: "setVisibleChannels",
   SET_SELECTED_IMAGE_KEYS: "setSelectedImageKeys",
-  APPLY_PRESET: "applyPreset",
   SYNC_WORKING_SET: "syncWorkingSet",
 };
 
@@ -203,7 +200,7 @@ export function sessionReducer(state, action) {
 
     case A.SELECT_EXPERIMENT: {
       // Changing experiment clears the working set and the filter query but
-      // keeps pipeline/priority/repeats/skipOnError and the live/ghost RIDs.
+      // keeps pipeline/priority/repeats and the live/ghost RIDs.
       const same =
         experimentKey(s.selectedExperiment) ===
         experimentKey(action.experiment);
@@ -370,9 +367,6 @@ export function sessionReducer(state, action) {
       };
     }
 
-    case A.SET_SKIP_ON_ERROR:
-      return { ...s, skipOnError: Boolean(action.value) };
-
     case A.SET_PINNED_LIVE_RID:
       return { ...s, pinnedLiveRid: action.rid ?? null };
 
@@ -384,36 +378,6 @@ export function sessionReducer(state, action) {
 
     case A.SET_SELECTED_IMAGE_KEYS:
       return { ...s, selectedImageKeys: action.keys || [] };
-
-    case A.APPLY_PRESET: {
-      const p = action.preset;
-      if (!p) return s;
-      return {
-        ...s,
-        selectedExperiment:
-          p.file && p.class_name
-            ? {
-                file: p.file,
-                class_name: p.class_name,
-                name: p.class_name,
-                docstring: "",
-                ...(s.selectedExperiment &&
-                experimentKey(s.selectedExperiment) ===
-                  `${p.file}:${p.class_name}`
-                  ? s.selectedExperiment
-                  : {}),
-              }
-            : s.selectedExperiment,
-        workingSet: orderWorkingSet(
-          Array.isArray(p.working_set) ? p.working_set : [],
-        ),
-        pipeline: p.pipeline ?? s.pipeline,
-        priority: p.priority ?? s.priority,
-        repeats: p.repeats ?? s.repeats,
-        skipOnError: p.skip_on_error ?? s.skipOnError,
-        revision: p.revision ?? s.revision,
-      };
-    }
 
     /**
      * Reconcile the working set against a freshly computed param model: drop

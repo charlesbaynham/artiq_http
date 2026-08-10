@@ -100,15 +100,6 @@ function linspace(start, stop, n) {
   return out;
 }
 
-function randomId() {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID().replace(/-/g, "");
-  }
-  return Array.from({ length: 32 }, () =>
-    Math.floor(Math.random() * 16).toString(16),
-  ).join("");
-}
-
 /**
  * Filesystem-safe encoding of `<file>:<class_name>` used for arginfo fixture
  * filenames (`frontend/public/mock/arginfo/<slug>.json`).
@@ -357,8 +348,6 @@ function buildNdscanParamsFromArginfo(
   axes,
   fixedParams,
   numRepeats,
-  skipOnPersistentTransitoryError,
-  randomiseOrderGlobally,
 ) {
   const schemata = extractSchemataFromArginfo(arginfo);
   if (!schemata || Object.keys(schemata).length === 0) {
@@ -382,8 +371,7 @@ function buildNdscanParamsFromArginfo(
       axes: (axes || []).map((ax) => buildAxis(ax, fqnToPaths)),
       num_repeats: numRepeats,
       no_axes_mode: "single",
-      randomise_order_globally: !!randomiseOrderGlobally,
-      skip_on_persistent_transitory_error: !!skipOnPersistentTransitoryError,
+      randomise_order_globally: false,
     },
   };
   return JSON.stringify(paramsData);
@@ -1144,8 +1132,6 @@ function handleSubmitScan(url, body) {
     body.axes,
     body.fixed_params,
     body.num_repeats ?? 1,
-    body.skip_on_persistent_transitory_error ?? false,
-    body.randomise_order_globally ?? false,
   );
 
   const argumentsObj = { ndscan_params: ndscanParams };
@@ -1248,106 +1234,6 @@ function handleGetLogs(url) {
   });
   if (limit != null) entries = entries.slice(0, Number(limit));
   return { logs: entries };
-}
-
-// ── Presets (localStorage-backed; mirrors artiq_http/artiq_api/presets_store.py) ─
-
-const PRESETS_KEY = "artiq_http.bench.mockPresets";
-
-function loadPresetsRaw() {
-  try {
-    const raw = localStorage.getItem(PRESETS_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function savePresetsRaw(presets) {
-  try {
-    localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
-  } catch {
-    // Storage full or disabled — presets just won't persist this session.
-  }
-}
-
-function presetPayload(body) {
-  if (
-    !body ||
-    typeof body.name !== "string" ||
-    typeof body.file !== "string" ||
-    typeof body.class_name !== "string"
-  ) {
-    throw new MockApiError(
-      422,
-      "Invalid preset: 'name', 'file', and 'class_name' are required",
-    );
-  }
-  return {
-    name: body.name,
-    file: body.file,
-    class_name: body.class_name,
-    favourite: !!body.favourite,
-    working_set: Array.isArray(body.working_set) ? body.working_set : [],
-    pipeline: body.pipeline ?? "main",
-    priority: Number.isFinite(body.priority) ? body.priority : 0,
-    repeats: Number.isFinite(body.repeats) ? body.repeats : 1,
-    skip_on_error: !!body.skip_on_error,
-    revision: body.revision ?? null,
-  };
-}
-
-function listPresets(url) {
-  const file = url.searchParams.get("file");
-  const className = url.searchParams.get("class_name");
-  const favouritesOnly = url.searchParams.get("favourites_only") === "true";
-  let presets = loadPresetsRaw();
-  if (file) presets = presets.filter((p) => p.file === file);
-  if (className) presets = presets.filter((p) => p.class_name === className);
-  if (favouritesOnly) presets = presets.filter((p) => p.favourite);
-  return { presets };
-}
-
-function createPreset(body) {
-  const payload = presetPayload(body);
-  const now = Date.now() / 1000;
-  const preset = {
-    ...payload,
-    id: randomId(),
-    created_at: now,
-    updated_at: now,
-  };
-  const presets = loadPresetsRaw();
-  presets.push(preset);
-  savePresetsRaw(presets);
-  return preset;
-}
-
-function updatePreset(id, body) {
-  const payload = presetPayload(body);
-  const presets = loadPresetsRaw();
-  const idx = presets.findIndex((p) => p.id === id);
-  if (idx === -1) throw new MockApiError(404, `Preset ${id} not found`);
-  const now = Date.now() / 1000;
-  const updated = {
-    ...payload,
-    id,
-    created_at: presets[idx].created_at ?? now,
-    updated_at: now,
-  };
-  presets[idx] = updated;
-  savePresetsRaw(presets);
-  return updated;
-}
-
-function deletePreset(id) {
-  const presets = loadPresetsRaw();
-  const next = presets.filter((p) => p.id !== id);
-  if (next.length === presets.length)
-    throw new MockApiError(404, `Preset ${id} not found`);
-  savePresetsRaw(next);
-  return null;
 }
 
 // ── Route table ──────────────────────────────────────────────────────────────
@@ -1455,21 +1341,6 @@ async function routeApi(method, url, body) {
   if (rest[0] === "health" && rest.length === 1) {
     if (method === "GET") return state.health;
     throw new MockApiError(405, "Method Not Allowed");
-  }
-
-  if (rest[0] === "presets") {
-    if (rest.length === 1) {
-      if (method === "GET") return listPresets(url);
-      if (method === "POST") return createPreset(body);
-      throw new MockApiError(405, "Method Not Allowed");
-    }
-    if (rest.length === 2) {
-      const id = decodeURIComponent(rest[1]);
-      if (method === "PUT") return updatePreset(id, body);
-      if (method === "DELETE") return deletePreset(id);
-      throw new MockApiError(405, "Method Not Allowed");
-    }
-    throw new MockApiError(404, "Not Found");
   }
 
   throw new MockApiError(404, "Not Found");

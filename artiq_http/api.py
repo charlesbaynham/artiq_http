@@ -739,8 +739,6 @@ async def _build_scan_expid(
             axes,
             fixed_params=req.fixed_params,
             num_repeats=req.num_repeats,
-            skip_on_persistent_transitory_error=req.skip_on_persistent_transitory_error,
-            randomise_order_globally=req.randomise_order_globally,
         )
     except ValueError as e:
         msg = str(e)
@@ -812,54 +810,6 @@ async def submit_scan(
     if wait_for_completion:
         return await _wait_for_rid_completion(rid, min(timeout, 21600.0))
     return rid
-
-
-# ── Presets and favourites ────────────────────────────────────────────────────
-#
-# Lab-wide, unauthenticated presets persisted to a single JSON file (see
-# artiq_http/artiq_api/presets_store.py). Not ARTIQ-dependent — these routes
-# work identically in mock and real modes.
-
-
-@router.get("/presets")
-async def get_presets(
-    file: str | None = None,
-    class_name: str | None = None,
-    favourites_only: bool = False,
-) -> api.models.PresetList:
-    """List saved presets, optionally filtered by experiment identity and/or favourite status.
-
-    Args:
-        file: Only return presets saved for this experiment file.
-        class_name: Only return presets saved for this experiment class.
-        favourites_only: Only return presets with ``favourite == True``.
-    """
-    presets = await api.presets_store.list_presets(file=file, class_name=class_name, favourites_only=favourites_only)
-    return api.models.PresetList(presets=[api.models.Preset.model_validate(p) for p in presets])
-
-
-@router.post("/presets")
-async def create_preset(preset: api.models.PresetCreate) -> api.models.Preset:
-    """Save a new preset. The server generates ``id``, ``created_at`` and ``updated_at``."""
-    created = await api.presets_store.create_preset(preset.model_dump())
-    return api.models.Preset.model_validate(created)
-
-
-@router.put("/presets/{preset_id}")
-async def update_preset(preset_id: str, preset: api.models.PresetCreate) -> api.models.Preset:
-    """Replace an existing preset's contents, keeping its id and created_at."""
-    updated = await api.presets_store.update_preset(preset_id, preset.model_dump())
-    if updated is None:
-        raise HTTPException(404, f"Preset {preset_id} not found")
-    return api.models.Preset.model_validate(updated)
-
-
-@router.delete("/presets/{preset_id}")
-async def delete_preset(preset_id: str) -> None:
-    """Delete a preset by id. 404 if it does not exist."""
-    deleted = await api.presets_store.delete_preset(preset_id)
-    if not deleted:
-        raise HTTPException(404, f"Preset {preset_id} not found")
 
 
 app.include_router(router, prefix="/api")

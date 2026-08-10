@@ -49,7 +49,7 @@ export function useScaledNumber(raw, scale, commit) {
   textRef.current = text;
 
   // Re-sync only when the store moved somewhere the current text does not
-  // already describe (preset applied, reset, recompute).
+  // already describe (reset, recompute).
   useEffect(() => {
     const parsed = parseFloat(textRef.current);
     const current = Number.isFinite(parsed)

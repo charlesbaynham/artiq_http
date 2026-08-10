@@ -13,7 +13,6 @@ import { Caption, Mono, Skeleton, Spacer } from "../ui/primitives";
 import AxisCard from "./AxisCard";
 import FixedCard from "./FixedCard";
 import GridSummary from "./GridSummary";
-import PresetMenu from "./PresetMenu";
 
 function splitFqn(fqn) {
   const segments = String(fqn || "").split(".");
@@ -29,10 +28,6 @@ function WorkingSet({
   loading,
   canAddAxis,
   repeats,
-  skipOnError,
-  experiment,
-  presetSnapshot,
-  appliedPresetName,
   actions,
 }) {
   const {
@@ -43,8 +38,6 @@ function WorkingSet({
     onSwap,
     onResetAll,
     onSetRepeats,
-    onSkip,
-    onApplyPreset,
   } = actions;
 
   const axes = entries.filter((e) => e.mode === "axis");
@@ -74,12 +67,6 @@ function WorkingSet({
         <Caption>working set</Caption>
         <Mono className="bw-ws__count">· {entries.length}</Mono>
         <Spacer />
-        <PresetMenu
-          experiment={experiment}
-          snapshot={presetSnapshot}
-          appliedName={appliedPresetName}
-          onApply={onApplyPreset}
-        />
         <button
           type="button"
           className="bw-ws__reset"
@@ -130,9 +117,7 @@ function WorkingSet({
               <GridSummary
                 axes={axes}
                 repeats={repeats}
-                skipOnError={skipOnError}
                 onSetRepeats={onSetRepeats}
-                onSkip={onSkip}
               />
             ) : null}
           </>
@@ -148,10 +133,6 @@ WorkingSet.propTypes = {
   loading: PropTypes.bool,
   canAddAxis: PropTypes.bool,
   repeats: PropTypes.number,
-  skipOnError: PropTypes.bool,
-  experiment: PropTypes.object,
-  presetSnapshot: PropTypes.object.isRequired,
-  appliedPresetName: PropTypes.string,
   actions: PropTypes.object.isRequired,
 };
 

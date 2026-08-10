@@ -604,7 +604,7 @@ export function toWireFixed(entry, fqnToPath) {
  *
  * @param {{experiment: object, workingSet: Array<object>, fqnToPath?: object,
  *          revision?: string, pipeline?: string, priority?: number,
- *          repeats?: number, skipOnError?: boolean}} opts
+ *          repeats?: number}} opts
  */
 export function buildScanRequest({
   experiment,
@@ -614,7 +614,6 @@ export function buildScanRequest({
   pipeline = "main",
   priority = 0,
   repeats = 1,
-  skipOnError = false,
 }) {
   const axes = workingSet
     .filter((e) => e.mode === "axis")
@@ -638,9 +637,6 @@ export function buildScanRequest({
     priority,
     flush: false,
     due_date: null,
-    // Backend support for this lands with the presets work; the toggle is
-    // never silently dropped on the client side.
-    skip_on_persistent_transitory_error: skipOnError === true,
   };
 }
 

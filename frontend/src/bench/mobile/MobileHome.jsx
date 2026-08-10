@@ -3,7 +3,7 @@
  *
  * Pure presentation over the data `MobileApp` already collects via
  * `useSchedule`/`useLiveRun`: the active run card, a live-plot thumbnail, two
- * real camera tiles, pending queue rows, and the Quick run button. No polling
+ * real camera tiles, pending queue rows, and the New run button. No polling
  * of its own beyond discovering camera dataset names, which `plots/
  * ImageSection.jsx` does not expose as a reusable hook.
  */
@@ -86,7 +86,7 @@ function MobileHome({
   liveRun,
   onOpenActive,
   onOpenQueueItem,
-  onQuickRun,
+  onNewRun,
 }) {
   const cameraNames = useCameraNames();
 
@@ -199,8 +199,8 @@ function MobileHome({
 
         <div className="b-spacer" />
 
-        <BenchButton variant="primary" size="lg" onClick={onQuickRun}>
-          Quick run
+        <BenchButton variant="primary" size="lg" onClick={onNewRun}>
+          New run
         </BenchButton>
       </div>
     </>
@@ -214,7 +214,7 @@ MobileHome.propTypes = {
   liveRun: PropTypes.object,
   onOpenActive: PropTypes.func.isRequired,
   onOpenQueueItem: PropTypes.func.isRequired,
-  onQuickRun: PropTypes.func.isRequired,
+  onNewRun: PropTypes.func.isRequired,
 };
 
 export default MobileHome;

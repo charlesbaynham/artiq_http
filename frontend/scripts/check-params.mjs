@@ -489,7 +489,6 @@ test("reducer: selecting a new experiment clears the working set but keeps queue
   s = sessionReducer(s, { type: A.SET_PIPELINE, pipeline: "calibration" });
   s = sessionReducer(s, { type: A.SET_PRIORITY, priority: 5 });
   s = sessionReducer(s, { type: A.SET_REPEATS, repeats: 4 });
-  s = sessionReducer(s, { type: A.SET_SKIP_ON_ERROR, value: true });
   s = sessionReducer(s, { type: A.SET_PINNED_LIVE_RID, rid: 4823 });
   s = sessionReducer(s, { type: A.SET_GHOST_RID, rid: 4821 });
   s = sessionReducer(s, {
@@ -508,7 +507,6 @@ test("reducer: selecting a new experiment clears the working set but keeps queue
   assert.equal(next.pipeline, "calibration");
   assert.equal(next.priority, 5);
   assert.equal(next.repeats, 4);
-  assert.equal(next.skipOnError, true);
   assert.equal(next.pinnedLiveRid, 4823);
   assert.equal(next.ghostRid, 4821);
 

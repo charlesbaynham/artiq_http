@@ -202,8 +202,6 @@ def build_ndscan_params_from_arginfo(
     axes: list[dict],
     fixed_params: dict[str, Any] | None = None,
     num_repeats: int = 1,
-    skip_on_persistent_transitory_error: bool = False,
-    randomise_order_globally: bool = False,
 ) -> str:
     """Assemble the ``ndscan_params`` value from already-fetched *arginfo*.
 
@@ -237,8 +235,7 @@ def build_ndscan_params_from_arginfo(
             "axes": [_build_axis(ax, fqn_to_paths) for ax in axes],
             "num_repeats": num_repeats,
             "no_axes_mode": "single",
-            "randomise_order_globally": randomise_order_globally,
-            "skip_on_persistent_transitory_error": skip_on_persistent_transitory_error,
+            "randomise_order_globally": False,
         },
     }
 
@@ -252,8 +249,6 @@ async def build_ndscan_params(
     fixed_params: dict[str, Any] | None = None,
     num_repeats: int = 1,
     repo_rev: str | None = None,
-    skip_on_persistent_transitory_error: bool = False,
-    randomise_order_globally: bool = False,
 ) -> str:
     """Build the ``ndscan_params`` argument value (a PYON/JSON string).
 
@@ -278,12 +273,6 @@ async def build_ndscan_params(
             from.  ``None`` uses the master's current revision; otherwise the
             experiment is re-examined at *repo_rev* so an experiment present only
             on another branch can be scanned by ref.
-        skip_on_persistent_transitory_error: If True, ndscan skips (rather than
-            aborts the scan on) a point that keeps hitting a transitory error
-            after exhausting its retries (default: False).
-        randomise_order_globally: If True, randomise the order in which the
-            overall grid of scan-axis combinations is visited, on top of any
-            per-axis ``randomise_order`` (default: False).
 
     Returns:
         The ndscan_params value as a JSON string, ready to submit as
@@ -294,13 +283,4 @@ async def build_ndscan_params(
             schemata, or an axis is malformed.
     """
     arginfo = await fetch_scan_arginfo(file, class_name, repo_rev)
-    return build_ndscan_params_from_arginfo(
-        arginfo,
-        file,
-        class_name,
-        axes,
-        fixed_params,
-        num_repeats,
-        skip_on_persistent_transitory_error,
-        randomise_order_globally,
-    )
+    return build_ndscan_params_from_arginfo(arginfo, file, class_name, axes, fixed_params, num_repeats)
