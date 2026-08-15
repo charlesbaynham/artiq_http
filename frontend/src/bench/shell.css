@@ -1,0 +1,568 @@
+/*
+ * Bench shell — BenchApp / TopBar / IconRail / CommandPalette.
+ *
+ * Owned by the shell work package (IMPL-SPEC §14). Class prefix: `.bs-`.
+ * Built on the `--b-*` tokens and shared `.b-*` classes from `bench.css`;
+ * only what's genuinely specific to the shell lives here. Imported by
+ * `BenchApp.jsx`.
+ */
+
+/* ── Root / layout skeleton ───────────────────────────────────────────────── */
+
+.bench.bs-root {
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bs-body {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--b-bg);
+}
+
+.bs-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* /runs, /datasets, /logs — a single full-width scrolling pane hosting an
+   existing Bootstrap-styled component. Not restyled, just hosted. */
+.bs-fullpane {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+}
+
+/* ── Top bar ──────────────────────────────────────────────────────────────── */
+
+.bs-topbar {
+  flex: 0 0 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  background: var(--b-surface);
+  border-bottom: 1px solid var(--b-border);
+  overflow: hidden;
+}
+
+.bs-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.bs-wordmark__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--b-accent);
+  transform: translateY(-2px);
+  display: inline-block;
+}
+
+.bs-wordmark__suffix {
+  font-weight: 500;
+  color: var(--b-fg-dim);
+}
+
+.bs-sep {
+  font-size: 11px;
+  color: var(--b-fg-faint);
+  flex-shrink: 0;
+}
+
+/* Session switcher */
+
+.bs-session {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.bs-session__btn {
+  font-family: var(--b-font-mono);
+  font-size: 11.5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--b-r-ctl);
+  background: var(--b-well);
+  color: var(--b-fg);
+  border: 1px solid var(--b-border);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color var(--b-t-fast);
+}
+
+.bs-session__btn:hover {
+  border-color: var(--b-border-strong);
+}
+
+.bs-session__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 180px;
+  background: var(--b-surface);
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-card);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  z-index: 60;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.bs-session__item {
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: var(--b-r-ctl);
+  background: none;
+  border: none;
+  color: var(--b-fg-dim);
+  font-family: var(--b-font-mono);
+  font-size: 11.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bs-session__item:hover {
+  background: var(--b-well);
+}
+
+.bs-session__item.is-active {
+  color: var(--b-accent);
+}
+
+.bs-session__item--new {
+  font-family: var(--b-font-ui);
+  color: var(--b-fg-muted);
+  border-top: 1px solid var(--b-border);
+  margin-top: 2px;
+  padding-top: 8px;
+}
+
+/* Live status group */
+
+.bs-live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.bs-live__label {
+  flex-shrink: 0;
+  font-size: 11.5px;
+}
+
+.bs-live__detail {
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Command search */
+
+.bs-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--b-well);
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-ctl);
+  height: 26px;
+  padding: 0 10px;
+  width: 280px;
+  flex-shrink: 1;
+  min-width: 110px;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  transition: border-color var(--b-t-fast);
+}
+
+.bs-search:hover,
+.bs-search:focus-visible {
+  border-color: var(--b-border-strong);
+}
+
+.bs-search__icon {
+  color: var(--b-fg-faint);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.bs-search__hint-text {
+  font-size: 12px;
+  color: var(--b-fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  text-align: left;
+  min-width: 0;
+}
+
+.bs-search__kbd {
+  font-size: 10.5px;
+  color: var(--b-fg-faint);
+  flex-shrink: 0;
+}
+
+.bs-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Icon rail ────────────────────────────────────────────────────────────── */
+
+.bs-rail {
+  width: 58px;
+  flex: 0 0 58px;
+  border-right: 1px solid var(--b-border);
+  background: var(--b-surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 0;
+  overflow: hidden;
+}
+
+.bs-rail__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 0;
+  width: 100%;
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  color: var(--b-fg-muted);
+  cursor: pointer;
+  transition:
+    background var(--b-t-fast),
+    color var(--b-t-fast),
+    border-color var(--b-t-fast);
+}
+
+.bs-rail__item:hover {
+  color: var(--b-fg-dim);
+}
+
+.bs-rail__item.is-active {
+  background: var(--b-accent-soft);
+  border-left-color: var(--b-accent);
+  color: var(--b-accent);
+}
+
+.bs-rail__label {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.bs-rail__rev {
+  font-size: 9px;
+  color: var(--b-fg-faint);
+  writing-mode: vertical-rl;
+  padding-bottom: 6px;
+  cursor: default;
+}
+
+/* ── Workspace ("/") ──────────────────────────────────────────────────────── */
+
+.bs-workspace {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.bs-pane {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bs-pane[hidden] {
+  display: none;
+}
+
+.bs-pane--submit {
+  width: 640px;
+  flex: 0 0 640px;
+  border-right: 1px solid var(--b-border);
+}
+
+.bs-pane--live {
+  flex: 1 1 auto;
+}
+
+/* Tabs — only shown below 900px (see media query). */
+
+.bs-tabs {
+  display: none;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--b-border);
+  background: var(--b-surface);
+}
+
+.bs-tabs__btn {
+  flex: 1 1 auto;
+  padding: 10px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--b-fg-muted);
+  font-family: var(--b-font-ui);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.bs-tabs__btn.is-active {
+  color: var(--b-accent);
+  border-bottom-color: var(--b-accent);
+}
+
+/* ── Command palette ──────────────────────────────────────────────────────── */
+
+.bs-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  z-index: 1000;
+}
+
+.bs-palette {
+  width: 560px;
+  max-width: 92vw;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--b-surface);
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-card);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.bs-palette__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--b-border);
+  flex: 0 0 auto;
+}
+
+.bs-palette__search-icon {
+  color: var(--b-fg-faint);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.bs-palette__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: var(--b-fg);
+  font-family: var(--b-font-ui);
+  font-size: 13px;
+}
+
+.bs-palette__input:focus {
+  outline: none;
+}
+
+.bs-palette__input::placeholder {
+  color: var(--b-fg-faint);
+}
+
+.bs-palette__kbd {
+  font-size: 10.5px;
+  flex-shrink: 0;
+}
+
+.bs-palette__results {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 6px;
+}
+
+.bs-palette__group-label {
+  padding: 8px 8px 4px;
+}
+
+.bs-palette__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: var(--b-r-ctl);
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  color: var(--b-fg);
+  cursor: pointer;
+  font-family: var(--b-font-ui);
+}
+
+.bs-palette__item:hover,
+.bs-palette__item.is-selected {
+  background: var(--b-accent-soft);
+}
+
+.bs-palette__item-title {
+  font-size: 12.5px;
+}
+
+.bs-palette__item-sub {
+  font-size: 11px;
+  color: var(--b-fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bs-palette__empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--b-fg-muted);
+  font-size: 12px;
+}
+
+/* ── Expanded live pane (handoff: "⤢ expands the plot to the full
+   workspace — rail and submit pane collapse") ────────────────────────────
+   Triggered by LivePlotCard's `⤢` button via BenchApp's `expanded` state
+   (wave-2 polish — this card previously used the browser Fullscreen API,
+   which predates BenchApp having any notion of its own layout to collapse).
+   Esc restores (handled in BenchApp's keydown effect). Purely a display:none
+   on the two panes the design calls out; the live pane already fills
+   whatever space remains via its existing flex:1, so no extra width rule is
+   needed once its neighbours are gone. */
+.bs-body.is-expanded .bs-rail {
+  display: none;
+}
+
+.bs-body.is-expanded .bs-pane--submit {
+  display: none;
+}
+
+/* ── Responsive (IMPL-SPEC §11) ───────────────────────────────────────────── */
+
+/* 900–1200px: submit pane shrinks to min-width:520px. The 262px fragment
+   tree collapsing to a slide-over is owned by the submit pane's own
+   stylesheet (submit.css) — this only relaxes the shell's fixed width. */
+@media (min-width: 900px) and (max-width: 1199.98px) {
+  .bs-pane--submit {
+    width: auto;
+    flex: 1 1 640px;
+    min-width: 520px;
+    max-width: 640px;
+  }
+  .bs-pane--live {
+    flex: 1 1 380px;
+    min-width: 280px;
+  }
+}
+
+/* <900px: single column, submit/live become tabs, the icon rail becomes a
+   horizontal top bar. (<700px is the mobile agent's `MobileApp` — this file
+   never renders below that width, `BenchApp` swaps components instead.) */
+@media (max-width: 899.98px) {
+  .bs-body {
+    flex-direction: column;
+  }
+
+  .bs-rail {
+    width: 100%;
+    flex: 0 0 auto;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--b-border);
+    padding: 0;
+    gap: 0;
+  }
+
+  .bs-rail__item {
+    flex: 1 1 auto;
+    flex-direction: row;
+    gap: 6px;
+    padding: 8px 6px;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+  }
+
+  .bs-rail__item.is-active {
+    border-left: none;
+    border-bottom-color: var(--b-accent);
+  }
+
+  .bs-rail__rev {
+    display: none;
+  }
+
+  .bs-workspace {
+    flex-direction: column;
+  }
+
+  .bs-tabs {
+    display: flex;
+  }
+
+  .bs-pane--submit,
+  .bs-pane--live {
+    width: 100%;
+    flex: 1 1 auto;
+    border-right: none;
+  }
+
+  .bs-search {
+    width: auto;
+    min-width: 0;
+  }
+
+  .bs-search__hint-text {
+    display: none;
+  }
+
+  .bs-live__detail {
+    display: none;
+  }
+}

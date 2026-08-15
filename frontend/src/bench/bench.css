@@ -1,0 +1,669 @@
+/*
+ * ARTIQ bench — token layer + shared style sheet.
+ *
+ * Everything is scoped to the `.bench` root class so the bench styles never
+ * leak into the legacy pages (which use the Engineering-Logbook theme in
+ * index.css) or into `/plots` (which owns `.plots-app` in plots/tokens.css).
+ *
+ * The `--b-*` palette deliberately mirrors `plots/tokens.css` hex-for-hex so
+ * `/` and `/plots` read as one visual language. Where the design handoff and
+ * the repo token disagreed, the repo token won.
+ *
+ * Layout sections for the shell, submit pane, live pane and mobile surface are
+ * stubbed at the bottom of this file — those are owned by other agents.
+ */
+
+/* ── Tokens (dark, default) ───────────────────────────────────────────────── */
+
+.bench {
+  /* Surface */
+  --b-bg: #0e0f10;
+  --b-surface: #16191c;
+  --b-surface-raised: #1b1f23;
+  --b-well: #0b0d0e;
+  --b-border: #2a2f35;
+  --b-border-strong: #3d444c;
+  --b-grid: #22272c;
+
+  /* Ink */
+  --b-fg: #e8e6df;
+  --b-fg-dim: rgba(232, 230, 223, 0.72);
+  --b-fg-muted: rgba(232, 230, 223, 0.52);
+  --b-fg-faint: rgba(232, 230, 223, 0.28);
+
+  /* Accent + semantics */
+  --b-accent: #f08a4d;
+  --b-accent-wash: rgba(240, 138, 77, 0.14);
+  --b-accent-wash-strong: rgba(240, 138, 77, 0.18);
+  --b-accent-soft: rgba(240, 138, 77, 0.1);
+  --b-accent-card: rgba(240, 138, 77, 0.08);
+  --b-accent-on: #141414;
+  --b-ok: #6fbf86;
+  --b-ok-wash: rgba(111, 191, 134, 0.14);
+  --b-danger: #e76a59;
+  --b-danger-wash: rgba(231, 106, 89, 0.14);
+
+  /* Type */
+  --b-font-ui: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --b-font-mono:
+    "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Radii */
+  --b-r-ctl: 4px;
+  --b-r-card: 6px;
+  --b-r-pill: 999px;
+  --b-r-sheet: 14px;
+
+  /* Motion budget */
+  --b-t-fast: 140ms;
+  --b-t-pane: 220ms;
+  --b-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* The one shadow in the design */
+  --b-shadow-sheet: 0 -16px 40px rgba(0, 0, 0, 0.6);
+
+  color-scheme: dark;
+  background: var(--b-bg);
+  color: var(--b-fg);
+  font-family: var(--b-font-ui);
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Tokens (light) ───────────────────────────────────────────────────────── */
+/* Mirrors the light block in plots/tokens.css. The design is specified dark;
+   light mode must simply not be broken. */
+
+@media (prefers-color-scheme: light) {
+  .bench {
+    --b-bg: #fafaf7;
+    --b-surface: #ffffff;
+    --b-surface-raised: #f4f3ee;
+    --b-well: #eeede6;
+    --b-border: #e6e3d8;
+    --b-border-strong: #cfcabc;
+    --b-grid: #ebe9e0;
+
+    --b-fg: #1f1d18;
+    --b-fg-dim: rgba(31, 29, 24, 0.72);
+    --b-fg-muted: rgba(31, 29, 24, 0.52);
+    --b-fg-faint: rgba(31, 29, 24, 0.3);
+
+    --b-accent: #e07a3c;
+    --b-accent-wash: rgba(224, 122, 60, 0.14);
+    --b-accent-wash-strong: rgba(224, 122, 60, 0.18);
+    --b-accent-soft: rgba(224, 122, 60, 0.1);
+    --b-accent-card: rgba(224, 122, 60, 0.08);
+    --b-accent-on: #ffffff;
+    --b-ok: #3f8a5a;
+    --b-ok-wash: rgba(63, 138, 90, 0.14);
+    --b-danger: #c84a3b;
+    --b-danger-wash: rgba(200, 74, 59, 0.14);
+
+    --b-shadow-sheet: 0 -16px 40px rgba(0, 0, 0, 0.25);
+
+    color-scheme: light;
+  }
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+
+.bench *,
+.bench *::before,
+.bench *::after {
+  box-sizing: border-box;
+}
+
+.bench svg {
+  display: block;
+}
+
+.bench button {
+  font-family: inherit;
+  color: inherit;
+}
+
+.bench :focus-visible {
+  outline: 2px solid var(--b-accent);
+  outline-offset: 1px;
+}
+
+/* ── Typography utilities ─────────────────────────────────────────────────── */
+
+.bench .b-mono {
+  font-family: var(--b-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.bench .b-caption {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--b-fg-muted);
+  white-space: nowrap;
+}
+
+.bench .b-dim {
+  color: var(--b-fg-dim);
+}
+.bench .b-muted {
+  color: var(--b-fg-muted);
+}
+.bench .b-faint {
+  color: var(--b-fg-faint);
+}
+.bench .b-accent {
+  color: var(--b-accent);
+}
+.bench .b-ok {
+  color: var(--b-ok);
+}
+.bench .b-danger {
+  color: var(--b-danger);
+}
+
+.bench .b-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.bench .b-spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ── Pills ────────────────────────────────────────────────────────────────── */
+/* Inactive = --b-well fill, no visible border. Active = accent wash + accent
+   border + accent text. Status = ok-wash + ok text. */
+
+.bench .b-pill {
+  font-family: var(--b-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+  line-height: 1.35;
+  padding: 2px 7px;
+  border-radius: var(--b-r-pill);
+  background: var(--b-well);
+  color: var(--b-fg-dim);
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition:
+    background var(--b-t-fast),
+    border-color var(--b-t-fast),
+    color var(--b-t-fast);
+}
+
+button.b-pill {
+  cursor: pointer;
+}
+
+.bench button.b-pill:hover {
+  border-color: var(--b-border);
+}
+
+.bench .b-pill.is-active {
+  background: var(--b-accent-wash);
+  border-color: var(--b-accent);
+  color: var(--b-accent);
+}
+
+.bench .b-pill.is-strong {
+  background: var(--b-accent-wash-strong);
+  border-color: transparent;
+  color: var(--b-accent);
+}
+
+.bench .b-pill.is-status {
+  background: var(--b-ok-wash);
+  border-color: transparent;
+  color: var(--b-ok);
+}
+
+.bench .b-pill.is-danger {
+  background: var(--b-danger-wash);
+  border-color: transparent;
+  color: var(--b-danger);
+}
+
+.bench .b-pill.is-quiet {
+  color: var(--b-fg-muted);
+}
+
+.bench .b-pill:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Mobile pills are a touch larger. */
+@media (max-width: 700px) {
+  .bench .b-pill {
+    padding: 3px 8px;
+  }
+}
+
+/* ── Cards, panels, wells ─────────────────────────────────────────────────── */
+
+.bench .b-card {
+  background: var(--b-surface);
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-card);
+  min-width: 0;
+}
+
+.bench .b-card.is-raised {
+  background: var(--b-surface-raised);
+}
+
+.bench .b-card.is-accent {
+  border-color: var(--b-accent);
+  background: var(--b-accent-card);
+}
+
+.bench .b-well {
+  background: var(--b-well);
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-ctl);
+  min-width: 0;
+}
+
+.bench .b-panel-h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--b-border);
+  min-width: 0;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+/* size sm = 22px (in-panel), md = 26px (top bar), lg = 30px (submit). */
+
+.bench .b-btn {
+  font-family: var(--b-font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--b-r-ctl);
+  background: var(--b-well);
+  color: var(--b-fg);
+  border: 1px solid var(--b-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition:
+    background var(--b-t-fast),
+    border-color var(--b-t-fast),
+    color var(--b-t-fast);
+}
+
+.bench .b-btn:hover:not(:disabled) {
+  border-color: var(--b-border-strong);
+}
+
+.bench .b-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bench .b-btn.b-btn--sm {
+  height: 22px;
+  font-size: 11px;
+  padding: 0 8px;
+}
+
+.bench .b-btn.b-btn--md {
+  height: 26px;
+  font-size: 11.5px;
+  padding: 0 10px;
+}
+
+.bench .b-btn.b-btn--lg {
+  height: 30px;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 0 18px;
+}
+
+.bench .b-btn.b-btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--b-fg-dim);
+}
+
+.bench .b-btn.b-btn--ghost:hover:not(:disabled) {
+  background: var(--b-well);
+  border-color: transparent;
+}
+
+.bench .b-btn.b-btn--primary {
+  background: var(--b-accent);
+  border-color: var(--b-accent);
+  color: var(--b-accent-on);
+}
+
+.bench .b-btn.b-btn--primary:hover:not(:disabled) {
+  border-color: var(--b-accent);
+  filter: brightness(1.06);
+}
+
+.bench .b-btn.b-btn--danger {
+  background: transparent;
+  border-color: var(--b-border);
+  color: var(--b-danger);
+}
+
+.bench .b-btn.b-btn--icon {
+  padding: 0;
+  width: 26px;
+}
+.bench .b-btn--sm.b-btn--icon {
+  width: 22px;
+}
+.bench .b-btn--lg.b-btn--icon {
+  width: 30px;
+}
+
+/* Mobile primary/secondary buttons: ≥44px touch targets. */
+@media (max-width: 700px) {
+  .bench .b-btn.b-btn--lg {
+    height: 52px;
+    font-size: 15px;
+    border-radius: var(--b-r-card);
+    width: 100%;
+  }
+  .bench .b-btn.b-btn--md {
+    height: 48px;
+    font-size: 14px;
+    border-radius: var(--b-r-card);
+  }
+}
+
+/* ── Inputs ───────────────────────────────────────────────────────────────── */
+
+.bench .b-input {
+  font-family: var(--b-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  background: var(--b-well);
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-ctl);
+  color: var(--b-fg);
+  padding: 3px 8px;
+  min-width: 0;
+  width: 100%;
+  transition: border-color var(--b-t-fast);
+}
+
+.bench .b-input::placeholder {
+  color: var(--b-fg-faint);
+}
+
+.bench .b-input:focus {
+  outline: none;
+  border-color: var(--b-accent);
+}
+
+.bench .b-input.is-overridden {
+  border-color: var(--b-accent);
+}
+
+.bench .b-input.is-invalid {
+  border-color: var(--b-danger);
+}
+
+.bench .b-input:disabled {
+  opacity: 0.5;
+}
+
+/* Joined input + unit-suffix control (the design's `start [0][µs]` field). */
+.bench .b-field {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+}
+
+.bench .b-field__label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--b-fg-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.bench .b-field__body {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.bench .b-field--unit .b-input {
+  border-radius: var(--b-r-ctl) 0 0 var(--b-r-ctl);
+}
+
+.bench .b-field__unit {
+  font-family: var(--b-font-mono);
+  font-size: 11px;
+  background: var(--b-surface-raised);
+  border: 1px solid var(--b-border);
+  border-left: none;
+  border-radius: 0 var(--b-r-ctl) var(--b-r-ctl) 0;
+  padding: 3px 7px;
+  color: var(--b-fg-muted);
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.bench .b-field__msg {
+  font-size: 10.5px;
+  color: var(--b-danger);
+  margin-top: 3px;
+}
+
+/* Search field — `--b-well`, accent border while focused. */
+.bench .b-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--b-well);
+  border: 1px solid var(--b-border);
+  border-radius: var(--b-r-ctl);
+  height: 26px;
+  padding: 0 10px;
+  min-width: 0;
+  transition: border-color var(--b-t-fast);
+}
+
+.bench .b-search:focus-within {
+  border-color: var(--b-accent);
+}
+
+.bench .b-search__icon {
+  color: var(--b-fg-faint);
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.bench .b-search input {
+  font-family: var(--b-font-mono);
+  font-size: 12px;
+  background: transparent;
+  border: none;
+  color: var(--b-fg);
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+}
+
+.bench .b-search input:focus {
+  outline: none;
+}
+
+.bench .b-search input::placeholder {
+  font-family: var(--b-font-ui);
+  font-size: 11px;
+  color: var(--b-fg-faint);
+}
+
+.bench .b-search__hint {
+  font-family: var(--b-font-mono);
+  font-size: 10.5px;
+  color: var(--b-fg-faint);
+  flex-shrink: 0;
+}
+
+/* ── Toggle ───────────────────────────────────────────────────────────────── */
+
+.bench .b-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--b-fg-muted);
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.bench .b-toggle input {
+  accent-color: var(--b-accent);
+  margin: 0;
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .bench .b-toggle {
+    min-height: 44px;
+    font-size: 13px;
+  }
+  .bench .b-toggle input {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* ── Scroll areas ─────────────────────────────────────────────────────────── */
+
+.bench .b-scroll {
+  overflow: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--b-border) transparent;
+}
+
+.bench .b-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.bench .b-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bench .b-scroll::-webkit-scrollbar-thumb {
+  background: var(--b-border);
+  border-radius: 4px;
+}
+
+.bench .b-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--b-border-strong);
+}
+
+/* ── Skeletons ────────────────────────────────────────────────────────────── */
+
+.bench .b-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+}
+
+.bench .b-skeleton__row {
+  background: var(--b-surface-raised);
+  border-radius: var(--b-r-ctl);
+  width: 100%;
+  animation: b-pulse 1.4s ease-in-out infinite;
+}
+
+.bench .b-skeleton__row:nth-child(3n + 2) {
+  width: 86%;
+}
+.bench .b-skeleton__row:nth-child(3n + 3) {
+  width: 72%;
+}
+
+@keyframes b-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ── Status dot ───────────────────────────────────────────────────────────── */
+
+.bench .b-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--b-ok);
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.bench .b-dot.is-danger {
+  background: var(--b-danger);
+}
+
+/* ── Reduced motion ───────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .bench,
+  .bench *,
+  .bench *::before,
+  .bench *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Component sections below are appended by the agents that own them. Keep the
+   banner order so the file stays navigable.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Shell: BenchApp / TopBar / IconRail / CommandPalette ─────────────────── */
+/* owner: shell agent — add `.b-shell*`, `.b-topbar*`, `.b-rail*`, `.b-cmdk*` */
+
+/* ── Submit pane ──────────────────────────────────────────────────────────── */
+/* owner: submit agent — add `.b-submit*`, `.b-tree*`, `.b-ws*`, `.b-tick*` */
+
+/* ── Live pane ────────────────────────────────────────────────────────────── */
+/* owner: live agent — add `.b-live*`, `.b-images*`, `.b-queue*` */
+
+/* ── Mobile ───────────────────────────────────────────────────────────────── */
+/* owner: mobile agent — add `.b-m*`, `.b-sheet*`, `.b-tabbar*` */

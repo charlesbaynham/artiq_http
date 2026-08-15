@@ -1,0 +1,36 @@
+{
+  "file": "mock_experiment.py",
+  "class_name": "MockRepeatExperiment",
+  "arginfo": {
+    "repeat_count": [
+      "NumberValue",
+      {
+        "default": 100,
+        "unit": "",
+        "scale": 1,
+        "step": 1,
+        "min": 1,
+        "max": null,
+        "ndecimals": 0
+      },
+      "Repeat",
+      "Number of repeat measurements to take"
+    ],
+    "enable_averaging": [
+      "BooleanValue",
+      {
+        "default": true
+      },
+      "Repeat",
+      "Average the signal over the repeat window before recording it"
+    ],
+    "notes": [
+      "StringValue",
+      {
+        "default": "mock run"
+      },
+      "Repeat",
+      "Free-form notes recorded alongside the run"
+    ]
+  }
+}

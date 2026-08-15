@@ -640,6 +640,111 @@
   aspect-ratio: 1;
 }
 
+/* ── Embedding (PlotsApp forcedPrefix/showTopBar/showRails/showImages/compact
+   props) — additive only; none of this changes /plots, which never carries
+   these classes. ───────────────────────────────────────────────────────── */
+
+/* showRails=false: collapse the 3-column work grid to one column. */
+.plots-app.is-norails .p-work {
+  grid-template-columns: 1fr;
+}
+
+/* compact=true: fill the host's pane instead of the fixed-size standalone
+   panel (720px tall, capped at viewport height, with its own border/frame).
+   `container-type: inline-size` makes the embed's *actual pane width* (not
+   the page viewport) available to the `@container` rules below — the live
+   pane's width tracks the submit-pane/rail layout (and the §BS-expanded
+   state), not the viewport, so a `@media` breakpoint here would be wrong. */
+.plots-app.is-compact {
+  height: 100%;
+  max-height: none;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+  container-type: inline-size;
+}
+/* Without images/rails competing for space, the plot panel is typically the
+   last (only) child of .p-center, which normally gets a 320px min-height and
+   a manual vertical resize handle — appropriate for the standalone page, not
+   for a small embedded pane where the panel should just fill what's left. */
+.plots-app.is-compact .p-center > .p-panel:last-child {
+  min-height: 0;
+  resize: none;
+}
+.plots-app.is-compact .p-plot-panel {
+  min-height: 0;
+}
+/* `.p-center` is a CSS-grid item (child of `.p-work`) with no explicit
+   min-height, so its default `min-height: auto` falls back to its content's
+   automatic minimum size — the sum of every stacked plot's own 160px
+   min-height — even though the grid row itself is height-constrained by the
+   compact host's own box. The two disagree silently: `.p-work`'s
+   `overflow: hidden` clips the *rendered* box back down to the row height,
+   chopping the bottom off whichever stacked plot lands there (its x-axis
+   label included) instead of letting `.p-stack`'s own `overflow-y: auto`
+   (already set inline by `StackedPlots1D`) take over and scroll. Standalone
+   /plots doesn't hit this because its plot panel has an explicit min-height
+   and its own resize handle, so scope the fix to compact. */
+.plots-app.is-compact .p-center {
+  min-height: 0;
+}
+/* The embedded copy of the panel header (compact suppresses it — see
+   PlotsApp.jsx) and the "hover or tap the plot to read values" cursor
+   readout box duplicate chrome the embedding host (LivePlotCard) already
+   provides via its own header and readout row — see IMPL-SPEC §7. */
+.plots-app.is-compact .p-cursor-readout {
+  /* Plot1D/Plot2D set `display: flex` inline (it's the row layout for the
+     readout's contents), which any non-!important class rule loses to —
+     !important is the one thing in an external stylesheet that still beats
+     a plain (non-!important) inline style. */
+  display: none !important;
+}
+
+/* Narrow embed (e.g. the live pane at a 1280px viewport, ~550px wide): the
+   on-plot channel legend is sized for the standalone page's much wider plot
+   area, so its fixed 160–220px width covers a large fraction of a narrow
+   embed and overlaps the traces underneath. Shrink it — same information,
+   much smaller footprint — once the embed's own width (not the viewport's)
+   drops below 640px.
+   Plot1D/Plot2D set the legend's size/position via inline `style`, which a
+   plain class rule can never win against (inline beats any external
+   selector short of !important). They read these custom properties with
+   fallbacks matching the current standalone look
+   (`plots/Plot1D.jsx`/`plots/Plot2D.jsx` — the `--p-legend-*` vars), so
+   setting them here cascades into the inline style instead of fighting it. */
+@container (max-width: 640px) {
+  /* A `@container` query is evaluated against the *querying element's*
+     nearest ancestor container, starting the search at its parent — an
+     element can't query the container-type it establishes on itself. So
+     this targets `.p-work` (a descendant of `.plots-app.is-compact`, which
+     is where `container-type` is set above), not `.plots-app.is-compact`
+     directly; the custom properties still cascade down to `.p-legend`
+     either way. */
+  .plots-app.is-compact .p-work {
+    --p-legend-top: 6px;
+    --p-legend-right: 6px;
+    --p-legend-min-w: 0px;
+    --p-legend-max-w: 42%;
+    --p-legend-pad: 4px 6px;
+    --p-legend-fs: 10px;
+    --p-legend-gap: 3px;
+  }
+}
+
+/* The standalone mobile layout below sets .p-plot-panel's height with
+   !important (a definite height is required for its ResizeObserver-driven
+   SVG to size correctly in a content-sized flex column). That rule targets
+   viewport width, not container width, so it would also fire for a narrow
+   compact embed placed in a narrow-viewport host. Override it there so the
+   embedded panel fills its pane instead of pinning to 56vh/320px; higher
+   selector specificity wins outright since both sides carry !important. */
+@media (max-width: 900px) {
+  .plots-app.is-compact .p-plot-panel {
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+}
+
 /* fullscreen route override */
 .plots-fullscreen-wrap .plots-app {
   height: 100vh;

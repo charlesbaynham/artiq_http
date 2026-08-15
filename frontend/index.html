@@ -1,19 +1,57 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#1a242f" media="(prefers-color-scheme: dark)">
-    <meta name="theme-color" content="#f0f1f3" media="(prefers-color-scheme: light)">
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta
+      name="theme-color"
+      content="#1a242f"
+      media="(prefers-color-scheme: dark)"
+    />
+    <meta
+      name="theme-color"
+      content="#f0f1f3"
+      media="(prefers-color-scheme: light)"
+    />
     <title>ARTIQ HTTP</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
-    <link rel="stylesheet" href="/superhero-bootstrap.min.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="/superhero-bootstrap.min.css" />
   </head>
   <body>
     <div id="root"></div>
+    <!--
+      Deep-link restore for static hosting (GitHub Pages). Pages has no SPA
+      rewrite rules and serves its 404 page for any path without a file, so the
+      site's 404.html bounces demo routes here as `?spa=/the/route`. Undo that
+      before the bundle mounts, so the router sees the real path and the address
+      bar never shows the redirect. No-op when the parameter is absent, which is
+      every normal deployment.
+    -->
+    <script>
+      (function () {
+        var m = /[?&]spa=([^&]*)/.exec(window.location.search);
+        if (!m) return;
+        var base = window.location.pathname.replace(/\/$/, "");
+        var rest = decodeURIComponent(m[1]);
+        var search = window.location.search
+          .replace(/[?&]spa=[^&]*/, "")
+          .replace(/^&/, "?");
+        history.replaceState(
+          null,
+          "",
+          base + rest + search + window.location.hash,
+        );
+      })();
+    </script>
     <script type="module" src="./src/index.jsx"></script>
   </body>
 </html>

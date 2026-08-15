@@ -192,20 +192,10 @@ jobs:
           path: latex/
           retention-days: 1
 
-  deploy-docs:
-    runs-on: ubuntu-latest
-    needs: make-docs
-    if: github.ref == 'refs/heads/master'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: html_out
-          path: html_out/
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: html_out/
-      - uses: actions/deploy-pages@v4
-        id: deployment
+  # The docs are no longer deployed from here. A repo has exactly one GitHub
+  # Pages site, and `pages.yml` now publishes both the docs (at the site root,
+  # same URLs as before) and the static mock demo (under /demo/) in a single
+  # artifact. Deploying from two workflows raced for that one slot, so whichever
+  # finished last on a given master push won and the live site flipped between
+  # the two. `make-docs` above still builds and uploads the docs as a normal
+  # workflow artifact on every push.

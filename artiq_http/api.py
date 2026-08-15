@@ -361,7 +361,13 @@ async def cancel_experiment(rid: int, force: bool = False) -> None:
         force (bool): If True, forcibly close the experiment instead of requesting closure
     """
     if config.get("mock"):
-        raise HTTPException(503, "Mock mode: experiment control not available")
+        # Mock mode has no real scheduler to distinguish a graceful request from a
+        # forced delete — both simply remove the RID from the mock schedule.
+        from .artiq_api.persistent_subscriber import subscriber_manager
+
+        if not subscriber_manager.cancel(rid):
+            raise HTTPException(404, f"RID {rid} not found in schedule")
+        return
 
     schedule = await api.notifiers.get_schedule()
 
@@ -715,20 +721,26 @@ async def submit_experiment(
         SubmitAndWaitResult with *rid*, *status*, *timed_out*, and *error*
         fields when it is True.
     """
-    if config.get("mock"):
-        raise HTTPException(503, "Mock mode: experiment control not available")
-
     await _validate_expid_ndscan(expid)
-    try:
-        rid = await api.control_schedule.submit_experiment(
-            expid,
-            pipeline,
-            priority,
-            flush,
-            due_date,
-        )
-    except ValueError as e:
-        raise HTTPException(422, str(e))
+
+    if config.get("mock"):
+        # No real scheduler to submit to — the mock manager allocates a RID and
+        # inserts a pending schedule item so the submit -> queue -> live flow is
+        # exercisable offline (see mock_backend.MockSubscriberManager.submit).
+        from .artiq_api.persistent_subscriber import subscriber_manager
+
+        rid = subscriber_manager.submit(expid.model_dump(), pipeline, priority, flush, due_date)
+    else:
+        try:
+            rid = await api.control_schedule.submit_experiment(
+                expid,
+                pipeline,
+                priority,
+                flush,
+                due_date,
+            )
+        except ValueError as e:
+            raise HTTPException(422, str(e))
 
     if wait_for_completion:
         return await _wait_for_rid_completion(rid, min(timeout, 21600.0))
@@ -801,9 +813,6 @@ async def submit_scan(
         SubmitAndWaitResult with *rid*, *status*, *timed_out*, and *error*
         fields when it is True.
     """
-    if config.get("mock"):
-        raise HTTPException(503, "Mock mode: experiment control not available")
-
     expid, arginfo = await _build_scan_expid(req)
     # Validate against the arginfo the params were built from. For a by-ref scan
     # this is the revision's arginfo (not the master's current one), so FQNs are
@@ -811,16 +820,26 @@ async def submit_scan(
     error = api.ndscan_validation.validate_ndscan_params(expid.arguments, arginfo)
     if error:
         raise HTTPException(422, error)
-    try:
-        rid = await api.control_schedule.submit_experiment(
-            expid,
-            req.pipeline,
-            req.priority,
-            req.flush,
-            req.due_date,
-        )
-    except ValueError as e:
-        raise HTTPException(422, str(e))
+
+    if config.get("mock"):
+        # See submit_experiment(): the mock manager stands in for the real
+        # scheduler so ndscan submission is exercisable offline too. The
+        # ndscan_params built above (from the mock's own RabiFlop arginfo) are
+        # used as-is, so a mock scan submission looks exactly like a real one.
+        from .artiq_api.persistent_subscriber import subscriber_manager
+
+        rid = subscriber_manager.submit(expid.model_dump(), req.pipeline, req.priority, req.flush, req.due_date)
+    else:
+        try:
+            rid = await api.control_schedule.submit_experiment(
+                expid,
+                req.pipeline,
+                req.priority,
+                req.flush,
+                req.due_date,
+            )
+        except ValueError as e:
+            raise HTTPException(422, str(e))
 
     if wait_for_completion:
         return await _wait_for_rid_completion(rid, min(timeout, 21600.0))

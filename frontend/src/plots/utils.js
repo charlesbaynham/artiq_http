@@ -68,6 +68,58 @@ export const CHANNEL_COLOR_VARS = [
   "--p-c7",
 ];
 
+/**
+ * Convert the raw SSE dataset bag for one ndscan run into the structured form
+ * the plot components expect. Returns null until both axes & channels are
+ * present.
+ *
+ * Shared by `plots/PlotsApp.jsx` and `bench/state/useLiveRun.js` — keep it
+ * here rather than duplicating the key layout in two places.
+ *
+ * @param {object|null} rawData - `{ "<key>": [persist, value, metadata] }`
+ * @param {string} prefix - the ndscan dataset prefix, e.g. "ndscan.rid_4823"
+ */
+export function parsePlotData(rawData, prefix) {
+  if (!rawData) return null;
+  try {
+    const axesEntry = rawData[`${prefix}.axes`];
+    const channelsEntry = rawData[`${prefix}.channels`];
+    if (!axesEntry || !channelsEntry) return null;
+
+    const axes = JSON.parse(axesEntry[1]);
+    const channels = JSON.parse(channelsEntry[1]);
+    const completed = rawData[`${prefix}.completed`]?.[1] ?? false;
+    const fragmentFqn = rawData[`${prefix}.fragment_fqn`]?.[1] || null;
+
+    // Pull axis values (1D/2D).
+    const axisValues = axes.map(
+      (_, i) => rawData[`${prefix}.points.axis_${i}`]?.[1] || [],
+    );
+
+    // Build per-channel arrays.
+    const channelData = {};
+    for (const key of Object.keys(channels)) {
+      const arr = rawData[`${prefix}.points.channel_${key}`]?.[1];
+      const pt = rawData[`${prefix}.point.${key}`]?.[1];
+      channelData[key] = { values: arr || [], point: pt };
+    }
+
+    return {
+      prefix,
+      axes,
+      channels,
+      channelData,
+      axisValues,
+      completed,
+      fragmentFqn,
+      dims: `${axes.length}D`,
+    };
+  } catch (err) {
+    console.error("Failed to parse plot data for", prefix, err);
+    return null;
+  }
+}
+
 export function extractRid(prefix) {
   // Prefixes look like "ndscan.rid_1042"
   const m = /rid[_-]?(\d+)/i.exec(prefix);

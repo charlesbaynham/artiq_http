@@ -20,6 +20,7 @@ import Plot0D from "./Plot0D";
 import {
   CHANNEL_COLOR_VARS,
   extractRid,
+  parsePlotData,
   loadChannelVisibility,
   saveChannelVisibility,
   channelPriority,
@@ -39,55 +40,31 @@ import "./tokens.css";
 
 const REFRESH_MS = 5000;
 
-// Convert the raw SSE dataset bag into the structured form the plot components
-// expect. Returns null until both axes & channels are present.
-function parsePlotData(rawData, prefix) {
-  if (!rawData) return null;
-  try {
-    const axesEntry = rawData[`${prefix}.axes`];
-    const channelsEntry = rawData[`${prefix}.channels`];
-    if (!axesEntry || !channelsEntry) return null;
-
-    const axes = JSON.parse(axesEntry[1]);
-    const channels = JSON.parse(channelsEntry[1]);
-    const completed = rawData[`${prefix}.completed`]?.[1] ?? false;
-    const fragmentFqn = rawData[`${prefix}.fragment_fqn`]?.[1] || null;
-
-    // Pull axis values (1D/2D).
-    const axisValues = axes.map(
-      (_, i) => rawData[`${prefix}.points.axis_${i}`]?.[1] || [],
-    );
-
-    // Build per-channel arrays.
-    const channelData = {};
-    for (const key of Object.keys(channels)) {
-      const arr = rawData[`${prefix}.points.channel_${key}`]?.[1];
-      const pt = rawData[`${prefix}.point.${key}`]?.[1];
-      channelData[key] = { values: arr || [], point: pt };
-    }
-
-    return {
-      prefix,
-      axes,
-      channels,
-      channelData,
-      axisValues,
-      completed,
-      fragmentFqn,
-      dims: `${axes.length}D`,
-    };
-  } catch (err) {
-    console.error("Failed to parse plot data for", prefix, err);
-    return null;
-  }
-}
-
 function axisLabel(axis) {
   if (!axis) return "";
   const p = axis.param || {};
   const base = p.description || p.fqn || "axis";
   const unit = p.unit;
   return unit ? `${base} / ${unit}` : base;
+}
+
+// ndscan publishes raw SI values (seconds, Hz) while a parameter's `unit` is a
+// *display* unit (us, MHz); `spec.scale` is the factor between them. The labels
+// above already say "/ us", so the numbers must be divided to match — otherwise
+// a microsecond axis plots as 0.000 all the way across. Display-only: the wire
+// values and everything submitted stay raw.
+function specScale(spec) {
+  const s = Number(spec?.scale);
+  return Number.isFinite(s) && s !== 0 ? s : 1;
+}
+
+function axisScale(axis) {
+  return specScale(axis?.param?.spec);
+}
+
+function scaleValues(values, scale) {
+  if (scale === 1 || !Array.isArray(values)) return values;
+  return values.map((v) => (typeof v === "number" ? v / scale : v));
 }
 
 function channelUnit(spec) {
@@ -97,7 +74,18 @@ function channelUnit(spec) {
   return spec.type || "";
 }
 
-function PlotsApp() {
+function PlotsApp({
+  forcedPrefix,
+  showTopBar = true,
+  showRails = true,
+  showImages = true,
+  compact = false,
+  onChannelsSummary,
+  onStatus,
+  ghostPrefixes: ghostPrefixesProp,
+  onGhostChange,
+  onData,
+}) {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // ── Discover available scans ─────────────────────────────────────────────
@@ -187,27 +175,34 @@ function PlotsApp() {
   }, [prefixes, prefixMeta]);
 
   // ── Active selection ────────────────────────────────────────────────────
-  const [activePrefix, setActivePrefix] = useState(null);
+  // In `forcedPrefix` (embedded/pinned) mode the run is dictated by the host:
+  // the ?scan= URL sync and the "pick most recent" default are both disabled,
+  // and the active prefix simply follows the prop.
+  const [internalActivePrefix, setInternalActivePrefix] = useState(null);
   // Sync with ?scan= query param.
   useEffect(() => {
+    if (forcedPrefix) return;
     const fromUrl = searchParams.get("scan");
     if (fromUrl) {
-      setActivePrefix((cur) => (cur === fromUrl ? cur : fromUrl));
+      setInternalActivePrefix((cur) => (cur === fromUrl ? cur : fromUrl));
       return;
     }
-    if (recentRuns.length && !activePrefix) {
-      setActivePrefix(recentRuns[0].prefix);
+    if (recentRuns.length && !internalActivePrefix) {
+      setInternalActivePrefix(recentRuns[0].prefix);
     }
-  }, [searchParams, recentRuns, activePrefix]);
+  }, [forcedPrefix, searchParams, recentRuns, internalActivePrefix]);
+
+  const activePrefix = forcedPrefix || internalActivePrefix;
 
   const handlePick = useCallback(
     (run) => {
-      setActivePrefix(run.prefix);
+      if (forcedPrefix) return;
+      setInternalActivePrefix(run.prefix);
       const next = new URLSearchParams(searchParams);
       next.set("scan", run.prefix);
       setSearchParams(next, { replace: true });
     },
-    [searchParams, setSearchParams],
+    [forcedPrefix, searchParams, setSearchParams],
   );
 
   // ── SSE stream for the active run ───────────────────────────────────────
@@ -331,7 +326,9 @@ function PlotsApp() {
     for (const k of keys) {
       const v = rawActiveData?.[`${activePrefix}.point.${k}`]?.[1];
       if (v !== undefined) {
-        snap[k] = v;
+        // Store in display units so the 0D series matches its channel label.
+        const scale = specScale(active.channels[k]);
+        snap[k] = typeof v === "number" ? v / scale : v;
         hasAny = true;
       }
     }
@@ -357,6 +354,20 @@ function PlotsApp() {
   }, [history0D, active]);
 
   // ── Build channel descriptors with resolved colors ──────────────────────
+  // Display scales for the active run, kept in a ref because the ghost-loading
+  // effect below deliberately re-keys off signatures rather than listing every
+  // dep, and would otherwise close over a stale `active`.
+  const scalesRef = useRef({ axis: 1, channels: {} });
+  scalesRef.current = {
+    axis: axisScale(active?.axes?.[0]),
+    channels: Object.fromEntries(
+      Object.entries(active?.channels || {}).map(([k, spec]) => [
+        k,
+        specScale(spec),
+      ]),
+    ),
+  };
+
   const channelDescriptors = useMemo(() => {
     if (!active) return [];
     return channelKeys.map((key, i) => {
@@ -365,13 +376,15 @@ function PlotsApp() {
       const colorVar = CHANNEL_COLOR_VARS[i % CHANNEL_COLOR_VARS.length];
       const isMetric = dims === "2D" && key === metric2D;
       const on = dims === "2D" ? isMetric : !!visibility[key];
+      const scale = specScale(spec);
       return {
         key,
         on,
         color: `var(${colorVar})`,
         unit: channelUnit(spec),
-        values: cdata.values || [],
-        point: cdata.point,
+        values: scaleValues(cdata.values || [], scale),
+        point:
+          typeof cdata.point === "number" ? cdata.point / scale : cdata.point,
       };
     });
   }, [active, channelKeys, visibility, dims, metric2D]);
@@ -466,18 +479,42 @@ function PlotsApp() {
   const timelineRuns = recentRuns;
 
   // ── Ghost overlays — fetch raw values lazily for selected ghost prefixes ─
-  const [ghostPrefixes, setGhostPrefixes] = useState([]);
-  // Reset ghosts when the active run changes.
+  // When `ghostPrefixes` is supplied as a prop the list becomes controlled:
+  // the host owns the array and receives updates via `onGhostChange` instead
+  // of us keeping our own state. Absent the prop, behaviour is unchanged.
+  const ghostPrefixesControlled = ghostPrefixesProp !== undefined;
+  const [internalGhostPrefixes, setInternalGhostPrefixes] = useState([]);
+  const ghostPrefixes = ghostPrefixesControlled
+    ? ghostPrefixesProp
+    : internalGhostPrefixes;
+
+  // Reset ghosts when the active run changes (a ghost's x-axis can't be
+  // compared against a different scan). In controlled mode we ask the host
+  // to clear its list rather than mutating it ourselves.
   useEffect(() => {
-    setGhostPrefixes([]);
+    if (ghostPrefixesControlled) {
+      if (ghostPrefixes.length > 0) onGhostChange && onGhostChange([]);
+    } else {
+      setInternalGhostPrefixes((prev) => (prev.length === 0 ? prev : []));
+    }
+    // Intentionally omit ghostPrefixes/onGhostChange/ghostPrefixesControlled:
+    // this should only fire when the active run itself changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePrefix]);
-  const toggleGhost = useCallback((prefix) => {
-    setGhostPrefixes((prev) =>
-      prev.includes(prefix)
-        ? prev.filter((p) => p !== prefix)
-        : [...prev, prefix],
-    );
-  }, []);
+
+  const toggleGhost = useCallback(
+    (prefix) => {
+      const next = ghostPrefixes.includes(prefix)
+        ? ghostPrefixes.filter((p) => p !== prefix)
+        : [...ghostPrefixes, prefix];
+      if (ghostPrefixesControlled) {
+        onGhostChange && onGhostChange(next);
+      } else {
+        setInternalGhostPrefixes(next);
+      }
+    },
+    [ghostPrefixes, ghostPrefixesControlled, onGhostChange],
+  );
 
   const [ghostData, setGhostData] = useState({}); // prefix -> { xs, channels }
   // Reset ghost cache when the active run changes; keeping it across runs
@@ -506,10 +543,19 @@ function PlotsApp() {
         setGhostData((prev) => {
           const next = { ...prev };
           for (const p of needed) {
-            const xs = vals[`${p}.points.axis_0`]?.[1] || [];
+            // Ghosts overlay the active run's plot, so they must be scaled the
+            // same way or the comparison trace lands in the wrong place.
+            const scales = scalesRef.current;
+            const xs = scaleValues(
+              vals[`${p}.points.axis_0`]?.[1] || [],
+              scales.axis,
+            );
             const channels = {};
             for (const k of channelKeys) {
-              channels[k] = vals[`${p}.points.channel_${k}`]?.[1] || [];
+              channels[k] = scaleValues(
+                vals[`${p}.points.channel_${k}`]?.[1] || [],
+                scales.channels[k] ?? 1,
+              );
             }
             next[p] = { xs, channels, rid: extractRid(p) };
           }
@@ -560,17 +606,103 @@ function PlotsApp() {
     return "streaming";
   }, [active, dims, history0D]);
 
+  // ── Host callbacks ───────────────────────────────────────────────────────
+  // `onChannelsSummary` / `onStatus` let an embedding host (e.g. a "channels
+  // 2/8" pill) mirror our derived state without re-deriving it itself. Both
+  // are reported from an effect — never during render — and are guarded
+  // against firing on every SSE tick: `channelDescriptors`/the status memo
+  // below get a new object identity each stream update even when the values
+  // an embedder cares about haven't changed, so we compare fields against the
+  // previous call before invoking the callback.
+  const channelsSummary = useMemo(() => {
+    const total = channelDescriptors.length;
+    const visible = channelDescriptors.filter((c) => c.on).length;
+    return { visible, total };
+  }, [channelDescriptors]);
+
+  const lastChannelsSummaryRef = useRef(null);
+  useEffect(() => {
+    if (!onChannelsSummary) return;
+    const prev = lastChannelsSummaryRef.current;
+    if (
+      prev &&
+      prev.visible === channelsSummary.visible &&
+      prev.total === channelsSummary.total
+    ) {
+      return;
+    }
+    lastChannelsSummaryRef.current = channelsSummary;
+    onChannelsSummary(channelsSummary);
+  }, [channelsSummary, onChannelsSummary]);
+
+  const statusSummary = useMemo(
+    () => ({
+      status,
+      progressLabel,
+      rid: extractRid(activePrefix || ""),
+      expName,
+      prefix: activePrefix,
+      completed: !!active?.completed,
+    }),
+    [status, progressLabel, activePrefix, expName, active],
+  );
+
+  // `onData` lets a host that already needs this run's raw SSE payload (e.g.
+  // a readout row driven by the same data) reuse this subscription instead of
+  // opening a second `EventSource` to the same prefix. Passed through as-is,
+  // on the same cadence as the underlying stream — there is nothing to
+  // dedupe here, unlike the summary callbacks below which derive a smaller,
+  // change-detectable value.
+  useEffect(() => {
+    if (!onData) return;
+    onData(rawActiveData);
+  }, [onData, rawActiveData]);
+
+  const lastStatusSummaryRef = useRef(null);
+  useEffect(() => {
+    if (!onStatus) return;
+    const prev = lastStatusSummaryRef.current;
+    if (
+      prev &&
+      prev.status === statusSummary.status &&
+      prev.progressLabel === statusSummary.progressLabel &&
+      prev.rid === statusSummary.rid &&
+      prev.expName === statusSummary.expName &&
+      prev.prefix === statusSummary.prefix &&
+      prev.completed === statusSummary.completed
+    ) {
+      return;
+    }
+    lastStatusSummaryRef.current = statusSummary;
+    onStatus(statusSummary);
+  }, [statusSummary, onStatus]);
+
+  // ── Embedding chrome ─────────────────────────────────────────────────────
+  // `compact` / `showRails` toggle CSS-only concerns (see tokens.css); when
+  // the top bar is hidden the root grid's fixed 44px header row would still
+  // claim the work area's row unless we collapse it to a single row here.
+  const rootClassName =
+    "plots-app" +
+    (compact ? " is-compact" : "") +
+    (!showRails ? " is-norails" : "");
+  const rootStyleBase = showTopBar ? undefined : { gridTemplateRows: "1fr" };
+
   // ── Empty state ──────────────────────────────────────────────────────────
-  if (discoveryLoaded && recentRuns.length === 0) {
+  // Skipped entirely in `forcedPrefix` mode: the host has pinned a specific
+  // run and wants that (or its "waiting for data" state) rendered regardless
+  // of what the free-running discovery poll has found so far.
+  if (!forcedPrefix && discoveryLoaded && recentRuns.length === 0) {
     return (
-      <div className="plots-app">
-        <TopBar
-          recentRuns={[]}
-          currentPrefix={null}
-          onPick={() => {}}
-          status={null}
-          progress={null}
-        />
+      <div className={rootClassName} style={rootStyleBase}>
+        {showTopBar && (
+          <TopBar
+            recentRuns={[]}
+            currentPrefix={null}
+            onPick={() => {}}
+            status={null}
+            progress={null}
+          />
+        )}
         <div
           style={{
             display: "flex",
@@ -596,33 +728,44 @@ function PlotsApp() {
   }
 
   return (
-    <div className="plots-app" style={{ "--p-plot-h": `${plotHeight}px` }}>
-      <TopBar
-        recentRuns={recentRuns}
-        currentPrefix={activePrefix}
-        onPick={handlePick}
-        progress={progressLabel}
-        status={status}
-        onCopy={active ? handleCopy : undefined}
-      />
+    <div
+      className={rootClassName}
+      style={{ ...rootStyleBase, "--p-plot-h": `${plotHeight}px` }}
+    >
+      {showTopBar && (
+        <TopBar
+          recentRuns={recentRuns}
+          currentPrefix={activePrefix}
+          onPick={handlePick}
+          progress={progressLabel}
+          status={status}
+          onCopy={active ? handleCopy : undefined}
+        />
+      )}
 
       <div className="p-work">
-        <ChannelsRail
-          mode={dims || "1D"}
-          channels={channelDescriptors}
-          onToggle={toggleChannel}
-          onPickMetric={setMetric2D}
-          experiment={fragmentFqn}
-          saved={!!fragmentFqn}
-        />
+        {showRails && (
+          <ChannelsRail
+            mode={dims || "1D"}
+            channels={channelDescriptors}
+            onToggle={toggleChannel}
+            onPickMetric={setMetric2D}
+            experiment={fragmentFqn}
+            saved={!!fragmentFqn}
+          />
+        )}
 
         <div className="p-center">
-          <ActiveHeader
-            prefix={activePrefix}
-            rid={extractRid(activePrefix || "")}
-            fragmentFqn={fragmentFqn}
-            dims={dims}
-          />
+          {/* Redundant with the host's own header in compact/embedded mode
+              (e.g. LivePlotCard's "LIVE RID 4823 · RabiFlop" — IMPL-SPEC §7). */}
+          {!compact && (
+            <ActiveHeader
+              prefix={activePrefix}
+              rid={extractRid(activePrefix || "")}
+              fragmentFqn={fragmentFqn}
+              dims={dims}
+            />
+          )}
           <div
             ref={plotPanelRef}
             className="p-panel p-plot-panel"
@@ -733,18 +876,20 @@ function PlotsApp() {
               )}
             </button>
           </div>
-          <ImageSection />
+          {showImages && <ImageSection />}
         </div>
 
-        <TimelineRail
-          experiment={expName}
-          runs={timelineRuns}
-          activeRid={extractRid(activePrefix || "")}
-          ghostPrefixes={ghostPrefixes}
-          onToggleGhost={toggleGhost}
-          onPick={handlePick}
-          dims={dims}
-        />
+        {showRails && (
+          <TimelineRail
+            experiment={expName}
+            runs={timelineRuns}
+            activeRid={extractRid(activePrefix || "")}
+            ghostPrefixes={ghostPrefixes}
+            onToggleGhost={toggleGhost}
+            onPick={handlePick}
+            dims={dims}
+          />
+        )}
       </div>
     </div>
   );
@@ -976,8 +1121,8 @@ function PlotBody({
     return <Plot0D channels={channels} />;
   }
   if (dims === "1D") {
-    const xs = active.axisValues[0] || [];
     const axis = active.axes[0];
+    const xs = scaleValues(active.axisValues[0] || [], axisScale(axis));
     return (
       <StackedPlots1D
         groups={renderGroups}
@@ -989,10 +1134,19 @@ function PlotBody({
     );
   }
   if (dims === "2D") {
-    const xs = active.axisValues[0] || [];
-    const ys = active.axisValues[1] || [];
+    const xs = scaleValues(
+      active.axisValues[0] || [],
+      axisScale(active.axes[0]),
+    );
+    const ys = scaleValues(
+      active.axisValues[1] || [],
+      axisScale(active.axes[1]),
+    );
     const metric = metric2D || Object.keys(active.channels)[0];
-    const values = active.channelData[metric]?.values || [];
+    const values = scaleValues(
+      active.channelData[metric]?.values || [],
+      specScale(active.channels[metric]),
+    );
     return (
       <Plot2D
         xs={xs}
@@ -1038,6 +1192,33 @@ ActiveHeader.propTypes = {
   rid: PropTypes.number,
   fragmentFqn: PropTypes.string,
   dims: PropTypes.string,
+};
+
+PlotsApp.propTypes = {
+  // Pin the app to one run: disables the ?scan= URL sync and the
+  // "pick most recent" default, and the SSE subscription follows this prop.
+  forcedPrefix: PropTypes.string,
+  // Chrome toggles for embedding — all default to today's standalone look.
+  showTopBar: PropTypes.bool,
+  showRails: PropTypes.bool,
+  showImages: PropTypes.bool,
+  // Fills the parent instead of the fixed-size standalone panel.
+  compact: PropTypes.bool,
+  // ({visible, total}) => void — visible/total channel counts, e.g. for a
+  // host-rendered "channels 2/8" pill. Called from an effect, not render.
+  onChannelsSummary: PropTypes.func,
+  // ({status, progressLabel, rid, expName, prefix, completed}) => void.
+  // Called from an effect, not render.
+  onStatus: PropTypes.func,
+  // Supplying this makes the ghost overlay list controlled: the host owns
+  // the array and receives updates via onGhostChange instead.
+  ghostPrefixes: PropTypes.arrayOf(PropTypes.string),
+  onGhostChange: PropTypes.func,
+  // (rawData) => void — the raw `useSSEDataset` payload for the active run,
+  // reported from an effect on every stream update. Lets a host that needs
+  // this data too (e.g. a readout row) reuse this subscription instead of
+  // opening a second EventSource to the same prefix.
+  onData: PropTypes.func,
 };
 
 export default PlotsApp;

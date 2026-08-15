@@ -1,0 +1,40 @@
+{
+  "file": "mock_experiment.py",
+  "class_name": "MockFreqScan",
+  "arginfo": {
+    "center_frequency": [
+      "NumberValue",
+      {
+        "default": 0.0,
+        "unit": "MHz",
+        "scale": 1000000.0,
+        "step": 100000.0,
+        "min": -50000000.0,
+        "max": 50000000.0,
+        "ndecimals": 3
+      },
+      "Scan",
+      "Center of the manual frequency sweep"
+    ],
+    "averaging_mode": [
+      "EnumerationValue",
+      {
+        "choices": [
+          "fast",
+          "precise"
+        ],
+        "default": "fast"
+      },
+      "Scan",
+      "Averaging strategy used at each point"
+    ],
+    "camera_enabled": [
+      "BooleanValue",
+      {
+        "default": false
+      },
+      "Diagnostics",
+      "Enable auxiliary camera capture during the scan"
+    ]
+  }
+}
