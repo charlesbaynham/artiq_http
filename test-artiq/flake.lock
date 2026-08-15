@@ -15,11 +15,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1773365427,
-        "narHash": "sha256-oW3vUllAIImM9KlI887gwEWK51LZQvR1lTGzpBxKxI0=",
+        "lastModified": 1778239908,
+        "narHash": "sha256-mdTS2VcIOJyatfDNn9dVuGrqRPNudm4OUl2keKDCVnY=",
         "ref": "refs/heads/master",
-        "rev": "c318c7060ed5f1a009ee3b3907e3b38101c9c920",
-        "revCount": 47,
+        "rev": "587832b15d47c2c2ad7011d528d47a591465cd55",
+        "revCount": 49,
         "type": "git",
         "url": "https://git.m-labs.hk/M-Labs/artiq-comtools.git"
       },
@@ -72,11 +72,11 @@
         "src-pythonparser": "src-pythonparser"
       },
       "locked": {
-        "lastModified": 1776943689,
-        "narHash": "sha256-2BtI6Lixt2jSbMLR3w3wxcF3196S4ddj+ulo/lNr5aI=",
+        "lastModified": 1781054213,
+        "narHash": "sha256-xMPGl8tbMlR5BpSOVSWqNssdwpqUk5DCq/GQJipmANc=",
         "ref": "release-9",
-        "rev": "727333d03f8aa800614206224a3c6259fb02a90f",
-        "revCount": 9655,
+        "rev": "071b41b9fcf8ad3d0284848a1af3e9bdda810655",
+        "revCount": 9664,
         "type": "git",
         "url": "https://git.m-labs.hk/M-Labs/artiq.git"
       },
@@ -128,11 +128,11 @@
         "nix-servo": "nix-servo"
       },
       "locked": {
-        "lastModified": 1776943706,
-        "narHash": "sha256-p87ZpbxtcsTacfLxpj6tsyx+peL58r+sW5W5Gqr5jMQ=",
+        "lastModified": 1781102229,
+        "narHash": "sha256-873rvRfQcOWhBuvXBVp8saTjpyMilIBaK4FCnSvuNFg=",
         "ref": "release-9",
-        "rev": "bbe7bcd6bf5f99052c3669187345dbc5238376ad",
-        "revCount": 201,
+        "rev": "e0b7f0a6ed4ea245ffc890cbc3ae7144045bbeeb",
+        "revCount": 205,
         "type": "git",
         "url": "https://git.m-labs.hk/M-Labs/artiq-extrapkg.git"
       },
@@ -292,11 +292,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1774359879,
-        "narHash": "sha256-PMaAYknT3juvzOVQT5i1+qH0sjZ17XG0xmaFIHLus2A=",
+        "lastModified": 1780300942,
+        "narHash": "sha256-GWdULt/Cru6vv6UZPyw0qBqak44cwczmaVD72vLwNYo=",
         "ref": "refs/heads/master",
-        "rev": "ac9bf24606c5c9bbf4eccb1cd1de0dba0052d368",
-        "revCount": 416,
+        "rev": "5ff7298ec9e05066b6df50c089afb01209dc06a6",
+        "revCount": 418,
         "type": "git",
         "url": "https://git.m-labs.hk/M-Labs/kirdy.git"
       },
@@ -331,11 +331,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1776200608,
-        "narHash": "sha256-broZ6RFQr4Fv0wT73gGmzNX14A43TmTFF8g4wDKlNss=",
+        "lastModified": 1778151388,
+        "narHash": "sha256-lldMJPUeouEjO8/7aLuwhcsIw29vVihm2ZALzjiqfec=",
         "owner": "nix-community",
         "repo": "naersk",
-        "rev": "8b23250ab45c2a38cd91031aee26478ca4d0a28e",
+        "rev": "efdddff9ff4d8e7d0056d57ec67dac50f75ab8f6",
         "type": "github"
       },
       "original": {
@@ -380,11 +380,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1776909001,
-        "narHash": "sha256-u982WetEez99onTBjQm4+LGvLWM8hQ8/UQ+gH5KvSzY=",
+        "lastModified": 1781073291,
+        "narHash": "sha256-MudNcQMcgmufP66QFWgOLggNPehfx/trHohmWGdEEvo=",
         "ref": "refs/heads/master",
-        "rev": "c86e2def24b33c938d1bdc793714eb6e339fccb6",
-        "revCount": 208,
+        "rev": "c91a11a9480eabbbd6877fcd2a6b5867add6d7a9",
+        "revCount": 219,
         "type": "git",
         "url": "https://git.m-labs.hk/M-Labs/nix-servo.git"
       },
@@ -395,16 +395,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1776734388,
-        "narHash": "sha256-vl3dkhlE5gzsItuHoEMVe+DlonsK+0836LIRDnm6MXQ=",
+        "lastModified": 1780734595,
+        "narHash": "sha256-DmTfP92QFYRLOGXlMIE54MAgxSJjDWocl3gRNOu72Os=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "10e7ad5bbcb421fe07e3a4ad53a634b0cd57ffac",
+        "rev": "9b696460ac78b5ccfc17c854d8c976f20456e943",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-25.11",
+        "ref": "nixos-26.05",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -419,11 +419,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1736697818,
-        "narHash": "sha256-JqqQO9W2s64vt6q2XrAY1ml0l7ff+7HbY5xCUhJJFmM=",
+        "lastModified": 1781066886,
+        "narHash": "sha256-JGMatyMnuezqp/IrUflWZlEhu5wKyicLhV4dYY05T0A=",
         "owner": "cleverca22",
         "repo": "not-os",
-        "rev": "c556294ad82fb256082ca0a787cc5da7cb4e91e3",
+        "rev": "61e529893e5b8b73f3d4d98270be9b7e09ef754a",
         "type": "github"
       },
       "original": {
@@ -521,11 +521,11 @@
     "src-migen": {
       "flake": false,
       "locked": {
-        "lastModified": 1768997857,
-        "narHash": "sha256-bdKQUQ3XLc4fV5sYBfKMuHuOS7nlF0ZU7rjWIKDzFzA=",
+        "lastModified": 1780652564,
+        "narHash": "sha256-T9sj0EDB5Nl+ZKfwWanc3Il5cBQjSj4M+/TZPT/XJXQ=",
         "ref": "refs/heads/master",
-        "rev": "44e5627d367c528b3ce5e686b6f305a9dfc56f2a",
-        "revCount": 2076,
+        "rev": "752d9a6e015ab864ab86151ad625f9d17b323c6f",
+        "revCount": 2078,
         "type": "git",
         "url": "https://git.m-labs.hk/M-Labs/migen.git"
       },
@@ -537,16 +537,17 @@
     "src-misoc": {
       "flake": false,
       "locked": {
-        "lastModified": 1765867404,
-        "narHash": "sha256-YPYUHVIryXDp4W2hUtHUtBbRKIrbhInWImT0NKaacSY=",
-        "ref": "refs/heads/master",
-        "rev": "7ab412de11f6533cd68cd818924da5c28a484ccd",
-        "revCount": 2509,
+        "lastModified": 1780874501,
+        "narHash": "sha256-8gAj/whNc37vGw5bR/b6vFkXhE4RNw67jsR4QM2BT1Y=",
+        "ref": "release-9",
+        "rev": "0199d75d5f59f211660816067fd2b15199973bb6",
+        "revCount": 2513,
         "submodules": true,
         "type": "git",
         "url": "https://git.m-labs.hk/M-Labs/misoc.git"
       },
       "original": {
+        "ref": "release-9",
         "submodules": true,
         "type": "git",
         "url": "https://git.m-labs.hk/M-Labs/misoc.git"
