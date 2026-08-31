@@ -63,7 +63,7 @@ function NewNDScanItem(props) {
   });
   const [priority, setPriority] = React.useState(() => {
     const stored = loadExperimentState(file, class_name);
-    return stored ? stored.priority ?? 0 : 0;
+    return stored ? (stored.priority ?? 0) : 0;
   });
 
   // Helper functions for managing visible FQNs

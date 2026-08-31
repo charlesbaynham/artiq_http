@@ -1,7 +1,8 @@
 import asyncio
 import copy
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 from sipyco.sync_struct import Subscriber
 
@@ -22,15 +23,15 @@ class PersistentSubscriber:
         self._notifier_name = notifier_name
         self._host = host
         self._port = port
-        self._data: Dict = {}
+        self._data: dict = {}
         self._lock = asyncio.Lock()
-        self._subscriber: Optional[Subscriber] = None
-        self._reconnect_task: Optional[asyncio.Task] = None
+        self._subscriber: Subscriber | None = None
+        self._reconnect_task: asyncio.Task | None = None
         self._running = False
         self._connected = False
         self._initialized = False  # Track if we've received initial data
         self._init_event = asyncio.Event()  # Event to wait for initialization
-        self._change_callbacks: List[Callable[[Dict], None]] = []  # Callbacks for data changes
+        self._change_callbacks: list[Callable[[dict], None]] = []  # Callbacks for data changes
 
     async def start(self):
         """Start the persistent subscriber"""
@@ -174,14 +175,14 @@ class PersistentSubscriber:
         try:
             await asyncio.wait_for(self._init_event.wait(), timeout=timeout)
             return True
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return False
 
     def is_connected(self) -> bool:
         """Check if subscriber is currently connected and initialized"""
         return self._connected and self._initialized
 
-    def get_data(self) -> Dict:
+    def get_data(self) -> dict:
         """
         Get current data snapshot (thread-safe, non-blocking)
 
@@ -198,7 +199,7 @@ class PersistentSubscriber:
         # Return a shallow copy to prevent external modifications
         return copy.copy(self._data)
 
-    def register_change_callback(self, callback: Callable[[Dict], None]) -> None:
+    def register_change_callback(self, callback: Callable[[dict], None]) -> None:
         """
         Register a callback to be called when data changes
 
@@ -213,7 +214,7 @@ class PersistentSubscriber:
                 len(self._change_callbacks),
             )
 
-    def unregister_change_callback(self, callback: Callable[[Dict], None]) -> None:
+    def unregister_change_callback(self, callback: Callable[[dict], None]) -> None:
         """
         Unregister a previously registered callback
 
@@ -228,7 +229,7 @@ class PersistentSubscriber:
                 len(self._change_callbacks),
             )
 
-    def _notify_change_listeners(self, mod: Dict) -> None:
+    def _notify_change_listeners(self, mod: dict) -> None:
         """
         Notify all registered callbacks of a data change
 
@@ -254,7 +255,7 @@ class SubscriberManager:
         # higher-level wrappers like :class:`LogBuffer`. Both types expose
         # the same lifecycle protocol (``start``/``stop``/``wait_for_init``/
         # ``is_connected``) so the manager can iterate over them uniformly.
-        self._subscribers: Dict[str, Any] = {}
+        self._subscribers: dict[str, Any] = {}
         self._started = False
 
     async def start(self):
@@ -302,7 +303,7 @@ class SubscriberManager:
         self._started = False
         logger.info("SubscriberManager stopped")
 
-    def get_explist(self) -> Dict:
+    def get_explist(self) -> dict:
         """Get current explist data
 
         Raises:
@@ -312,7 +313,7 @@ class SubscriberManager:
             raise RuntimeError("explist subscriber not initialized")
         return self._subscribers["explist"].get_data()
 
-    def get_explist_status(self) -> Dict:
+    def get_explist_status(self) -> dict:
         """Get current explist_status data
 
         Raises:
@@ -322,7 +323,7 @@ class SubscriberManager:
             raise RuntimeError("explist_status subscriber not initialized")
         return self._subscribers["explist_status"].get_data()
 
-    def get_schedule(self) -> Dict:
+    def get_schedule(self) -> dict:
         """Get current schedule data
 
         Raises:
@@ -332,7 +333,7 @@ class SubscriberManager:
             raise RuntimeError("schedule subscriber not initialized")
         return self._subscribers["schedule"].get_data()
 
-    def get_datasets(self) -> Dict:
+    def get_datasets(self) -> dict:
         """Get current datasets data
 
         Raises:
@@ -355,7 +356,7 @@ class SubscriberManager:
             raise RuntimeError("datasets subscriber not initialized")
         return self._subscribers["datasets"]
 
-    def get_logs(self) -> List[Dict]:
+    def get_logs(self) -> list[dict]:
         """Get the current buffered log entries.
 
         Raises:
