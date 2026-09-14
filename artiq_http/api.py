@@ -2,7 +2,7 @@ import asyncio
 import logging
 import re
 from contextlib import asynccontextmanager
-from typing import Any, Dict
+from typing import Any
 
 import pydantic
 from fastapi import APIRouter, FastAPI, HTTPException
@@ -176,7 +176,7 @@ async def root():
 
 
 @router.get("/schedule")
-async def get_schedule() -> Dict[int, api.models.ScheduleItem]:
+async def get_schedule() -> dict[int, api.models.ScheduleItem]:
     return await api.notifiers.get_schedule()
 
 
@@ -474,7 +474,7 @@ async def _examine_arginfo(file: str, class_name: str, revision: str | None) -> 
             f"Experiment {file}/{class_name} not found at revision {revision or 'current'}",
         )
     except Exception as e:  # noqa: BLE001 - surface any RPC/connection failure as 503
-        raise HTTPException(503, f"Failed to examine experiment: {str(e)}")
+        raise HTTPException(503, f"Failed to examine experiment: {e!s}")
 
     if class_name not in description:
         raise HTTPException(404, f"Experiment {file}/{class_name} not found at revision {revision or 'current'}")
