@@ -15,34 +15,20 @@ Every attempt to submit an experiment via `submit_experiment` or `submit_and_wai
 
 ```python
 # Attempt 1: Simple experiment, default args
-submit_experiment(
-    file="repository/tests/test_echo.py",
-    class_name="TestEcho"
-)
+submit_experiment(file="repository/tests/test_echo.py", class_name="TestEcho")
 # -> 422 Unprocessable Entity
 
 # Attempt 2: With explicit null arguments
-submit_experiment(
-    file="repository/tests/test_echo.py",
-    class_name="TestEcho",
-    arguments=None
-)
+submit_experiment(file="repository/tests/test_echo.py", class_name="TestEcho", arguments=None)
 # -> 422 Unprocessable Entity
 
 # Attempt 3: With explicit empty dict
-submit_experiment(
-    file="repository/tests/test_echo.py",
-    class_name="TestEcho",
-    arguments={}
-)
+submit_experiment(file="repository/tests/test_echo.py", class_name="TestEcho", arguments={})
 # -> 422 Unprocessable Entity
 
 # Attempt 4: Different experiment
 submit_experiment(
-    file="repository/utilities/block_pipeline.py",
-    class_name="BlockPipeline",
-    pipeline="test",
-    priority=0
+    file="repository/utilities/block_pipeline.py", class_name="BlockPipeline", pipeline="test", priority=0
 )
 # -> 422 Unprocessable Entity
 
@@ -50,16 +36,12 @@ submit_experiment(
 submit_experiment(
     file="repository/monitors/display_injection_monitors.py",
     class_name="DisplayInjectionMonitors",
-    arguments={"waittime": 0.1}
+    arguments={"waittime": 0.1},
 )
 # -> 422 Unprocessable Entity
 
 # Attempt 6: submit_and_wait
-submit_and_wait(
-    file="repository/tests/test_echo.py",
-    class_name="TestEcho",
-    timeout_seconds=30
-)
+submit_and_wait(file="repository/tests/test_echo.py", class_name="TestEcho", timeout_seconds=30)
 # -> 422 Unprocessable Entity
 ```
 
@@ -87,30 +69,20 @@ The MCP server is sending a malformed request body or missing a required field w
 ```python
 # Works fine — plain EnvExperiment with many scalar args
 get_experiment_defaults(
-    file="repository/clock_spectroscopy/clock_spectroscopy_from_XODT.py",
-    class_name="ClockSpecFromXXODT"
+    file="repository/clock_spectroscopy/clock_spectroscopy_from_XODT.py", class_name="ClockSpecFromXXODT"
 )
 # -> Returns ~150 scalar arguments
 
 # Works fine — ndscan experiment with simple top-level args
-get_experiment_defaults(
-    file="repository/monitors/display_injection_monitors.py",
-    class_name="DisplayInjectionMonitors"
-)
+get_experiment_defaults(file="repository/monitors/display_injection_monitors.py", class_name="DisplayInjectionMonitors")
 # -> Returns {"waittime": 0.1}
 
 # FAILS — pure ndscan ExpFragment
-get_experiment_defaults(
-    file="repository/red_mot/measure_red_mot.py",
-    class_name="MeasureNarrowbandRedMOT"
-)
+get_experiment_defaults(file="repository/red_mot/measure_red_mot.py", class_name="MeasureNarrowbandRedMOT")
 # -> 500 Internal Server Error
 
 # Also fails
-get_experiment_defaults(
-    file="repository/red_mot/measure_red_mot.py",
-    class_name="MeasureNarrowbandMOTAbs"
-)
+get_experiment_defaults(file="repository/red_mot/measure_red_mot.py", class_name="MeasureNarrowbandMOTAbs")
 # -> 500 Internal Server Error
 ```
 
