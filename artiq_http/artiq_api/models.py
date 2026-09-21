@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -8,8 +8,8 @@ class ExpID(BaseModel):
     log_level: int = logging.WARNING
     file: str
     class_name: str
-    arguments: Dict[str, Any] = Field(default_factory=dict)
-    repo_rev: Optional[str] = None
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    repo_rev: str | None = None
 
     @field_validator("arguments", mode="before")
     @classmethod
@@ -31,10 +31,10 @@ class ExpID(BaseModel):
 class ScheduleItem(BaseModel):
     pipeline: str
     priority: int
-    due_date: Optional[float]
+    due_date: float | None
     flush: bool
-    status: Optional[str]
-    repo_msg: Optional[str]
+    status: str | None
+    repo_msg: str | None
     expid: ExpID
 
 
@@ -42,32 +42,32 @@ class ExperimentEntry(BaseModel):
     name: str
     file: str
     class_name: str
-    arginfo: Optional[Dict[str, Any]] = None
-    argument_ui: Optional[str] = None
-    scheduler_defaults: Optional[dict] = None
-    docstring: Optional[str] = None
+    arginfo: dict[str, Any] | None = None
+    argument_ui: str | None = None
+    scheduler_defaults: dict | None = None
+    docstring: str | None = None
 
 
 class ExperimentList(BaseModel):
-    current_rev: Optional[str]
+    current_rev: str | None
     scanning: bool
-    experiments: List[ExperimentEntry] = []
+    experiments: list[ExperimentEntry] = []
     #: Revision the GUI should fall back to when the "Rev / ref" field is left blank
     #: and no lab-wide default revision is configured. Mirrors ``current_rev`` unless
     #: ``ARTIQ_HTTP_DEFAULT_REVISION`` overrides it (see artiq_http/config.py).
-    default_revision_fallback: Optional[str] = None
+    default_revision_fallback: str | None = None
 
 
 class ExperimentDefaults(BaseModel):
     file: str
     class_name: str
-    arguments: Dict[str, Any]
+    arguments: dict[str, Any]
 
 
 class ExperimentArginfo(BaseModel):
     file: str
     class_name: str
-    arginfo: Dict[str, Any]
+    arginfo: dict[str, Any]
 
 
 class SubmitAndWaitResult(BaseModel):
@@ -78,7 +78,7 @@ class SubmitAndWaitResult(BaseModel):
     status: str
     timed_out: bool
     #: First line of the logged error when ``status == "failed"``, else None.
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class LogEntry(BaseModel):
@@ -96,7 +96,7 @@ class LogList(BaseModel):
     match the expected shape.
     """
 
-    logs: List[Dict[str, Any]]
+    logs: list[dict[str, Any]]
 
 
 class ScanAxis(BaseModel):
@@ -124,7 +124,7 @@ class ScanAxis(BaseModel):
         ...,
         description="ndscan generator name: one of linear, centre_span, list",
     )
-    range: Dict[str, Any] = Field(
+    range: dict[str, Any] = Field(
         ...,
         description=(
             "Range specification. For linear: {'start', 'stop', 'num_points'}. "
@@ -132,7 +132,7 @@ class ScanAxis(BaseModel):
             "For list: {'values': [...]}. Optional 'randomise_order' (bool)."
         ),
     )
-    path: Optional[str] = Field(
+    path: str | None = Field(
         default=None,
         description=(
             "Optional instance path to target. Resolved automatically from the "
@@ -147,11 +147,11 @@ class ScanSubmitRequest(BaseModel):
 
     file: str = Field(..., description="Relative path to the experiment file, e.g. 'scans/rabi.py'")
     class_name: str = Field(..., description="Python class name of the experiment, e.g. 'RabiFlop'")
-    axes: List[ScanAxis] = Field(
+    axes: list[ScanAxis] = Field(
         ...,
         description="List of scan axes; may be empty to run once with no scan axis (no_axes_mode 'single')",
     )
-    fixed_params: Optional[Dict[str, Any]] = Field(
+    fixed_params: dict[str, Any] | None = Field(
         default=None,
         description=(
             "Dict mapping FQN to override value for parameters held fixed during "
@@ -161,7 +161,7 @@ class ScanSubmitRequest(BaseModel):
         ),
     )
     num_repeats: int = Field(default=1, ge=1, description="Number of times to repeat the scan (default 1)")
-    repo_rev: Optional[str] = Field(
+    repo_rev: str | None = Field(
         default=None,
         description=(
             "Git revision (commit hash, branch, or tag) of the experiment repository to "
@@ -173,4 +173,4 @@ class ScanSubmitRequest(BaseModel):
     pipeline: str = Field(default="main", description="Scheduling pipeline name (default 'main')")
     priority: int = Field(default=0, description="Scheduling priority — higher runs sooner (default 0)")
     flush: bool = Field(default=False, description="Flush the pipeline before submitting (default False)")
-    due_date: Optional[float] = Field(default=None, description="Optional due date as Unix timestamp")
+    due_date: float | None = Field(default=None, description="Optional due date as Unix timestamp")

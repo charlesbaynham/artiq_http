@@ -41,7 +41,8 @@ import logging
 import math
 import random
 import time
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ _POINTS_PER_TICK_TARGET_TICKS = 40
 # `reference` is a negative-priority diagnostic (hidden by default) and
 # `atom_number` is large-scale, so a submitted run also exercises the Plots
 # view's scale-based channel grouping.
-_GENERIC_SCAN_CHANNELS: Dict[str, Any] = {
+_GENERIC_SCAN_CHANNELS: dict[str, Any] = {
     "signal": {"path": "signal", "description": "Excitation", "type": "float", "scale": 1.0, "unit": ""},
     "reference": {
         "path": "reference",
@@ -87,7 +88,7 @@ _GENERIC_SCAN_CHANNELS: Dict[str, Any] = {
 }
 
 
-def _linspace(start: float, stop: float, n: int) -> List[float]:
+def _linspace(start: float, stop: float, n: int) -> list[float]:
     if n <= 1:
         return [start]
     step = (stop - start) / (n - 1)
@@ -135,7 +136,7 @@ _CHANNELS = {
     },
 }
 
-_STATIC_DATASETS: Dict[str, Any] = {
+_STATIC_DATASETS: dict[str, Any] = {
     f"{_PREFIX}.axes": [False, "[]", {}],
     f"{_PREFIX}.channels": [False, json.dumps(_CHANNELS), {}],
     f"{_PREFIX}.fragment_fqn": [False, "mock.MockRepeatExperiment", {}],
@@ -149,7 +150,7 @@ _STATIC_DATASETS: Dict[str, Any] = {
 # ARGINFO fixture) — a handful of small, non-empty entries here exercises the
 # non-ndscan submit path (plain NumberValue/BooleanValue/StringValue/
 # EnumerationValue args) that used to be untestable against the mock backend.
-_REPEAT_EXPERIMENT_ARGINFO: Dict[str, Any] = {
+_REPEAT_EXPERIMENT_ARGINFO: dict[str, Any] = {
     "repeat_count": [
         "NumberValue",
         {"default": 100, "unit": "", "scale": 1, "step": 1, "min": 1, "max": None, "ndecimals": 0},
@@ -170,7 +171,7 @@ _REPEAT_EXPERIMENT_ARGINFO: Dict[str, Any] = {
     ],
 }
 
-_FREQ_SCAN_ARGINFO: Dict[str, Any] = {
+_FREQ_SCAN_ARGINFO: dict[str, Any] = {
     "center_frequency": [
         "NumberValue",
         {"default": 0.0, "unit": "MHz", "scale": 1e6, "step": 1e5, "min": -50e6, "max": 50e6, "ndecimals": 3},
@@ -209,7 +210,7 @@ _FREQ_SCAN_ARGINFO: Dict[str, Any] = {
 # kind -> (python type name, unit, scale, is_scannable, one-sentence description template).
 # Defaults are expressed in raw (unscaled) units, exactly as real ndscan stores
 # them; the UI is expected to divide by `scale` to display them in `unit`.
-_KIND_SPECS: Dict[str, tuple] = {
+_KIND_SPECS: dict[str, tuple] = {
     "freq": ("float", "MHz", 1e6, True, "Frequency of the {ctx}"),
     "detuning": ("float", "MHz", 1e6, True, "Detuning of the {ctx} from resonance"),
     "power": ("float", "mW", 1e-3, True, "Optical power delivered to the {ctx}"),
@@ -231,7 +232,7 @@ _KIND_SPECS: Dict[str, tuple] = {
     "label": ("string", "", 1, False, "Identifying label recorded for the {ctx}"),
 }
 
-_ENUM_MEMBER_SETS: List[Dict[str, str]] = [
+_ENUM_MEMBER_SETS: list[dict[str, str]] = [
     {"FAST": "fast", "PRECISE": "precise", "SAFE": "safe"},
     {"LOW": "low", "MEDIUM": "medium", "HIGH": "high"},
     {"AUTO": "auto", "MANUAL": "manual"},
@@ -265,7 +266,7 @@ _COMPONENT_WORDS = [
 # gets a mix of depth-2 and depth-3 (group.subgroup.leaf) leaves, so the
 # resulting fragment tree is genuinely nested at both depths. Total leaves
 # across all groups (including the hand-written ones below) is exactly 214.
-_RABI_FLOP_GROUPS: Dict[str, tuple] = {
+_RABI_FLOP_GROUPS: dict[str, tuple] = {
     "cooling": (18, ["doppler", "sideband", "repump", "mot"]),
     "eit": (11, ["pump", "probe", "two_photon"]),
     "rabi": (6, []),
@@ -280,7 +281,7 @@ _RABI_FLOP_GROUPS: Dict[str, tuple] = {
 }
 
 
-def _kind_schema(kind: str, ctx: str, seed: int) -> Dict[str, Any]:
+def _kind_schema(kind: str, ctx: str, seed: int) -> dict[str, Any]:
     """Build a schema body (everything describe() returns except 'fqn') for one
     leaf of the given *kind*, with a deterministic-but-varied default value."""
     ty, unit, scale, scannable, template = _KIND_SPECS[kind]
@@ -289,7 +290,7 @@ def _kind_schema(kind: str, ctx: str, seed: int) -> Dict[str, Any]:
     if ty == "float":
         display_value = 1.0 + (seed % 7) * 0.5
         default_raw = display_value * scale if scale else display_value
-        spec: Dict[str, Any] = {"is_scannable": scannable, "scale": scale, "step": (scale or 1.0) / 10.0}
+        spec: dict[str, Any] = {"is_scannable": scannable, "scale": scale, "step": (scale or 1.0) / 10.0}
         if unit:
             spec["unit"] = unit
         return {
@@ -342,7 +343,7 @@ def _kind_schema(kind: str, ctx: str, seed: int) -> Dict[str, Any]:
     }
 
 
-def _hand_written_rabi_flop_params() -> Dict[str, Dict[str, Any]]:
+def _hand_written_rabi_flop_params() -> dict[str, dict[str, Any]]:
     """The handful of parameters whose wording/units are specified by the design,
     keyed by FQN (schema body only, 'fqn' added by the caller)."""
     return {
@@ -391,7 +392,7 @@ def _hand_written_rabi_flop_params() -> Dict[str, Dict[str, Any]]:
     }
 
 
-def _build_rabi_flop_schemata() -> tuple[Dict[str, Dict[str, Any]], Dict[str, List[str]], List[List[str]]]:
+def _build_rabi_flop_schemata() -> tuple[dict[str, dict[str, Any]], dict[str, list[str]], list[list[str]]]:
     """Generate RabiFlop's full ndscan schema: 214 leaves across the groups in
     _RABI_FLOP_GROUPS (18+11+6+9+14+30+20+25+25+25+31), a handful of which are
     hand-written above so their wording matches the design exactly.
@@ -402,10 +403,10 @@ def _build_rabi_flop_schemata() -> tuple[Dict[str, Dict[str, Any]], Dict[str, Li
     [fqn, path] pairs (ndscan PYON-encodes these as tuples, but a plain list
     round-trips through JSON and the frontend's parser tolerates both forms).
     """
-    schemata: Dict[str, Dict[str, Any]] = {}
-    instances: Dict[str, List[str]] = {"": []}
+    schemata: dict[str, dict[str, Any]] = {}
+    instances: dict[str, list[str]] = {"": []}
 
-    def add(fqn: str, body: Dict[str, Any]) -> None:
+    def add(fqn: str, body: dict[str, Any]) -> None:
         schemata[fqn] = {"fqn": fqn, **body}
         instances[""].append(fqn)
 
@@ -422,12 +423,12 @@ def _build_rabi_flop_schemata() -> tuple[Dict[str, Dict[str, Any]], Dict[str, Li
         existing = sum(1 for fqn in schemata if fqn.split(".", 1)[0] == group)
         remaining = total - existing
         n_direct = remaining if not subgroups else min(remaining, max(0, round(remaining * 0.3)))
-        buckets: List[Optional[str]] = [None] * n_direct + list(
+        buckets: list[str | None] = [None] * n_direct + list(
             itertools.islice(itertools.cycle(subgroups or [None]), remaining - n_direct)
         )
 
         component_cycle = itertools.cycle(_COMPONENT_WORDS)
-        name_counts: Dict[tuple, int] = {}
+        name_counts: dict[tuple, int] = {}
         for bucket in buckets:
             kind = next(kind_cycle)
             component = next(component_cycle)
@@ -449,7 +450,7 @@ def _build_rabi_flop_schemata() -> tuple[Dict[str, Dict[str, Any]], Dict[str, Li
     return schemata, instances, always_shown
 
 
-def _build_rabi_flop_arginfo() -> Dict[str, Any]:
+def _build_rabi_flop_arginfo() -> dict[str, Any]:
     """Build MockRabiFlop's full arginfo: a single ndscan_params PYONValue whose
     default decodes to {instances, schemata, always_shown, overrides, scan} in
     ndscan's real format (see ArgumentInterface.build in
@@ -507,7 +508,7 @@ _RID_4823_NDSCAN_PARAMS = json.dumps(
 # have content immediately: RID 4823 is a running RabiFlop scan (101-point
 # pulse-duration sweep), RID 4824 is a pending CalibrateTrapFreq experiment
 # (not itself in the explist — it's just a plausible queued neighbour).
-_SCHEDULE_SEED: Dict[int, Dict[str, Any]] = {
+_SCHEDULE_SEED: dict[int, dict[str, Any]] = {
     4823: {
         "pipeline": "main",
         "priority": 0,
@@ -584,7 +585,7 @@ def _derive_fragment_fqn(file: str, class_name: str) -> str:
     `mockAdapter.js`, used for freshly submitted runs. Applied here too so the
     seeded RabiFlop demo's fragment_fqn is derived the same way, rather than
     hand-typed and liable to drift from it."""
-    module_path = file[:-3] if file.endswith(".py") else file
+    module_path = file.removesuffix(".py")
     module_path = module_path.replace("/", ".")
     return f"{module_path}.{class_name}"
 
@@ -643,7 +644,7 @@ _RABI_GHOST_PHASE_SHIFT = 3e-6
 _RABI_PERIOD_S = 12e-6  # ~12 us Rabi period, chosen to show a few oscillations across the 1-50 us scan range
 
 
-def _rabi_sample(t: float, phase_shift: float) -> Dict[str, float]:
+def _rabi_sample(t: float, phase_shift: float) -> dict[str, float]:
     """A noisy Rabi oscillation in `excitation` as a function of pulse
     duration *t* (raw seconds), a flat-ish `dark_counts` diagnostic, and a
     large-scale `atom_number` (~10⁴–10⁵) that tracks the oscillation."""
@@ -654,14 +655,14 @@ def _rabi_sample(t: float, phase_shift: float) -> Dict[str, float]:
     return {"excitation": excitation, "dark_counts": dark_counts, "atom_number": atom_number}
 
 
-def _rabi_scan_plan() -> List[float]:
+def _rabi_scan_plan() -> list[float]:
     """A randomized measurement order: each x point repeated _RABI_SCAN_REPEATS times."""
     plan = [x for x in _RABI_SCAN_X_POINTS for _ in range(_RABI_SCAN_REPEATS)]
     random.shuffle(plan)
     return plan
 
 
-def _rabi_scan_static(prefix: str, completed: bool) -> Dict[str, Any]:
+def _rabi_scan_static(prefix: str, completed: bool) -> dict[str, Any]:
     """Static (metadata) datasets shared by both RabiFlop 1D runs."""
     return {
         f"{prefix}.axes": [False, json.dumps([_RABI_SCAN_AXIS]), {}],
@@ -754,7 +755,7 @@ def _generate_image(size: int = _IMAGE_SIZE, kind: str = "blob", seed: float = 0
     return _to_artiq_order(rows)
 
 
-def _generate_point_values() -> Dict[str, float]:
+def _generate_point_values() -> dict[str, float]:
     t = time.time()
     return {
         "ch0": 0.5 + 0.3 * math.sin(t * 0.5) + random.gauss(0, 0.05),
@@ -784,8 +785,8 @@ class MockDatasetsSubscriber:
     """Drop-in for PersistentSubscriber, used for the datasets channel."""
 
     def __init__(self):
-        self._data: Dict[str, Any] = {}
-        self._callbacks: List[Callable[[Dict], None]] = []
+        self._data: dict[str, Any] = {}
+        self._callbacks: list[Callable[[dict], None]] = []
 
     def is_connected(self) -> bool:
         return True
@@ -799,14 +800,14 @@ class MockDatasetsSubscriber:
     async def stop(self):
         pass
 
-    def get_data(self) -> Dict[str, Any]:
+    def get_data(self) -> dict[str, Any]:
         return dict(self._data)
 
-    def register_change_callback(self, callback: Callable[[Dict], None]) -> None:
+    def register_change_callback(self, callback: Callable[[dict], None]) -> None:
         if callback not in self._callbacks:
             self._callbacks.append(callback)
 
-    def unregister_change_callback(self, callback: Callable[[Dict], None]) -> None:
+    def unregister_change_callback(self, callback: Callable[[dict], None]) -> None:
         if callback in self._callbacks:
             self._callbacks.remove(callback)
 
@@ -832,7 +833,7 @@ class MockDatasetsSubscriber:
 # ndscan_params back into believable streamed data.
 
 
-def _get_ndscan_json(arguments: Dict[str, Any]) -> Optional[str]:
+def _get_ndscan_json(arguments: dict[str, Any]) -> str | None:
     v = (arguments or {}).get("ndscan_params")
     if v is None:
         return None
@@ -845,7 +846,7 @@ def _get_ndscan_json(arguments: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def _axis_point_values(axis_wire: Dict[str, Any]) -> List[float]:
+def _axis_point_values(axis_wire: dict[str, Any]) -> list[float]:
     rng = axis_wire.get("range") or {}
     gtype = axis_wire.get("type")
     if gtype == "list":
@@ -859,7 +860,7 @@ def _axis_point_values(axis_wire: Dict[str, Any]) -> List[float]:
     return [0.0]
 
 
-def _extract_schemata_from_arginfo(arginfo: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def _extract_schemata_from_arginfo(arginfo: dict[str, Any] | None) -> dict[str, Any]:
     if not arginfo:
         return {}
     ndscan_params = arginfo.get("ndscan_params")
@@ -877,8 +878,8 @@ def _extract_schemata_from_arginfo(arginfo: Optional[Dict[str, Any]]) -> Dict[st
 
 
 def _axis_descriptor_for_dataset(
-    axis_wire: Dict[str, Any], arginfo: Optional[Dict[str, Any]], values: List[float]
-) -> Dict[str, Any]:
+    axis_wire: dict[str, Any], arginfo: dict[str, Any] | None, values: list[float]
+) -> dict[str, Any]:
     lo, hi = min(values), max(values)
     increment = (hi - lo) / (len(values) - 1) if len(values) > 1 else 0.0
     schema = _extract_schemata_from_arginfo(arginfo).get(axis_wire["fqn"])
@@ -897,22 +898,22 @@ def _axis_descriptor_for_dataset(
     return {"increment": increment, "max": hi, "min": lo, "path": axis_wire.get("path", "*"), "param": param}
 
 
-def _cartesian_product(value_arrays: List[List[float]]) -> List[List[float]]:
-    acc: List[List[float]] = [[]]
+def _cartesian_product(value_arrays: list[list[float]]) -> list[list[float]]:
+    acc: list[list[float]] = [[]]
     for values in value_arrays:
         acc = [prefix_pt + [v] for prefix_pt in acc for v in values]
     return acc
 
 
-def _build_shuffled_plan(grid: List[List[float]], repeats: int) -> List[List[float]]:
-    plan: List[List[float]] = []
+def _build_shuffled_plan(grid: list[list[float]], repeats: int) -> list[list[float]]:
+    plan: list[list[float]] = []
     for _ in range(repeats):
         plan.extend(grid)
     random.shuffle(plan)
     return plan
 
 
-def _sample_channels_generic(pt: List[float], center: List[float], axis_spans: List[tuple]) -> Dict[str, float]:
+def _sample_channels_generic(pt: list[float], center: list[float], axis_spans: list[tuple]) -> dict[str, float]:
     dist_sq = 0.0
     for i, value in enumerate(pt):
         lo, hi = axis_spans[i]
@@ -927,7 +928,7 @@ def _sample_channels_generic(pt: List[float], center: List[float], axis_spans: L
     }
 
 
-def _nudge_center(run: Dict[str, Any]) -> None:
+def _nudge_center(run: dict[str, Any]) -> None:
     new_center = []
     for c, (lo, hi) in zip(run["center"], run["axis_spans"]):
         span = (hi - lo) or 1.0
@@ -954,13 +955,13 @@ class MockSubscriberManager:
         # that is revealed one point per tick and reshuffled once exhausted.
         # This seeded demo runs forever (it never leaves the schedule) — unlike
         # genuinely *submitted* runs, see _active_runs below.
-        self._rabi_scan_plan_state: List[float] = []
+        self._rabi_scan_plan_state: list[float] = []
         self._rabi_scan_idx = 0
         self._rabi_scan_phase_shift = 0.0
         # In-memory mock schedule (RID -> ScheduleItem-shaped dict), seeded with
         # a running and a pending item; submit()/cancel() mutate this directly so
         # the submit -> queue -> live flow is exercisable without a real master.
-        self._schedule: Dict[int, Dict[str, Any]] = {}
+        self._schedule: dict[int, dict[str, Any]] = {}
         self._next_rid = _FIRST_ALLOCATED_RID
         # Genuinely submitted runs go through pending -> running -> (streaming
         # points ->) completed/removed. `_active_runs` holds the streaming state
@@ -970,9 +971,9 @@ class MockSubscriberManager:
         # removal timer or a plain (non-ndscan) submission's auto-completion
         # timer. All are cancelled/cleared on cancel()/stop() so nothing fires
         # after a RID is gone or the manager is torn down.
-        self._active_runs: Dict[int, Dict[str, Any]] = {}
-        self._pending_activation_tasks: Dict[int, asyncio.Task] = {}
-        self._cleanup_tasks: Dict[int, asyncio.Task] = {}
+        self._active_runs: dict[int, dict[str, Any]] = {}
+        self._pending_activation_tasks: dict[int, asyncio.Task] = {}
+        self._cleanup_tasks: dict[int, asyncio.Task] = {}
 
     async def start(self) -> None:
         if self._started:
@@ -997,8 +998,8 @@ class MockSubscriberManager:
         # Seed the completed RabiFlop ghost run (rid_4821): a full sweep at a
         # shifted phase so it visibly differs from the live run.
         self._datasets_sub._data.update(_rabi_scan_static(_RABI_GHOST_PREFIX, completed=True))
-        ghost_axis: List[float] = []
-        ghost_channels: Dict[str, List[float]] = {k: [] for k in _RABI_SCAN_CHANNELS}
+        ghost_axis: list[float] = []
+        ghost_channels: dict[str, list[float]] = {k: [] for k in _RABI_SCAN_CHANNELS}
         for x in _rabi_scan_plan():
             sample = _rabi_sample(x, _RABI_GHOST_PHASE_SHIFT)
             ghost_axis.append(x)
@@ -1105,7 +1106,7 @@ class MockSubscriberManager:
         item["status"] = "running"
         self._start_run_from_expid(rid, item["expid"])
 
-    def _start_run_from_expid(self, rid: int, expid: Dict[str, Any]) -> None:
+    def _start_run_from_expid(self, rid: int, expid: dict[str, Any]) -> None:
         raw = _get_ndscan_json(expid.get("arguments") or {})
         if raw is None:
             # Plain (non-ndscan) experiment: nothing to stream. Simulate a quick
@@ -1154,10 +1155,10 @@ class MockSubscriberManager:
     def _begin_ndscan_run(
         self,
         rid: int,
-        expid: Dict[str, Any],
-        axes_wire: List[Dict[str, Any]],
+        expid: dict[str, Any],
+        axes_wire: list[dict[str, Any]],
         num_repeats_raw: Any,
-        arginfo: Optional[Dict[str, Any]],
+        arginfo: dict[str, Any] | None,
     ) -> None:
         prefix = f"ndscan.rid_{rid}"
         fragment_fqn = _derive_fragment_fqn(expid["file"], expid["class_name"])
@@ -1186,7 +1187,7 @@ class MockSubscriberManager:
         loop_forever = is_infinite or grid_size == 0 or (finite_total is not None and finite_total > _MAX_DEMO_POINTS)
 
         center = [vals[int(len(vals) * 0.4)] if vals else 0.0 for vals in value_arrays]
-        run: Dict[str, Any] = {
+        run: dict[str, Any] = {
             "rid": rid,
             "prefix": prefix,
             "num_axes": len(axes_wire),
@@ -1201,7 +1202,7 @@ class MockSubscriberManager:
         run["points_per_tick"] = max(1, math.ceil(len(run["plan"]) / _POINTS_PER_TICK_TARGET_TICKS))
         self._active_runs[rid] = run
 
-    def _append_point(self, run: Dict[str, Any], pt: List[float]) -> None:
+    def _append_point(self, run: dict[str, Any], pt: list[float]) -> None:
         sub = self._datasets_sub
         for i in range(run["num_axes"]):
             key = f"{run['prefix']}.points.axis_{i}"
@@ -1215,14 +1216,14 @@ class MockSubscriberManager:
             arr.append(value)
             sub._set_and_notify(key, [False, arr, {}])
 
-    def _reset_run_points(self, run: Dict[str, Any]) -> None:
+    def _reset_run_points(self, run: dict[str, Any]) -> None:
         sub = self._datasets_sub
         for i in range(run["num_axes"]):
             sub._set_and_notify(f"{run['prefix']}.points.axis_{i}", [False, [], {}])
         for key in _GENERIC_SCAN_CHANNELS:
             sub._set_and_notify(f"{run['prefix']}.points.channel_{key}", [False, [], {}])
 
-    def _tick_ndscan_run(self, run: Dict[str, Any]) -> None:
+    def _tick_ndscan_run(self, run: dict[str, Any]) -> None:
         if run["done"]:
             return
         remaining = run["points_per_tick"]
@@ -1265,10 +1266,10 @@ class MockSubscriberManager:
 
     # ── SubscriberManager interface ──────────────────────────────────────────
 
-    def get_explist(self) -> Dict:
+    def get_explist(self) -> dict:
         return dict(_MOCK_EXPLIST)
 
-    def get_explist_status(self) -> Dict:
+    def get_explist_status(self) -> dict:
         return {"cur_rev": "mock", "scanning": False}
 
     def examine_experiment(self, file: str, class_name: str, revision=None):
@@ -1283,7 +1284,7 @@ class MockSubscriberManager:
                 return entry.get("arginfo", {})
         return None
 
-    def get_schedule(self) -> Dict:
+    def get_schedule(self) -> dict:
         return dict(self._schedule)
 
     def submit(
@@ -1335,13 +1336,13 @@ class MockSubscriberManager:
             logger.info("Mock schedule: cancelled RID %d", rid)
         return removed
 
-    def get_datasets(self) -> Dict:
+    def get_datasets(self) -> dict:
         return self._datasets_sub.get_data()
 
     def get_datasets_subscriber(self) -> MockDatasetsSubscriber:
         return self._datasets_sub
 
-    def get_logs(self) -> List:
+    def get_logs(self) -> list:
         return []
 
     def get_logs_subscriber(self):

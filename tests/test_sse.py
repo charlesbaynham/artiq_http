@@ -150,7 +150,7 @@ def test_stream_dataset_updates_ignores_irrelevant_changes():
 
                 try:
                     await asyncio.wait_for(asyncio.shield(next_event), timeout=0.1)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     pass
                 else:
                     raise AssertionError("Irrelevant dataset change should not emit an SSE event")
@@ -171,7 +171,7 @@ def test_stream_dataset_updates_emits_heartbeat_on_timeout():
 
     async def fake_wait_for(awaitable, timeout):
         awaitable.close()
-        raise asyncio.TimeoutError
+        raise TimeoutError
 
     async def scenario():
         stream = sse.stream_dataset_updates("ndscan.rid_1")
@@ -259,10 +259,9 @@ def test_stream_datasets_endpoint_returns_event_stream_response():
         assert prefix == "ndscan.rid_1"
         yield sse.format_sse_event("init", {"ndscan.rid_1.points": [False, [1], {}]})
 
-    with patch("artiq_http.sse.stream_dataset_updates", side_effect=fake_stream):
-        with TestClient(app) as client:
-            with client.stream("GET", "/api/datasets/stream/ndscan.rid_1") as response:
-                body = "".join(response.iter_text())
+    with patch("artiq_http.sse.stream_dataset_updates", side_effect=fake_stream), TestClient(app) as client:
+        with client.stream("GET", "/api/datasets/stream/ndscan.rid_1") as response:
+            body = "".join(response.iter_text())
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/event-stream")
