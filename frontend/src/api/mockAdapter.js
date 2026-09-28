@@ -220,7 +220,7 @@ function findExplistEntry(file, className) {
 
 function findExplistArginfoSync(file, className) {
   const entry = findExplistEntry(file, className);
-  return entry ? entry.arginfo ?? null : null;
+  return entry ? (entry.arginfo ?? null) : null;
 }
 
 // ── ndscan wire-format ports (mirrors artiq_http/artiq_api/ndscan_builder.py
@@ -653,12 +653,12 @@ function projectEntry(exp, fields, full) {
     name: exp.name,
     file: exp.file,
     class_name: exp.class_name,
-    arginfo: wanted.has("arginfo") ? exp.arginfo ?? null : null,
-    argument_ui: wanted.has("argument_ui") ? exp.argument_ui ?? null : null,
+    arginfo: wanted.has("arginfo") ? (exp.arginfo ?? null) : null,
+    argument_ui: wanted.has("argument_ui") ? (exp.argument_ui ?? null) : null,
     scheduler_defaults: wanted.has("scheduler_defaults")
-      ? exp.scheduler_defaults ?? null
+      ? (exp.scheduler_defaults ?? null)
       : null,
-    docstring: wanted.has("docstring") ? exp.docstring ?? null : null,
+    docstring: wanted.has("docstring") ? (exp.docstring ?? null) : null,
   };
   if (out.arginfo && !full) out.arginfo = filterNdscanAlwaysShown(out.arginfo);
   return out;
