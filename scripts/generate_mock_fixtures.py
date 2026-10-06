@@ -49,14 +49,14 @@ import json
 import random
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from artiq_http import mock_backend as mb  # noqa: E402
+from artiq_http import mock_backend as mb
 
 # Deterministic seed/clock so re-running this script (e.g. from the drift
 # test) produces byte-identical output. The actual values don't matter, only
@@ -90,7 +90,7 @@ def _write_json(path: Path, data: Any, *, compact: bool = False) -> None:
     path.write_text(text + "\n", encoding="utf-8")
 
 
-async def _capture_snapshot() -> Dict[str, Any]:
+async def _capture_snapshot() -> dict[str, Any]:
     """Start a fresh `MockSubscriberManager` and capture its initial state.
 
     Everything here runs before any `await asyncio.sleep(...)`, so the
