@@ -5,6 +5,9 @@ import urllib.request
 
 RID = sys.argv[1]
 SERVER = sys.argv[2].rstrip("/")
+# Accept either the deployment base URL or its /api URL.
+if not SERVER.endswith("/api"):
+    SERVER += "/api"
 
 
 def api_get(path, params=None):

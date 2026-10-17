@@ -20,16 +20,20 @@ When a user asks to plot, visualise, or see the results of a specific ARTIQ RID 
 
 ```bash
 # Plot data for RID 71798 against the ARTIQ system this plugin is configured for
-scripts/run_plot_rid.sh 71798 ${user_config.artiq_url}/api
+scripts/run_plot_rid.sh 71798 ${user_config.artiq_url}
 
 # Plot data for a different RID against an explicit server
 scripts/run_plot_rid.sh 71800 http://localhost:8000
 ```
 
 The server URL comes from the plugin's `artiq_url` option (set at install time, or changed
-with `claude plugin configure artiq-http@artiq-http`). The script itself cannot read that
-option from the environment, so always pass `<artiq_url>/api` as the second argument. If
-the argument is omitted the script falls back to `http://localhost:8000`.
+with `/plugin configure artiq-http@artiq-http`). The script itself cannot read that option
+from the environment, so always pass it as the second argument; a trailing `/api` is
+optional. If the argument is omitted the script falls back to `http://localhost:8000`.
+
+If the example above shows a literal `${user_config.artiq_url}` (the skill was loaded from
+the repo rather than the installed plugin), no substitution happened: ask the user for their
+ARTIQ base URL and pass that instead.
 
 ## What it does
 

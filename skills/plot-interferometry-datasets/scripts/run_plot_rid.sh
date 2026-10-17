@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Plot ARTIQ ndscan data for a given RID as ASCII art.
 # Usage: ./plot-rid.sh <RID> [SERVER_URL]
-# Default server: http://localhost:8000 (pass your deployment's <artiq_url>/api explicitly)
+# Default server: http://localhost:8000 (pass your deployment's <artiq_url> explicitly;
+# a trailing /api is optional)
 
 set -euo pipefail
 
@@ -10,10 +11,18 @@ SERVER="${2:-http://localhost:8000}"
 VENV_DIR="/tmp/artiq-plot-venv"
 DIR_OF_THIS_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+case "$SERVER" in
+    *'${'*)
+        echo "Error: SERVER_URL still contains an unexpanded placeholder: $SERVER"
+        echo "Ask the user for their ARTIQ base URL (the plugin's artiq_url option)."
+        exit 1
+        ;;
+esac
+
 if [ -z "$RID" ]; then
     echo "Usage: $0 <RID> [SERVER_URL]"
     echo "  RID:          ARTIQ run ID to plot"
-    echo "  SERVER_URL:   artiq_http backend URL (default: http://localhost:8000)"
+    echo "  SERVER_URL:   artiq_http base URL, with or without /api (default: http://localhost:8000)"
     exit 1
 fi
 

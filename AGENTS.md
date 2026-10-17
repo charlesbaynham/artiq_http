@@ -358,6 +358,14 @@ The Claude Code plugin lives in `.claude-plugin/` (`plugin.json`, `marketplace.j
 - Run `claude plugin validate .` after touching the manifest or any `${user_config.*}`
   reference; it errors on references to undeclared options.
 
+## Agent configuration
+
+`.claude` is a symlink to `.agents/`, which holds the shared settings, the SessionStart
+hooks (`clone-deps.sh` populates `.claude/deps/`), plans, and project skills. One project
+skill, `plot-interferometry-datasets`, is a symlink to the plugin skill under `skills/`;
+loaded this way there is no `${user_config.*}` substitution, which is why that skill tells
+the model to ask for the URL when it sees a literal placeholder.
+
 ## Versioning
 
 This project uses manual semantic versioning with hard-coded version strings. The version is stored in four places, which must stay in sync (enforced by `tests/test_version_consistency.py`):

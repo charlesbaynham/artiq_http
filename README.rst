@@ -141,8 +141,12 @@ of your deployment (``artiq_url``, no trailing slash) and connects to ``<artiq_u
     claude plugin marketplace add charlesbaynham/artiq_http
     claude plugin install artiq-http@artiq-http --config artiq_url=https://artiq.example.com
 
-    # Point the plugin at a different ARTIQ system later
-    claude plugin configure artiq-http@artiq-http
+    # Point the plugin at a different ARTIQ system later, then restart Claude Code
+    echo '{"artiq_url": "https://other.example.com"}' | claude plugin configure artiq-http@artiq-http --values-stdin
+
+(or run ``/plugin configure artiq-http@artiq-http`` inside a session). Upgrading from 0.28
+or earlier: the option is required and unset until you configure it, so the ``artiq`` MCP
+server stays disabled until you do.
 
 **Static demo (GitHub Pages, no backend):**
 

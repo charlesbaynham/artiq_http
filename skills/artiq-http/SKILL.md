@@ -251,10 +251,11 @@ Install the plugin and enter your ARTIQ base URL (`artiq_url`, e.g. `https://art
 ```bash
 claude plugin install artiq-http@artiq-http --config artiq_url=https://artiq.example.com
 ```
-Claude Code then connects to the remote MCP server at `<artiq_url>/mcp` over HTTP. To point the plugin at a different ARTIQ system later, run:
+Claude Code then connects to the remote MCP server at `<artiq_url>/mcp` over HTTP. To point the plugin at a different ARTIQ system later, run the following and restart Claude Code (or use `/plugin configure artiq-http@artiq-http` inside a session):
 ```bash
-claude plugin configure artiq-http@artiq-http
+echo '{"artiq_url": "https://other.example.com"}' | claude plugin configure artiq-http@artiq-http --values-stdin
 ```
+Upgrading from 0.28 or earlier: `artiq_url` is required and unset until configured, so the `artiq` MCP server stays disabled until you set it.
 
 For local development, run the server directly:
 ```bash
@@ -264,8 +265,11 @@ python -m mcp_server.server
 Then connect via `.mcp.json`:
 ```json
 {
-  "artiq": {
-    "url": "http://localhost:8001/mcp"
+  "mcpServers": {
+    "artiq": {
+      "type": "http",
+      "url": "http://localhost:8001/mcp"
+    }
   }
 }
 ```
