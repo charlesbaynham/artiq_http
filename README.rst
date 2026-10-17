@@ -131,6 +131,19 @@ server (e.g. behind your own reverse proxy that serves the frontend separately):
     # Run on a custom port
     uv run aqctl_artiq_http --port 8080
 
+**Connecting Claude Code:**
+
+The repository is also a Claude Code plugin marketplace. The plugin asks for the base URL
+of your deployment (``artiq_url``, no trailing slash) and connects to ``<artiq_url>/mcp``:
+
+.. code-block:: bash
+
+    claude plugin marketplace add charlesbaynham/artiq_http
+    claude plugin install artiq-http@artiq-http --config artiq_url=https://artiq.example.com
+
+    # Point the plugin at a different ARTIQ system later
+    claude plugin configure artiq-http@artiq-http
+
 **Static demo (GitHub Pages, no backend):**
 
 The redesigned frontend also builds as a fully static site with no Python backend at
