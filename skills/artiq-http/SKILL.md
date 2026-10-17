@@ -11,7 +11,7 @@ MCP tools for controlling an ARTIQ quantum physics experiment system via its HTT
 
 When this connector is enabled, 11 MCP tools, 3 prompts, and 3 resources are available directly — no code or SDK required. Use them to discover experiments, submit runs, wait for results, read datasets, and check server health.
 
-The MCP server runs remotely (e.g. in a Docker Compose stack alongside the ARTIQ master and `artiq_http` backend) and exposes an HTTP interface. Which ARTIQ system you talk to is chosen per install: the plugin has one required option, `artiq_url`, the base URL of your `artiq_http` deployment without a trailing slash (e.g. `https://artiq.example.com`). The plugin connects to `<artiq_url>/mcp`, and the REST API lives at `<artiq_url>/api`. The MCP server connects to the `artiq_http` backend over the internal Docker network at `http://backend:8000`.
+The MCP server runs remotely (e.g. in a Docker Compose stack alongside the ARTIQ master and `artiq_http` backend) and exposes an HTTP interface. Which ARTIQ system you talk to is chosen per install: the plugin has one option, `artiq_url`, the base URL of your `artiq_http` deployment without a trailing slash (e.g. `https://artiq.example.com`). The plugin connects to `<artiq_url>/mcp`, and the REST API lives at `<artiq_url>/api`. The MCP server connects to the `artiq_http` backend over the internal Docker network at `http://backend:8000`.
 
 For local development you can also run the MCP server directly with `python -m mcp_server.server` and point it at `http://localhost:8000`.
 
@@ -255,7 +255,7 @@ Claude Code then connects to the remote MCP server at `<artiq_url>/mcp` over HTT
 ```bash
 echo '{"artiq_url": "https://other.example.com"}' | claude plugin configure artiq-http@artiq-http --values-stdin
 ```
-Upgrading from 0.28 or earlier: `artiq_url` is required and unset until configured, so the `artiq` MCP server stays disabled until you set it.
+Upgrading from 0.28 or earlier: `artiq_url` is unset until configured, so the `artiq` MCP server shows "URL is unset or invalid" and stays disconnected until you set it.
 
 For local development, run the server directly:
 ```bash

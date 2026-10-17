@@ -346,7 +346,7 @@ uv run coverage report
 ## Claude plugin
 
 The Claude Code plugin lives in `.claude-plugin/` (`plugin.json`, `marketplace.json`) and
-`skills/`. Which ARTIQ system it talks to is chosen per install through the required
+`skills/`. Which ARTIQ system it talks to is chosen per install through the
 `artiq_url` `userConfig` option (a base URL with no trailing slash, e.g.
 `https://artiq.example.com`); the MCP server is `<artiq_url>/mcp` and the REST API is
 `<artiq_url>/api`. Do not hard-code a deployment URL anywhere in the plugin.

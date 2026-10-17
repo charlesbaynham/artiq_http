@@ -7,7 +7,7 @@
       "type": "string",
       "title": "ARTIQ HTTP base URL",
       "description": "Base URL of your artiq_http deployment, without a trailing slash (e.g. https://artiq.example.com). The MCP server is served at <url>/mcp and the REST API at <url>/api.",
-      "required": true
+      "required": false
     }
   },
   "mcpServers": {
