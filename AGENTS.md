@@ -343,15 +343,28 @@ uv run coverage run -m pytest --realserver
 uv run coverage report
 ```
 
-## Agent Configuration
+## Claude plugin
 
-> **TODO:** `userConfig` in the `.claude-plugin/plugin.json` is temporarily hard-coded to `https://artiq.stronlab.net/mcp` because `userConfig` support is broken pending https://github.com/anthropics/claude-code/issues/39827. Future agent runs should check whether that issue is resolved before reintroducing `userConfig`.
+The Claude Code plugin lives in `.claude-plugin/` (`plugin.json`, `marketplace.json`) and
+`skills/`. Which ARTIQ system it talks to is chosen per install through the
+`artiq_url` `userConfig` option (a base URL with no trailing slash, e.g.
+`https://artiq.example.com`); the MCP server is `<artiq_url>/mcp` and the REST API is
+`<artiq_url>/api`. Do not hard-code a deployment URL anywhere in the plugin.
 
-This project includes agent configuration in the `.agent/` directory:
-- `.agent/settings.local.json` - Permissions and auto-approval settings
-- `.agent/workflows/` - Reusable workflow definitions
-- `.agent/skills/` - Custom agent skills
-- `.agent/agents/` - Agent-specific configurations
+- `${user_config.artiq_url}` is substituted in the MCP server `url` in `plugin.json` and in
+  skill Markdown. It is **not** exposed to the Bash tool's environment, so shell scripts
+  under `skills/` cannot read it: the skill text must pass it as an argument (see
+  `skills/plot-interferometry-datasets/`).
+- Run `claude plugin validate .` after touching the manifest or any `${user_config.*}`
+  reference; it errors on references to undeclared options.
+
+## Agent configuration
+
+`.claude` is a symlink to `.agents/`, which holds the shared settings, the SessionStart
+hooks (`clone-deps.sh` populates `.claude/deps/`), plans, and project skills. One project
+skill, `plot-interferometry-datasets`, is a symlink to the plugin skill under `skills/`;
+loaded this way there is no `${user_config.*}` substitution, which is why that skill tells
+the model to ask for the URL when it sees a literal placeholder.
 
 ## Versioning
 
