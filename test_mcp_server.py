@@ -11,7 +11,7 @@ import json
 
 import httpx
 
-import mcp_server.server as server
+from mcp_server import server
 
 
 def _recording_client(monkeypatch, response_json):
