@@ -9,7 +9,7 @@ import asyncio
 import json
 import logging
 import math
-from typing import Any, Dict, Set
+from typing import Any
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
@@ -60,7 +60,7 @@ def format_sse_event(event: str, data: Any) -> str:
     return f"event: {event}\ndata: {json_data}\n\n"
 
 
-def get_datasets_for_prefix(all_datasets: Dict, prefix: str) -> Dict:
+def get_datasets_for_prefix(all_datasets: dict, prefix: str) -> dict:
     """Extract datasets that match the given prefix (exact match or prefix.subkey)"""
     return {key: value for key, value in all_datasets.items() if key == prefix or key.startswith(prefix + ".")}
 
@@ -75,9 +75,9 @@ async def stream_dataset_updates(prefix: str):
     - heartbeat: Keep-alive (every 15 seconds)
     """
     update_queue: asyncio.Queue = asyncio.Queue()
-    relevant_keys: Set[str] = set()
+    relevant_keys: set[str] = set()
 
-    def _extract_key(mod: Dict) -> str | None:
+    def _extract_key(mod: dict) -> str | None:
         """Extract the top-level dataset key from a sync_struct mod."""
         action = mod.get("action")
         if action in ("append", "insert", "pop"):
@@ -87,7 +87,7 @@ async def stream_dataset_updates(prefix: str):
         # setitem, delitem, init: key is the dataset name (path is empty for top-level)
         return mod.get("key")
 
-    def on_dataset_change(mod: Dict):
+    def on_dataset_change(mod: dict):
         """Callback when datasets change"""
         key = _extract_key(mod)
 
@@ -150,7 +150,7 @@ async def stream_dataset_updates(prefix: str):
                         relevant_keys.discard(key)
                         yield format_sse_event("delete", {"key": key})
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # Send heartbeat
                     yield format_sse_event("heartbeat", {})
 

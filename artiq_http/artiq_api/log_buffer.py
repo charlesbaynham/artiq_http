@@ -2,7 +2,7 @@
 
 import collections
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .persistent_broadcast import PersistentBroadcastReceiver
 
@@ -44,7 +44,7 @@ class LogBuffer:
     def is_connected(self) -> bool:
         return self._receiver.is_connected()
 
-    def get_logs(self) -> List[Dict]:
+    def get_logs(self) -> list[dict]:
         """Return a copy of the current buffered log entries."""
         return list(self._buffer)
 
@@ -54,7 +54,7 @@ class LogBuffer:
             self._buffer.append(normalised)
 
     @staticmethod
-    def _normalise_entry(entry: Any) -> Optional[Dict]:
+    def _normalise_entry(entry: Any) -> dict | None:
         """Convert a raw ARTIQ log broadcast message into a dict.
 
         ARTIQ broadcasts log entries as 4-tuples ``(level, source, timestamp,
