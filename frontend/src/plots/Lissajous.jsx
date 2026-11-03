@@ -16,8 +16,8 @@ function padded(values) {
   return [lo - pad, hi + pad];
 }
 
-// Forward-vs-backward atom number, one point per scan value. Over a fringe the
-// ports trace an ellipse whose opening gives the interferometer phase.
+// Forward-vs-backward excitation fraction, one point per scan value. Over a fringe the
+// traps trace an ellipse whose opening gives the interferometer phase.
 function Lissajous({ points, xLabel, yLabel, scanLabel }) {
   const [setRef, size] = useMeasuredSize();
   const fit = useMemo(() => fitEllipse(points), [points]);

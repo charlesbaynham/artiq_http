@@ -610,20 +610,20 @@ _RABI_SCAN_CHANNELS = {
         "display_hints": {"priority": -1},
     },
     "atom_number": {"path": "atom_number", "description": "Atom number", "type": "float", "scale": 1.0, "unit": ""},
-    # The two interferometer output ports. Their presence is what makes the
-    # Plots view offer the Lissajous (forward-vs-backward) view; hidden from
-    # the stacked 1D plots by default like any diagnostic.
-    "atom_number_forward": {
-        "path": "atom_number_forward",
-        "description": "Atom number (forward)",
+    # The two traps of a differential interferometer. Their presence is what
+    # makes the Plots view offer the Lissajous (forward-vs-backward) view;
+    # hidden from the stacked 1D plots by default like any diagnostic.
+    "excitation_fraction_forward": {
+        "path": "excitation_fraction_forward",
+        "description": "Excitation fraction (forward)",
         "type": "float",
         "scale": 1.0,
         "unit": "",
         "display_hints": {"priority": -1},
     },
-    "atom_number_backward": {
-        "path": "atom_number_backward",
-        "description": "Atom number (backward)",
+    "excitation_fraction_backward": {
+        "path": "excitation_fraction_backward",
+        "description": "Excitation fraction (backward)",
         "type": "float",
         "scale": 1.0,
         "unit": "",
@@ -676,8 +676,8 @@ def _rabi_sample(t: float, phase_shift: float) -> Dict[str, float]:
         "dark_counts": dark_counts,
         "atom_number": atom_number,
         # Same fringe in both ports, 70 degrees apart: an ellipse, not a line or circle.
-        "atom_number_forward": 50000.0 + 30000.0 * math.cos(fringe_phase) + random.gauss(0, 1500.0),
-        "atom_number_backward": 40000.0 + 25000.0 * math.cos(fringe_phase + math.radians(70)) + random.gauss(0, 1500.0),
+        "excitation_fraction_forward": 0.5 + 0.4 * math.cos(fringe_phase) + random.gauss(0, 0.02),
+        "excitation_fraction_backward": 0.45 + 0.35 * math.cos(fringe_phase + math.radians(70)) + random.gauss(0, 0.02),
     }
 
 

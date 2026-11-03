@@ -1546,8 +1546,8 @@ const RABI_SCAN_CHANNEL_KEYS = [
   "excitation",
   "dark_counts",
   "atom_number",
-  "atom_number_forward",
-  "atom_number_backward",
+  "excitation_fraction_forward",
+  "excitation_fraction_backward",
 ];
 const RABI_SCAN_RANGE = { start: 1e-6, stop: 5e-5, numPoints: 101 };
 const RABI_SCAN_X_POINTS = linspace(
@@ -1575,12 +1575,12 @@ function rabiSample(t, phaseShift) {
     excitation,
     dark_counts: 0.5 + gauss(0, 0.03),
     atom_number: 50000.0 + 30000.0 * excitation + gauss(0, 3000.0),
-    atom_number_forward:
-      50000.0 + 30000.0 * Math.cos(fringePhase) + gauss(0, 1500.0),
-    atom_number_backward:
-      40000.0 +
-      25000.0 * Math.cos(fringePhase + (70 * Math.PI) / 180) +
-      gauss(0, 1500.0),
+    excitation_fraction_forward:
+      0.5 + 0.4 * Math.cos(fringePhase) + gauss(0, 0.02),
+    excitation_fraction_backward:
+      0.45 +
+      0.35 * Math.cos(fringePhase + (70 * Math.PI) / 180) +
+      gauss(0, 0.02),
   };
 }
 

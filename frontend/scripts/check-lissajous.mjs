@@ -10,31 +10,35 @@ const f = (description) => ({ type: "float", description });
 
 assert.deepEqual(
   findLissajousChannels({
+    excitation_fraction_forward: f("Excitation fraction (forward)"),
+    excitation_fraction_backward: f("Excitation fraction (backward)"),
     atom_number_forward: f("Atom number (forward)"),
     atom_number_backward: f("Atom number (backward)"),
     atom_number_imbalance: f("Imbalance"),
-    excitation_fraction_forward: f("Excitation fraction (forward)"),
   }),
-  { forward: "atom_number_forward", backward: "atom_number_backward" },
+  {
+    forward: "excitation_fraction_forward",
+    backward: "excitation_fraction_backward",
+  },
+);
+assert.equal(
+  findLissajousChannels({
+    excitation_fraction_forward: f("Excitation fraction (forward)"),
+    excitation_fraction: f("Excitation fraction"),
+  }),
+  null,
 );
 assert.equal(
   findLissajousChannels({
     atom_number_forward: f("Atom number (forward)"),
-    atom_number: f("Atom number"),
+    atom_number_backward: f("Atom number (backward)"),
   }),
   null,
 );
 assert.equal(
   findLissajousChannels({
-    excitation_fraction_forward: f("x"),
-    excitation_fraction_backward: f("y"),
-  }),
-  null,
-);
-assert.equal(
-  findLissajousChannels({
-    atom_number_forward: { type: "string", description: "" },
-    atom_number_backward: f(""),
+    excitation_fraction_forward: { type: "string", description: "" },
+    excitation_fraction_backward: f(""),
   }),
   null,
 );
@@ -53,15 +57,15 @@ for (const deg of [20, 45, 70, 90]) {
     const phi = (2 * Math.PI * 1.7 * i) / 80;
     return {
       s: i,
-      x: 5e4 + 3e4 * Math.cos(phi),
-      y: 4e4 + 2.5e4 * Math.cos(phi + d),
+      x: 0.5 + 0.4 * Math.cos(phi),
+      y: 0.45 + 0.35 * Math.cos(phi + d),
     };
   });
   const fit = fitEllipse(data);
   assert.ok(fit, `fit δ=${deg}`);
   assert.ok(Math.abs(fit.deltaDeg - deg) < 0.5, `δ=${deg} got ${fit.deltaDeg}`);
-  assert.ok(Math.abs(fit.centre.x - 5e4) < 100);
-  assert.ok(Math.abs(fit.centre.y - 4e4) < 100);
+  assert.ok(Math.abs(fit.centre.x - 0.5) < 1e-3);
+  assert.ok(Math.abs(fit.centre.y - 0.45) < 1e-3);
 }
 
 // A straight line (δ = 0) is not an ellipse; too few points never fit.

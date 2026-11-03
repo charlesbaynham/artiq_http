@@ -1,13 +1,14 @@
-// Lissajous view of an interferometer: the two output ports (atom number
-// forward / backward) plotted against each other, parametrised by the scan.
+// Lissajous view of a differential interferometer: the two traps' excitation
+// fractions (forward / backward) plotted against each other, parametrised by
+// the scan.
 // Pure helpers — exercised by `scripts/check-lissajous.mjs` under plain Node.
 
 const NUMERIC = new Set(["int", "float"]);
 
-// Find the forward/backward atom-number channels. Matching is on the key (the
-// ndscan channel path) with the description as a fallback, so
-// `atom_number_forward`, `N_fwd` with description "Atom number (forward)", etc.
-// all qualify; `atom_number_imbalance` and `excitation_fraction_*` do not.
+// Find the forward/backward excitation-fraction channels. Matching is on the key
+// (the ndscan channel path) with the description as a fallback, so
+// `excitation_fraction_forward`, or `p_fwd` described as "Excitation fraction
+// (forward)", qualify; `atom_number_forward` and `atom_number_imbalance` do not.
 export function findLissajousChannels(channels) {
   if (!channels) return null;
   const find = (direction) => {
@@ -16,7 +17,7 @@ export function findLissajousChannels(channels) {
       const spec = channels[k] || {};
       if (!NUMERIC.has(spec.type)) return false;
       const text = `${k} ${spec.description || ""}`.toLowerCase();
-      return /atom[ _]?(number|num|n)\b|atoms?\b/.test(text) && re.test(text);
+      return /excitation|excited/.test(text) && re.test(text);
     });
     return keys.sort((a, b) => a.length - b.length)[0] || null;
   };
