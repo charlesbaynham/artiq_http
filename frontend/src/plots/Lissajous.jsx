@@ -165,7 +165,9 @@ function Lissajous({ points, xLabel, yLabel, scanLabel }) {
                 strokeDasharray="5 4"
               />
               <path
-                d={`M${sx(fit.centre.x) - 5},${sy(fit.centre.y)}h10M${sx(fit.centre.x)},${sy(fit.centre.y) - 5}v10`}
+                d={`M${sx(fit.centre.x) - 5},${sy(fit.centre.y)}h10M${sx(
+                  fit.centre.x,
+                )},${sy(fit.centre.y) - 5}v10`}
                 stroke="var(--p-ink50)"
               />
             </>
@@ -184,7 +186,9 @@ function Lissajous({ points, xLabel, yLabel, scanLabel }) {
               r="3.2"
               fill={scanColor(frac(p.s))}
             >
-              <title>{`${scanLabel} ${formatNum(p.s)}: (${formatNum(p.x)}, ${formatNum(p.y)})`}</title>
+              <title>{`${scanLabel} ${formatNum(p.s)}: (${formatNum(
+                p.x,
+              )}, ${formatNum(p.y)})`}</title>
             </circle>
           ))}
 
