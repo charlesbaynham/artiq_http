@@ -610,6 +610,25 @@ _RABI_SCAN_CHANNELS = {
         "display_hints": {"priority": -1},
     },
     "atom_number": {"path": "atom_number", "description": "Atom number", "type": "float", "scale": 1.0, "unit": ""},
+    # The two traps of a differential interferometer. Their presence is what
+    # makes the Plots view offer the Lissajous (forward-vs-backward) view;
+    # hidden from the stacked 1D plots by default like any diagnostic.
+    "excitation_fraction_forward": {
+        "path": "excitation_fraction_forward",
+        "description": "Excitation fraction (forward)",
+        "type": "float",
+        "scale": 1.0,
+        "unit": "",
+        "display_hints": {"priority": -1},
+    },
+    "excitation_fraction_backward": {
+        "path": "excitation_fraction_backward",
+        "description": "Excitation fraction (backward)",
+        "type": "float",
+        "scale": 1.0,
+        "unit": "",
+        "display_hints": {"priority": -1},
+    },
 }
 
 # The scanned axis is rabi.pulse_duration itself (raw seconds, same as the
@@ -651,7 +670,15 @@ def _rabi_sample(t: float, phase_shift: float) -> Dict[str, float]:
     excitation = max(0.0, min(1.0, excitation + random.gauss(0, 0.04)))
     dark_counts = 0.5 + random.gauss(0, 0.03)
     atom_number = 50000.0 + 30000.0 * excitation + random.gauss(0, 3000.0)
-    return {"excitation": excitation, "dark_counts": dark_counts, "atom_number": atom_number}
+    fringe_phase = 2 * math.pi * (t - phase_shift) / _RABI_PERIOD_S
+    return {
+        "excitation": excitation,
+        "dark_counts": dark_counts,
+        "atom_number": atom_number,
+        # Same fringe in both ports, 70 degrees apart: an ellipse, not a line or circle.
+        "excitation_fraction_forward": 0.5 + 0.4 * math.cos(fringe_phase) + random.gauss(0, 0.02),
+        "excitation_fraction_backward": 0.45 + 0.35 * math.cos(fringe_phase + math.radians(70)) + random.gauss(0, 0.02),
+    }
 
 
 def _rabi_scan_plan() -> List[float]:

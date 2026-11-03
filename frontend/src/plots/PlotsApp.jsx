@@ -17,6 +17,8 @@ import DimBadge from "./DimBadge";
 import Plot1D from "./Plot1D";
 import Plot2D from "./Plot2D";
 import Plot0D from "./Plot0D";
+import Lissajous from "./Lissajous";
+import { findLissajousChannels, lissajousPoints } from "./lissajous";
 import {
   CHANNEL_COLOR_VARS,
   extractRid,
@@ -221,6 +223,32 @@ function PlotsApp({
   const fragmentFqn =
     active?.fragmentFqn || prefixMeta[activePrefix]?.fragmentFqn || null;
   const expName = fragmentFqn || (activePrefix || "").replace(/^ndscan\./, "");
+
+  // ── Lissajous view ──────────────────────────────────────────────────────
+  // Offered only for a 1D scan that carries both forward and backward atom
+  // number channels (an interferometer's two output ports).
+  const [view, setView] = useState("scan");
+  const lissajousChannels = useMemo(
+    () => (dims === "1D" ? findLissajousChannels(active?.channels) : null),
+    [dims, active?.channels],
+  );
+  const lissajous = useMemo(() => {
+    if (!lissajousChannels || view !== "lissajous") return null;
+    const axis = active.axes[0];
+    const scan = scaleValues(active.axisValues[0] || [], axisScale(axis));
+    const { forward, backward } = lissajousChannels;
+    const values = (k) =>
+      scaleValues(
+        active.channelData[k]?.values || [],
+        specScale(active.channels[k]),
+      );
+    return {
+      points: lissajousPoints(scan, values(forward), values(backward)),
+      xLabel: active.channels[forward]?.description || forward,
+      yLabel: active.channels[backward]?.description || backward,
+      scanLabel: axisLabel(axis),
+    };
+  }, [lissajousChannels, view, active]);
 
   // ── Channel visibility (persisted per fragment_fqn) ─────────────────────
   // Stable identity for the channel-key list. Each SSE update produces a new
@@ -739,7 +767,7 @@ function PlotsApp({
           onPick={handlePick}
           progress={progressLabel}
           status={status}
-          onCopy={active ? handleCopy : undefined}
+          onCopy={active && !lissajous ? handleCopy : undefined}
         />
       )}
 
@@ -787,8 +815,38 @@ function PlotsApp({
               status={status}
               sseError={sseError}
               timeseries0D={timeseries0D}
+              lissajous={lissajous}
             />
-            {renderGroups && renderGroups.length > 0 && (
+            {lissajousChannels && (
+              <div
+                role="tablist"
+                aria-label="Plot view"
+                style={{
+                  position: "absolute",
+                  top: 6,
+                  left: 6,
+                  zIndex: 10,
+                  display: "flex",
+                  gap: 4,
+                }}
+              >
+                {[
+                  ["scan", "Scan"],
+                  ["lissajous", "Lissajous"],
+                ].map(([id, label]) => (
+                  <button
+                    key={id}
+                    role="tab"
+                    aria-selected={view === id}
+                    className={`p-btn${view === id ? " active" : ""}`}
+                    onClick={() => setView(id)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {!lissajous && renderGroups && renderGroups.length > 0 && (
               <div className="p-plot-size-ctl">
                 <button
                   className="p-btn icon"
@@ -1047,6 +1105,7 @@ function PlotBody({
   status,
   sseError,
   timeseries0D,
+  lissajous,
 }) {
   if (status === "connecting" && !active) {
     return (
@@ -1120,6 +1179,7 @@ function PlotBody({
     }));
     return <Plot0D channels={channels} />;
   }
+  if (dims === "1D" && lissajous) return <Lissajous {...lissajous} />;
   if (dims === "1D") {
     const axis = active.axes[0];
     const xs = scaleValues(active.axisValues[0] || [], axisScale(axis));
@@ -1185,6 +1245,7 @@ PlotBody.propTypes = {
   status: PropTypes.string,
   sseError: PropTypes.string,
   timeseries0D: PropTypes.object,
+  lissajous: PropTypes.object,
 };
 
 ActiveHeader.propTypes = {

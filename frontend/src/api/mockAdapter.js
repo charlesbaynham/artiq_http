@@ -1542,7 +1542,13 @@ function flushHeartbeats() {
 // so the live pane's identity is coherent, not a mismatched leftover demo.
 
 const RABI_SCAN_PREFIX = "ndscan.rid_4823";
-const RABI_SCAN_CHANNEL_KEYS = ["excitation", "dark_counts", "atom_number"];
+const RABI_SCAN_CHANNEL_KEYS = [
+  "excitation",
+  "dark_counts",
+  "atom_number",
+  "excitation_fraction_forward",
+  "excitation_fraction_backward",
+];
 const RABI_SCAN_RANGE = { start: 1e-6, stop: 5e-5, numPoints: 101 };
 const RABI_SCAN_X_POINTS = linspace(
   RABI_SCAN_RANGE.start,
@@ -1564,10 +1570,17 @@ function rabiSample(t, phaseShift) {
   let excitation =
     0.5 - 0.5 * Math.cos((2 * Math.PI * (t - phaseShift)) / RABI_PERIOD_S);
   excitation = Math.max(0, Math.min(1, excitation + gauss(0, 0.04)));
+  const fringePhase = (2 * Math.PI * (t - phaseShift)) / RABI_PERIOD_S;
   return {
     excitation,
     dark_counts: 0.5 + gauss(0, 0.03),
     atom_number: 50000.0 + 30000.0 * excitation + gauss(0, 3000.0),
+    excitation_fraction_forward:
+      0.5 + 0.4 * Math.cos(fringePhase) + gauss(0, 0.02),
+    excitation_fraction_backward:
+      0.45 +
+      0.35 * Math.cos(fringePhase + (70 * Math.PI) / 180) +
+      gauss(0, 0.02),
   };
 }
 
