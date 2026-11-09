@@ -7,7 +7,8 @@ live stream of messages — so "initialised" here means "TCP connection is up".
 
 import asyncio
 import logging
-from typing import Any, Callable, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 from sipyco.broadcast import Receiver
 
@@ -21,12 +22,12 @@ class PersistentBroadcastReceiver:
         self._broadcast_name = broadcast_name
         self._host = host
         self._port = port
-        self._receiver: Optional[Receiver] = None
-        self._reconnect_task: Optional[asyncio.Task] = None
+        self._receiver: Receiver | None = None
+        self._reconnect_task: asyncio.Task | None = None
         self._running = False
         self._connected = False
         self._init_event = asyncio.Event()
-        self._message_callbacks: List[Callable[[Any], None]] = []
+        self._message_callbacks: list[Callable[[Any], None]] = []
 
     async def start(self) -> None:
         if self._running:
@@ -128,7 +129,7 @@ class PersistentBroadcastReceiver:
         try:
             await asyncio.wait_for(self._init_event.wait(), timeout=timeout)
             return True
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return False
 
     def is_connected(self) -> bool:
