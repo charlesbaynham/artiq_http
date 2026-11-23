@@ -57,7 +57,7 @@ def test_logs_endpoint_503_when_not_ready(monkeypatch):
 
 def test_logs_endpoint_empty_when_no_logs(monkeypatch):
     """GET /api/logs returns ``{"logs": []}`` when the buffer is empty."""
-    monkeypatch.setattr(subscriber_manager, "get_logs", lambda: [])
+    monkeypatch.setattr(subscriber_manager, "get_logs", list)
 
     response = client.get("/api/logs")
     assert response.status_code == 200
@@ -181,7 +181,7 @@ def test_logs_filter_combined(monkeypatch):
 
 
 def test_logs_filter_invalid_regex_returns_400(monkeypatch):
-    monkeypatch.setattr(subscriber_manager, "get_logs", lambda: [])
+    monkeypatch.setattr(subscriber_manager, "get_logs", list)
 
     response = client.get("/api/logs?source_regex=[invalid")
     assert response.status_code == 400
