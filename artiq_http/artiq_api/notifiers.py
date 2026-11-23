@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 from fastapi import HTTPException
 
@@ -114,7 +114,7 @@ def _filter_ndscan_always_shown(arginfo: dict) -> dict:
         return arginfo
 
 
-def _extract_ndscan_defaults(arginfo: dict) -> Dict[str, Any]:
+def _extract_ndscan_defaults(arginfo: dict) -> dict[str, Any]:
     """Extract default values from ndscan_params in arginfo.
 
     NDScan experiments store their parameters in a special 'ndscan_params' entry
@@ -168,7 +168,7 @@ def _extract_ndscan_defaults(arginfo: dict) -> Dict[str, Any]:
         return {}
 
 
-async def get_schedule() -> Dict[int, ScheduleItem]:
+async def get_schedule() -> dict[int, ScheduleItem]:
     """Get the current state of the ARTIQ schedule from persistent subscriber
 
     This now uses a persistent subscriber that maintains the schedule in memory,
@@ -185,7 +185,7 @@ async def get_schedule() -> Dict[int, ScheduleItem]:
     try:
         schedule_raw = subscriber_manager.get_schedule()
     except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=f"ARTIQ master not available: {str(e)}")
+        raise HTTPException(status_code=503, detail=f"ARTIQ master not available: {e!s}")
 
     return {k: ScheduleItem.model_validate(v) for k, v in schedule_raw.items()}
 
@@ -218,7 +218,7 @@ async def get_datasets() -> dict:
     try:
         return subscriber_manager.get_datasets()
     except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=f"ARTIQ master not available: {str(e)}")
+        raise HTTPException(status_code=503, detail=f"ARTIQ master not available: {e!s}")
 
 
 async def get_logs() -> list:
@@ -232,10 +232,10 @@ async def get_logs() -> list:
     try:
         return subscriber_manager.get_logs()
     except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=f"ARTIQ master not available: {str(e)}")
+        raise HTTPException(status_code=503, detail=f"ARTIQ master not available: {e!s}")
 
 
-def extract_arginfo_defaults(arginfo: dict) -> Dict[str, Any]:
+def extract_arginfo_defaults(arginfo: dict) -> dict[str, Any]:
     """Extract default values from an ARTIQ arginfo dict.
 
     Iterates over the arginfo mapping and returns a dict of argument names to
@@ -292,7 +292,7 @@ async def get_explist() -> ExperimentList:
         explist_raw = subscriber_manager.get_explist()
         status = subscriber_manager.get_explist_status()
     except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=f"ARTIQ master not available: {str(e)}")
+        raise HTTPException(status_code=503, detail=f"ARTIQ master not available: {e!s}")
 
     experiment_list = []
     for name, data in explist_raw.items():
